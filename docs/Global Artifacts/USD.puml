@@ -1,4 +1,4 @@
-@startuml eCaseDiagram
+@startuml
 left to right direction
 
 ' Atores
@@ -23,6 +23,7 @@ Cliente --> (Consultar histórico de transações)
 ' Casos de o do Administrador
 Administrador --> (Gerir utilizadores)
 Administrador --> (Gerir criptomoedas)
+Administrador --> (Consultar histórico de transações)
 
 
 
