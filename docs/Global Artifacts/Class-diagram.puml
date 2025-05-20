@@ -1,0 +1,85 @@
+@startuml
+title CryptoWalletApp - Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class User {
+  - id: int
+  - name: String
+  - email: String
+  - passwordHash: String
+  - profileImage: String
+  - status: String
+  - role: String
+  - createdAt: DateTime
+}
+
+class Wallet {
+  - id: int
+  - userId: int
+  - balance: double
+  - baseCurrency: String
+}
+
+class WalletCrypto {
+  - id: int
+  - walletId: int
+  - cryptoId: int
+  - quantity: double
+  - avgBuyPrice: double
+}
+
+class Cryptocurrency {
+  - id: int
+  - name: String
+  - symbol: String
+  - currentValue: double
+  - variation24h: double
+  - marketVolume: double
+  - updatedAt: DateTime
+}
+
+class Order {
+  - id: int
+  - walletId: int
+  - cryptoId: int
+  - type: String
+  - quantity: double
+  - price: double
+  - status: String
+  - createdAt: DateTime
+  - expiresAt: DateTime
+}
+
+class Transaction {
+  - id: int
+  - walletId: int
+  - cryptoId: int
+  - type: String
+  - quantity: double
+  - price: double
+  - total: double
+  - profitLoss: double
+  - timestamp: DateTime
+}
+
+class PriceHistory {
+  - id: int
+  - cryptoId: int
+  - value: double
+  - timestamp: DateTime
+}
+
+' Relações
+User --> Wallet : 1..1
+Wallet --> WalletCrypto : 1..*
+Wallet --> Transaction : 1..*
+Wallet --> Order : 1..*
+Cryptocurrency --> PriceHistory : 1..*
+Cryptocurrency --> Order : 1..*
+Cryptocurrency --> Transaction : 1..*
+Cryptocurrency --> WalletCrypto : 1..*
+
+@enduml
