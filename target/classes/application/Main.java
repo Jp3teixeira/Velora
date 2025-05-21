@@ -1,5 +1,6 @@
 package application;
 
+import javafx.scene.image.Image;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -18,9 +19,17 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
 
+        // Configurar o ícone - CAMINHO CORRETO
+        try {
+            primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/moedas.png")));
+        } catch (Exception e) {
+            System.out.println("Ícone não encontrado: " + e.getMessage());
+            e.printStackTrace(); // Mostra mais detalhes do erro
+        }
+
         primaryStage.setTitle("Velora - Gestão de Criptomoedas");
-        primaryStage.setScene(new Scene(root, 800, 600));  // Ajuste para o tamanho do FXML
-        primaryStage.setResizable(false);  // Opcional: impede redimensionamento
+        primaryStage.setScene(new Scene(root, 800, 600));
+        primaryStage.setResizable(false);
         primaryStage.show();
     }
 
