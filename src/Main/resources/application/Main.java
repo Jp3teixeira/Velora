@@ -1,4 +1,4 @@
-
+package application;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -10,8 +10,10 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
-        primaryStage.setTitle("Crypto Wallet App");
-        primaryStage.setScene(new Scene(root, 600, 400));
+
+        primaryStage.setTitle("Velora - Gestão de Criptomoedas");
+        primaryStage.setScene(new Scene(root, 800, 600));  // Ajuste para o tamanho do FXML
+        primaryStage.setResizable(false);  // Opcional: impede redimensionamento
         primaryStage.show();
     }
 
