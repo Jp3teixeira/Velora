@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<AnchorPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="controller.LoginController"
+            prefHeight="600.0" prefWidth="800.0">
+
+    <children>
+        <VBox alignment="TOP_CENTER" spacing="20.0" layoutX="200" layoutY="100">
+            <children>
+                <Label text="Sign in to CryptoWalletApp" style="-fx-font-size: 20px; -fx-font-weight: bold;" />
+
+                <VBox spacing="10.0" style="-fx-background-color: white; -fx-padding: 20; -fx-border-radius: 10; -fx-background-radius: 10; -fx-border-color: #cccccc;">
+                    <children>
+                        <Label text="Username or email address" />
+                        <TextField fx:id="emailField" prefWidth="300" />
+
+                        <HBox alignment="CENTER_LEFT" spacing="50">
+                            <children>
+                                <Label text="Password" />
+                                <Hyperlink text="Forgot Password?" />
+                            </children>
+                        </HBox>
+                        <PasswordField fx:id="passwordField" prefWidth="300" />
+
+                        <Button text="Sign In" onAction="#handleLogin"
+                                style="-fx-background-color: #4C74D6; -fx-text-fill: white; -fx-font-weight: bold;"
+                                prefWidth="300" />
+                    </children>
+                </VBox>
+
+                <HBox alignment="CENTER">
+                    <children>
+                        <Label text="New to CryptoWallet?" />
+                        <Hyperlink text="Create an account" />
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </children>
+</AnchorPane>
