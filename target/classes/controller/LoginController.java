@@ -7,24 +7,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Alert.AlertType;
-import javafx.stage.Stage;
-import javafx.scene.Node;
 
 public class LoginController {
     @FXML
-    private TextField emailField;
+    private TextField emailField;  // Nome deve bater com o fx:id do FXML
     @FXML
-    private PasswordField passwordField;
+    private PasswordField passwordField;  // Nome deve bater com o fx:id do FXML
 
     @FXML
-    private void handleLogin() {
+    private void handleLogin() {  // Nome deve bater com onAction do FXML
         String email = this.emailField.getText();
         String password = this.passwordField.getText();
 
@@ -41,24 +36,8 @@ public class LoginController {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                // Carregar a tela principal
-                try {
-                    // Obter o stage atual
-                    Stage stage = (Stage) emailField.getScene().getWindow();
-
-                    // Carregar a tela principal
-                    // No LoginController:
-                    Parent root = FXMLLoader.load(getClass().getResource("../view/homepage.fxml"));
-                    Scene scene = new Scene(root, 800, 600);
-
-                    // Configurar para fullscreen
-                    stage.setScene(scene);
-                    stage.setFullScreen(true);
-                    stage.setTitle("Velora - Gestão de Criptomoedas");
-                    stage.show();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                showAlert("Login bem-sucedido!", AlertType.INFORMATION);
+                // Aqui você deve carregar a próxima tela
             } else {
                 showAlert("Credenciais inválidas.", AlertType.ERROR);
             }
