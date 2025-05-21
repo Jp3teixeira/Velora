@@ -1,4 +1,4 @@
-# 💸 CryptoWalletApp
+# 💸 Velora
 
 Aplicação desktop desenvolvida em Java com JavaFX para a gestão de carteiras de criptomoedas. Permite aos utilizadores visualizar, comprar e vender criptoativos, consultar o histórico de transações, e acompanhar a evolução do mercado em tempo real.
 
