@@ -72,6 +72,7 @@
                 <HBox alignment="CENTER" spacing="5">
                     <Label text="Novo por aqui?" style="-fx-text-fill: white; -fx-font-size: 12px;"/>
                     <Hyperlink text="Crie uma conta"
+                               onAction="#goToRegister"
                                style="-fx-text-fill: white; -fx-font-weight: bold; -fx-border-color: transparent; -fx-font-size: 12px;"/>
                 </HBox>
             </VBox>
