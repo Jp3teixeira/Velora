@@ -1,0 +1,8 @@
+Main.class
+model\Wallet.class
+controller\LoginController.class
+model\Transacao.class
+model\Historico_Transacao.class
+model\Cryptomoeda.class
+model\Ordem.class
+model\User.class
