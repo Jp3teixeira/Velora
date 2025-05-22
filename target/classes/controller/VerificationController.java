@@ -1,14 +1,17 @@
 package controller;
 
 import Database.DBConnection;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 import utils.SessaoAtual;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Timestamp;
+import java.io.IOException;
+import java.sql.*;
 import java.time.LocalDateTime;
 
 public class VerificationController {
@@ -17,41 +20,62 @@ public class VerificationController {
     private TextField codigoField;
 
     @FXML
-    private Label statusLabel;
-
-    @FXML
-    public void handleVerify() {
+    private void handleVerify(ActionEvent event) {
         String codigoInserido = codigoField.getText().trim();
 
         if (codigoInserido.isEmpty()) {
-            statusLabel.setText("Insira o código de verificação.");
+            showAlert("Por favor, insira o código.");
             return;
         }
 
         try (Connection conn = DBConnection.getConnection()) {
-            String sql = "SELECT * FROM verificacoes_email WHERE id = ? AND codigo = ? AND verificado = FALSE AND expira_em > NOW()";
-            PreparedStatement stmt = conn.prepareStatement(sql);
+            String query = "SELECT codigo, expira_em FROM verificacoes_email WHERE id = ? AND verificado = FALSE";
+            PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setInt(1, SessaoAtual.utilizadorId);
-            stmt.setString(2, codigoInserido);
-
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                // Código válido: atualizar verificado = true e definir data de verificação
-                String update = "UPDATE verificacoes_email SET verificado = TRUE, verificado_em = ? WHERE id = ?";
-                PreparedStatement updateStmt = conn.prepareStatement(update);
-                updateStmt.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
-                updateStmt.setInt(2, SessaoAtual.utilizadorId);
-                updateStmt.executeUpdate();
+                String codigoBD = rs.getString("codigo");
+                Timestamp expira = rs.getTimestamp("expira_em");
 
-                statusLabel.setText("Email verificado com sucesso!");
+                if (LocalDateTime.now().isAfter(expira.toLocalDateTime())) {
+                    showAlert("O código expirou. Solicite um novo.");
+                    return;
+                }
+
+                if (codigoInserido.equals(codigoBD)) {
+                    // Atualiza verificação
+                    String update = "UPDATE verificacoes_email SET verificado = TRUE, verificado_em = CURRENT_TIMESTAMP WHERE id = ?";
+                    PreparedStatement updateStmt = conn.prepareStatement(update);
+                    updateStmt.setInt(1, SessaoAtual.utilizadorId);
+                    updateStmt.executeUpdate();
+
+                    // Redireciona para a homepage
+                    Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
+                    Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                    Scene scene = new Scene(root);
+                    stage.setScene(scene);
+                    stage.setFullScreen(true);
+                    stage.setTitle("Velora - Gestão de Criptomoedas");
+                    stage.show();
+
+                } else {
+                    showAlert("Código incorreto.");
+                }
             } else {
-                statusLabel.setText("Código inválido ou expirado.");
+                showAlert("Nenhum código encontrado ou já foi verificado.");
             }
 
-        } catch (Exception e) {
-            statusLabel.setText("Erro: " + e.getMessage());
+        } catch (SQLException | IOException e) {
             e.printStackTrace();
+            showAlert("Erro: " + e.getMessage());
         }
+    }
+
+    private void showAlert(String mensagem) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText(null);
+        alert.setContentText(mensagem);
+        alert.showAndWait();
     }
 }
