@@ -1,7 +1,7 @@
 // User.java
 package model;
 
-public class User {
+public class SystemUser {
     private int id_utilizador;
     private String nome;
     private String email;
