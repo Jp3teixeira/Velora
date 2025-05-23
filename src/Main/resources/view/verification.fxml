@@ -3,7 +3,7 @@
     <?import javafx.geometry.*?>
     <?import javafx.scene.shape.*?>
 
-    <AnchorPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="controller.VerificationController" prefHeight="600.0" prefWidth="800.0" style="-fx-background-color: transparent;">
+    <AnchorPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="controller.UserManagementController" prefHeight="600.0" prefWidth="800.0" style="-fx-background-color: transparent;">
 
         <!-- Fundo degradê -->
         <Rectangle fx:id="backgroundOverlay" width="800" height="600"

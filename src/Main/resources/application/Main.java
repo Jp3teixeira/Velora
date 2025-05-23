@@ -19,7 +19,7 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
 
-        // Configurar o ícone - CAMINHO CORRETO
+
         try {
             primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/moedas.png")));
         } catch (Exception e) {
