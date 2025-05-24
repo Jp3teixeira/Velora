@@ -1,44 +1,88 @@
-
 package utils;
 
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import javax.mail.*;
+import javax.mail.internet.*;
+import java.util.Properties;
 
 public class EmailSender {
+    // Configurações do Gmail SMTP
+    private static final String GMAIL_USER = "veloraapi@gmail.com"; // Substitua pelo seu e-mail
+    private static final String GMAIL_PASSWORD = "lexp bvwk prcd hsli"; // Use senha de app se tiver 2FA ativado
+    private static final String FROM_NAME = "Velora";
 
-    public static boolean sendVerificationCode(String toEmail, String codigo) {
-        try {
-            URL url = new URL("https://api.brevo.com/v3/smtp/email");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
+    /**
+     * Configuração básica da sessão SMTP
+     */
+    private static Session createSession() {
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "587");
+        props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+        props.put("mail.smtp.ssl.protocols", "TLSv1.2");
 
-            // Substitui abaixo pela tua API key do Brevo
-            String apiKey = " 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";
-            conn.setRequestProperty("api-key", apiKey);
-            conn.setRequestProperty("Content-Type", "application/json");
-
-            String body = "{"
-                    + "\"sender\": {\"name\": \"Velora\", \"email\": \"VeloraAPI@gmail.com\"},"
-                    + "\"to\": [{\"email\": \"" + toEmail + "\"}],"
-                    + "\"subject\": \"Código de Verificação - Velora\","
-                    + "\"htmlContent\": \"<p>Olá!</p><p>O seu código de verificação é: <strong>" + codigo + "</strong></p><p>Velora © 2025</p>\""
-                    + "}";
-
-            try (OutputStream os = conn.getOutputStream()) {
-                byte[] input = body.getBytes("utf-8");
-                os.write(input, 0, input.length);
+        return Session.getInstance(props, new Authenticator() {
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(GMAIL_USER, GMAIL_PASSWORD);
             }
-
-            int code = conn.getResponseCode();
-            return code >= 200 && code < 300;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-
+        });
     }
 
+    /**
+     * Envia código de verificação por e-mail
+     */
+    public static boolean sendVerificationCode(String toEmail, String codigo) {
+        try {
+            Message message = new MimeMessage(createSession());
+            message.setFrom(new InternetAddress(GMAIL_USER, FROM_NAME));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
+            message.setSubject("Código de Verificação - Velora");
+
+            String htmlContent = "<html><body style='font-family: Arial, sans-serif;'>"
+                    + "<h2 style='color: #4B3F72;'>Verificação de E-mail</h2>"
+                    + "<p>Olá!</p>"
+                    + "<p>Seu código de verificação é: <strong>" + codigo + "</strong></p>"
+                    + "<p>Use este código para completar seu cadastro no Velora.</p>"
+                    + "<p>Velora © 2025</p>"
+                    + "</body></html>";
+
+            message.setContent(htmlContent, "text/html; charset=utf-8");
+            Transport.send(message);
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("Erro ao enviar e-mail de verificação: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Envia código de recuperação de senha
+     */
+    public static boolean sendRecoveryCode(String toEmail, String codigo) {
+        try {
+            Message message = new MimeMessage(createSession());
+            message.setFrom(new InternetAddress(GMAIL_USER, FROM_NAME));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
+            message.setSubject("Recuperação de Senha - Velora");
+
+            String htmlContent = "<html><body style='font-family: Arial, sans-serif;'>"
+                    + "<h2 style='color: #4B3F72;'>Recuperação de Senha</h2>"
+                    + "<p>Olá!</p>"
+                    + "<p>Você solicitou a recuperação de senha. Seu código é: <strong>" + codigo + "</strong></p>"
+                    + "<p style='color: #666;'>Este código expirará em 1 hora.</p>"
+                    + "<p>Se não foi você quem solicitou, por favor ignore este e-mail.</p>"
+                    + "<p>Velora © 2025</p>"
+                    + "</body></html>";
+
+            message.setContent(htmlContent, "text/html; charset=utf-8");
+            Transport.send(message);
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("Erro ao enviar e-mail de recuperação: " + e.getMessage());
+            return false;
+        }
+    }
 }

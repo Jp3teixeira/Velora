@@ -10,17 +10,21 @@
             prefHeight="400.0" prefWidth="600.0"
             style="-fx-background-color: linear-gradient(to bottom, #4B3F72, #232323);">
 
-    <VBox alignment="CENTER" spacing="20" layoutX="100" layoutY="80" prefWidth="400" prefHeight="240">
-        <Label text="Recuperar Senha"
+    <VBox alignment="CENTER" spacing="20" layoutX="150" layoutY="80" prefWidth="300">
+        <Label text="Verificação de Código"
                style="-fx-font-size: 24px; -fx-text-fill: white; -fx-font-weight: bold;"/>
 
-        <TextField fx:id="forgotEmailField" promptText="Digite seu e-mail"
+        <Label text="Insira o código de 6 dígitos enviado para seu e-mail"
+               style="-fx-text-fill: white; -fx-wrap-text: true;"/>
+
+        <TextField fx:id="validationCodeField"
+                   promptText="Código de 6 dígitos"
                    style="-fx-background-radius: 10; -fx-padding: 10;"/>
 
-        <Button text="Enviar link de recuperação"
-                onAction="#handleEnviarLink"
+        <Button text="Validar Código"
+                onAction="#handleValidarCodigoRecuperacao"
                 style="-fx-background-color: #EAEAEA; -fx-text-fill: #4B3F72; -fx-font-weight: bold;"/>
 
-        <Label fx:id="statusLabel" text="" style="-fx-text-fill: white;"/>
+        <Label fx:id="validationStatusLabel" text="" style="-fx-text-fill: white;"/>
     </VBox>
 </AnchorPane>
