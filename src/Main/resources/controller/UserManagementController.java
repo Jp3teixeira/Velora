@@ -15,6 +15,7 @@ import utils.SessaoAtual;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.Random;
@@ -250,6 +251,13 @@ public class UserManagementController {
                     SessaoAtual.email = rs.getString("email");
                     SessaoAtual.tipo = rs.getString("tipo");
 
+                    // Carregar saldo da carteira se for cliente
+                    if ("Cliente".equals(SessaoAtual.tipo)) {
+                        util.WalletRepository walletRepo = new util.WalletRepository();
+                        BigDecimal saldo = walletRepo.getUserWalletBalance(SessaoAtual.utilizadorId);
+                        SessaoAtual.saldoCarteira = saldo;
+                    }
+
                     Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
                     Stage stage = (Stage) loginEmailField.getScene().getWindow();
                     stage.setScene(new Scene(root, 800, 600));
@@ -388,6 +396,17 @@ public class UserManagementController {
                 if (rs.next()) {
                     int utilizadorId = rs.getInt(1);
                     SessaoAtual.utilizadorId = utilizadorId;
+
+                    // CRIAR CARTEIRA AUTOMATICAMENTE PARA CLIENTES
+                    if ("Cliente".equals("Cliente")) { // Ou qualquer lógica que determine se é cliente
+                        util.WalletRepository walletRepo = new util.WalletRepository();
+                        boolean walletCreated = walletRepo.createWalletForUser(utilizadorId);
+
+                        if (!walletCreated) {
+                            showAlert("Conta criada, mas falha ao criar carteira.");
+                            return;
+                        }
+                    }
 
                     String codigo = String.format("%06d", new Random().nextInt(999999));
                     LocalDateTime expira = LocalDateTime.now().plusDays(1);
