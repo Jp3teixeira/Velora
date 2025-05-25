@@ -6,25 +6,21 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
-import javafx.fxml.FXMLLoader;
+import utils.MarketSimulator;
+
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
+        // ✅ Inicia o agendador de simulação
+        MarketSimulator.iniciarAgendador();
+
         Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
 
-
         try {
-            primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/moedas.png")));
+            primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/moedas.png")));
         } catch (Exception e) {
             System.out.println("Ícone não encontrado: " + e.getMessage());
-            e.printStackTrace(); // Mostra mais detalhes do erro
+            e.printStackTrace();
         }
 
         primaryStage.setTitle("Velora - Gestão de Criptomoedas");
@@ -37,4 +33,3 @@ public class Main extends Application {
         launch(args);
     }
 }
-

@@ -26,7 +26,9 @@
 
         <Button text="Home" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Portfolio" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
-        <Button text="Trade" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+        <Button fx:id="marketButton" text="Market"
+                onAction="#goToMarket"
+                style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Research" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Transfer &amp; Pay" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Performance &amp; Reports" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>

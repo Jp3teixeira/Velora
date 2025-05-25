@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import java.net.URL?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="controller.MarketController"
+            style="-fx-background-color: #121212;">
+    <stylesheets>
+        <URL value="@/view/css/market.css" />
+    </stylesheets>
+
+
+
+
+
+
+    <top>
+        <HBox style="-fx-background-color: #2c3e50; -fx-padding: 12 20;"
+              spacing="30" alignment="CENTER_LEFT"
+              AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+            <Label text="Velora" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18;"/>
+
+            <Button fx:id="homeButton" text="Home"
+                    onAction="#goToHome"
+                    style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+            <Button text="Portfolio" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+            <Button fx:id="marketButton" text="Market"
+                    style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+            <Button text="Research" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+            <Button text="Transfer &amp; Pay" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+            <Button text="Performance &amp; Reports" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+            <Button text="Education" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Account" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+        </HBox>
+    </top>
+
+
+    <left>
+        <VBox spacing="12" style="-fx-padding: 20;" prefWidth="250">
+            <Label text="Mercados" styleClass="title-mercado" />
+            <ListView fx:id="watchlistView" styleClass="watchlist" VBox.vgrow="ALWAYS" />
+        </VBox>
+    </left>
+
+
+    <center>
+        <VBox spacing="20" alignment="TOP_CENTER" style="-fx-padding: 30;" VBox.vgrow="ALWAYS">
+
+            <!-- Título -->
+            <HBox spacing="15" alignment="CENTER">
+                <ImageView fx:id="iconMoeda" fitWidth="28" fitHeight="28" preserveRatio="true" />
+                <Label fx:id="marketTitle" text="Seleciona uma moeda"
+                       style="-fx-text-fill: white; -fx-font-size: 24; -fx-font-weight: bold;" />
+            </HBox>
+
+            <!-- Gráfico -->
+            <ScrollPane hbarPolicy="ALWAYS" vbarPolicy="NEVER"
+                        fitToHeight="true" fitToWidth="false"
+                        style="-fx-background: #1e1e1e;">
+                <LineChart fx:id="marketChart"
+                           title="Market Chart"
+                           prefHeight="600" prefWidth="1200"
+                           styleClass="chart-style">
+                    <xAxis>
+                        <CategoryAxis label="Hora"/>
+                    </xAxis>
+                    <yAxis>
+                        <NumberAxis fx:id="yAxis" label="Valor (EUR)"/>
+                    </yAxis>
+                </LineChart>
+            </ScrollPane>
+
+            <!-- Dados -->
+            <HBox spacing="40" alignment="CENTER" style="-fx-padding: 10 0 20 0;">
+                <VBox alignment="CENTER">
+                    <Label text="Valor Atual" style="-fx-text-fill: gray; -fx-font-size: 13;" />
+                    <Label fx:id="labelValorAtual" text="-" style="-fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold;" />
+                </VBox>
+                <VBox alignment="CENTER">
+                    <Label text="Variação 24h" style="-fx-text-fill: gray; -fx-font-size: 13;" />
+                    <Label fx:id="labelVariacao" text="-" style="-fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold;" />
+                </VBox>
+                <VBox alignment="CENTER">
+                    <Label text="Volume Mercado" style="-fx-text-fill: gray; -fx-font-size: 13;" />
+                    <Label fx:id="labelVolume" text="-" style="-fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold;" />
+                </VBox>
+            </HBox>
+
+            <!-- Filtros -->
+            <HBox spacing="8" alignment="CENTER">
+                <ToggleButton text="Últimas 24h" fx:id="btn1D" styleClass="toggle-button filtro-toggle"/>
+                <ToggleButton text="Últimos 7 dias" fx:id="btn1W" styleClass="toggle-button filtro-toggle"/>
+                <ToggleButton text="Último mês" fx:id="btn1M" styleClass="toggle-button filtro-toggle"/>
+                <ToggleButton text="Últimos 3 meses" fx:id="btn3M" styleClass="toggle-button filtro-toggle"/>
+                <ToggleButton text="Último ano" fx:id="btn1Y" styleClass="toggle-button filtro-toggle"/>
+                <ToggleButton text="Todos os dados" fx:id="btnMAX" styleClass="toggle-button filtro-toggle"/>
+            </HBox>
+        </VBox>
+    </center>
+</BorderPane>

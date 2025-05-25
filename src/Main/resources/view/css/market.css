@@ -1,0 +1,88 @@
+/* Geral */
+.root {
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+.chart {
+    -fx-background-color: #121212;
+}
+
+.chart-plot-background {
+    -fx-background-color: #1e1e1e;
+}
+
+.chart-vertical-grid-lines,
+.chart-horizontal-grid-lines {
+    -fx-stroke: #2a2a2a;
+}
+
+.default-color0.chart-series-line {
+    -fx-stroke: #9100ff;
+    -fx-stroke-width: 2px;
+}
+
+.default-color0.chart-line-symbol {
+    -fx-background-color: white, #9100ff;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 6px;
+}
+
+/* Toggle Buttons */
+.toggle-button,
+.filtro-toggle {
+    -fx-background-color: #2c2c2c;
+    -fx-text-fill: white;
+    -fx-background-radius: 8;
+    -fx-font-size: 13px;
+    -fx-padding: 6 14;
+    -fx-border-color: transparent;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
+}
+
+.toggle-button:selected,
+.filtro-toggle:selected {
+    -fx-background-color: #9100ff;
+    -fx-text-fill: black;
+}
+
+/* Botões de ação */
+.button,
+.action-button {
+    -fx-background-radius: 12;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-padding: 6 16;
+    -fx-text-fill: white;
+}
+
+
+
+/* ListView */
+.list-view.watchlist {
+    -fx-background-color: #1a1a1a;
+    -fx-control-inner-background: #1a1a1a;
+    -fx-border-color: transparent;
+}
+
+.list-cell {
+    -fx-padding: 10 12;
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+}
+
+.list-cell:hover {
+    -fx-background-color: #2e2e2e;
+}
+
+.list-cell:selected {
+    -fx-background-color: #9100ff;
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+}
+
+/* Título lista mercados */
+.title-mercado {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
