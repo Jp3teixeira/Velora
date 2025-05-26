@@ -1,5 +1,6 @@
 package controller;
 
+import javafx.animation.FadeTransition;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -14,10 +15,12 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.application.Platform;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import model.Moeda;
 import Repository.MarketRepository;
@@ -35,15 +38,12 @@ public class MarketController implements Initializable {
     @FXML private ToggleButton btn3M;
     @FXML private ToggleButton btn1Y;
     @FXML private ToggleButton btnMAX;
-
     @FXML private ImageView iconMoeda;
     @FXML private Label labelValorAtual;
     @FXML private Label labelVariacao;
     @FXML private Label labelVolume;
     @FXML private ListView<Moeda> watchlistView;
     @FXML private Label marketTitle;
-    @FXML private Button buyButton;
-    @FXML private Button sellButton;
     @FXML private LineChart<String, Number> marketChart;
 
     private ObservableList<Moeda> listaMoedas = FXCollections.observableArrayList();
@@ -57,7 +57,53 @@ public class MarketController implements Initializable {
         watchlistView.setItems(listaMoedas);
         watchlistView.getSelectionModel().selectFirst();
 
+        // 💡 Personaliza a célula com ícone + nome da moeda
+        watchlistView.setCellFactory(param -> new ListCell<>() {
+            private final HBox hBox = new HBox(10);
+            private final ImageView imageView = new ImageView();
+            private final VBox vBox = new VBox(2);
+            private final Label labelNome = new Label();
+            private final Label labelValor = new Label();
+
+            {
+                imageView.setFitHeight(24);
+                imageView.setFitWidth(24);
+                labelNome.getStyleClass().add("nome-moeda");
+                labelValor.getStyleClass().add("valor-moeda");
+                vBox.getChildren().addAll(labelNome, labelValor);
+                hBox.getChildren().addAll(imageView, vBox);
+            }
+
+            @Override
+            protected void updateItem(Moeda moeda, boolean empty) {
+                super.updateItem(moeda, empty);
+
+                if (empty || moeda == null) {
+                    setGraphic(null);
+                } else {
+                    labelNome.setText(moeda.getNome());
+                    labelValor.setText(String.format("$%.2f", moeda.getValorAtual()));
+
+                    String path = "/icons/" + moeda.getSimbolo().toLowerCase() + ".png";
+                    try {
+                        Image image = new Image(getClass().getResourceAsStream(path));
+                        imageView.setImage(image);
+                    } catch (Exception e) {
+                        imageView.setImage(null);
+                    }
+
+                    setGraphic(hBox);
+                }
+            }
+        });
+
         setupToggleButtons();
+
+        moedaAtualSelecionada = watchlistView.getSelectionModel().getSelectedItem();
+        if (moedaAtualSelecionada != null) {
+            atualizarInformacoesMoeda();
+            aplicarFiltro("MAX");
+        }
 
         watchlistView.setOnMouseClicked(event -> {
             moedaAtualSelecionada = watchlistView.getSelectionModel().getSelectedItem();
@@ -66,8 +112,6 @@ public class MarketController implements Initializable {
                 aplicarFiltro("MAX");
             }
         });
-
-
     }
 
     private void setupToggleButtons() {
@@ -95,11 +139,9 @@ public class MarketController implements Initializable {
         labelVolume.setText(String.format("$%,.2f", moedaAtualSelecionada.getVolumeMercado()));
 
         if (moedaAtualSelecionada.getVariacao24h().doubleValue() >= 0) {
-            labelVariacao.getStyleClass().removeAll("negative");
-            labelVariacao.getStyleClass().add("positive");
+            labelVariacao.getStyleClass().setAll("label-variacao-positiva");
         } else {
-            labelVariacao.getStyleClass().removeAll("positive");
-            labelVariacao.getStyleClass().add("negative");
+            labelVariacao.getStyleClass().setAll("label-variacao-negativa");
         }
 
         try {
@@ -131,19 +173,50 @@ public class MarketController implements Initializable {
             Tooltip tooltip = new Tooltip(String.format("Hora: %s\nValor: $%.2f",
                     ponto.getXValue(), ponto.getYValue().doubleValue()));
             tooltip.setShowDelay(Duration.millis(50));
-            tooltip.setStyle("-fx-background-color: #2c2c2c; -fx-text-fill: white;");
+            tooltip.setStyle("""
+             -fx-background-color: #1f1f1f;
+             -fx-text-fill: #f0f0f0;
+            -fx-font-size: 12px;
+            -fx-padding: 10;
+            -fx-border-color: #b892ff;
+            -fx-border-width: 1;
+            -fx-border-radius: 6;
+            -fx-background-radius: 6;
+""");
 
             ponto.nodeProperty().addListener((obs, oldNode, newNode) -> {
                 if (newNode != null) {
                     Tooltip.install(newNode, tooltip);
                     newNode.setStyle("-fx-background-color: white, #B892FF; -fx-background-radius: 6px;");
                     newNode.setEffect(new DropShadow(5, Color.web("#4B3F72")));
+
+                    //Interação ao passar o rato
+                    newNode.setOnMouseEntered(e -> {
+                        newNode.setScaleX(1.5);
+                        newNode.setScaleY(1.5);
+                    });
+                    newNode.setOnMouseExited(e -> {
+                        newNode.setScaleX(1.0);
+                        newNode.setScaleY(1.0);
+                    });
                 }
             });
         }
 
-        marketChart.getData().add(serie);
+
         marketChart.setAnimated(false);
+        marketChart.getData().add(serie);
+
+        // 🔥 Fade-in da linha do gráfico
+        serie.nodeProperty().addListener((obs, oldNode, newNode) -> {
+            if (newNode != null) {
+                newNode.setOpacity(0);
+                FadeTransition ft = new FadeTransition(Duration.millis(500), newNode);
+                ft.setFromValue(0);
+                ft.setToValue(1);
+                ft.play();
+            }
+        });
 
         Platform.runLater(() -> {
             Node chartLine = marketChart.lookup(".chart-series-line");
@@ -157,9 +230,11 @@ public class MarketController implements Initializable {
             }
         });
     }
+
+
     public void goToHome(ActionEvent event) {
         try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml")); //
+            Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.show();
@@ -167,6 +242,4 @@ public class MarketController implements Initializable {
             e.printStackTrace();
         }
     }
-
-
 }

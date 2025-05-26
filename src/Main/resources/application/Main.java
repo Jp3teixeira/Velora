@@ -11,7 +11,7 @@ import utils.MarketSimulator;
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // ✅ Inicia o agendador de simulação
+        // Inicia o algoritmo (atualiza de hora em hora)
         MarketSimulator.iniciarAgendador();
 
         Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
