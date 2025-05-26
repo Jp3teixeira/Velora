@@ -4,8 +4,9 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
-<?import java.net.URL?>
 
+
+<?import java.net.URL?>
 <BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="controller.MarketController"
             style="-fx-background-color: #121212;">
     <stylesheets>
@@ -91,4 +92,5 @@
             </HBox>
         </VBox>
     </center>
+
 </BorderPane>

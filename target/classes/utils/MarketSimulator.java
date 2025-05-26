@@ -12,10 +12,14 @@ import java.util.concurrent.TimeUnit;
 
 public class MarketSimulator {
 
+    private static boolean agendadorIniciado = false;
+
     public static void simularValores() {
         String select = "SELECT id_moeda FROM moeda";
         String selectUltimo = "SELECT valor FROM historico_valores WHERE id_moeda = ? ORDER BY timestamp DESC LIMIT 1";
         String insert = "INSERT INTO historico_valores (id_moeda, valor, volume) VALUES (?, ?, ?)";
+
+        int moedasProcessadas = 0;
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmtSelectMoedas = conn.prepareStatement(select);
@@ -25,8 +29,9 @@ public class MarketSimulator {
 
             while (rsMoedas.next()) {
                 int idMoeda = rsMoedas.getInt("id_moeda");
+                moedasProcessadas++;
 
-                double valorAnterior = 0;
+                double valorAnterior;
 
                 try (PreparedStatement stmtUltimo = conn.prepareStatement(selectUltimo)) {
                     stmtUltimo.setInt(1, idMoeda);
@@ -53,7 +58,14 @@ public class MarketSimulator {
                 }
             }
 
-            System.out.println("✔ Simulação de mercado concluída com sucesso.");
+            // 🔥 Limpar registos com mais de 6 meses
+            try (PreparedStatement stmtLimpar = conn.prepareStatement(
+                    "DELETE FROM historico_valores WHERE timestamp < NOW() - INTERVAL 6 MONTH")) {
+                int apagados = stmtLimpar.executeUpdate();
+                System.out.println("🧹 Registos antigos apagados: " + apagados);
+            }
+
+            System.out.println("✔ Simulação concluída. Moedas processadas: " + moedasProcessadas);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -61,13 +73,13 @@ public class MarketSimulator {
     }
 
     public static void iniciarAgendador() {
+        if (agendadorIniciado) return;
+        agendadorIniciado = true;
+
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-        scheduler.scheduleAtFixedRate(() -> {
-            simularValores();
-        }, 0, 1, TimeUnit.HOURS);  // executa agora e depois a cada 1 hora
+        scheduler.scheduleAtFixedRate(MarketSimulator::simularValores, 0, 1, TimeUnit.HOURS);
 
         System.out.println("⏳ Agendador de simulação de mercado iniciado.");
     }
-
 }

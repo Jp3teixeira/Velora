@@ -418,7 +418,7 @@ public class UserManagementController {
             stage.setScene(scene);
 
             // fullscreen
-            stage.setMaximized(true);
+            stage.setFullScreen(true);
 
 
             stage.show();

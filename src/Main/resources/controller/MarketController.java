@@ -1,6 +1,9 @@
 package controller;
 
 import javafx.animation.FadeTransition;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -8,42 +11,32 @@ import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.effect.DropShadow;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import javafx.application.Platform;
-import javafx.scene.effect.DropShadow;
-import javafx.scene.layout.HBox;
-import javafx.scene.paint.Color;
 import model.Moeda;
 import Repository.MarketRepository;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.ResourceBundle;
 import java.util.List;
+import java.util.ResourceBundle;
 
 public class MarketController implements Initializable {
 
-    @FXML private ToggleButton btn1D;
-    @FXML private ToggleButton btn1W;
-    @FXML private ToggleButton btn1M;
-    @FXML private ToggleButton btn3M;
-    @FXML private ToggleButton btn1Y;
-    @FXML private ToggleButton btnMAX;
+    @FXML private ToggleButton btn1D, btn1W, btn1M, btn3M, btn1Y, btnMAX;
     @FXML private ImageView iconMoeda;
-    @FXML private Label labelValorAtual;
-    @FXML private Label labelVariacao;
-    @FXML private Label labelVolume;
+    @FXML private Label labelValorAtual, labelVariacao, labelVolume, marketTitle;
     @FXML private ListView<Moeda> watchlistView;
-    @FXML private Label marketTitle;
     @FXML private LineChart<String, Number> marketChart;
 
     private ObservableList<Moeda> listaMoedas = FXCollections.observableArrayList();
@@ -51,13 +44,11 @@ public class MarketController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        marketChart.getStylesheets().add(getClass().getResource("/view/css/market.css").toExternalForm());
-
+        // Carregar moedas
         listaMoedas.addAll(MarketRepository.getTodasAsMoedas());
         watchlistView.setItems(listaMoedas);
-        watchlistView.getSelectionModel().selectFirst();
 
-        // 💡 Personaliza a célula com ícone + nome da moeda
+        // Personalização visual da lista
         watchlistView.setCellFactory(param -> new ListCell<>() {
             private final HBox hBox = new HBox(10);
             private final ImageView imageView = new ImageView();
@@ -83,15 +74,12 @@ public class MarketController implements Initializable {
                 } else {
                     labelNome.setText(moeda.getNome());
                     labelValor.setText(String.format("$%.2f", moeda.getValorAtual()));
-
-                    String path = "/icons/" + moeda.getSimbolo().toLowerCase() + ".png";
                     try {
-                        Image image = new Image(getClass().getResourceAsStream(path));
-                        imageView.setImage(image);
+                        String path = "/icons/" + moeda.getSimbolo().toLowerCase() + ".png";
+                        imageView.setImage(new Image(getClass().getResourceAsStream(path)));
                     } catch (Exception e) {
                         imageView.setImage(null);
                     }
-
                     setGraphic(hBox);
                 }
             }
@@ -99,15 +87,11 @@ public class MarketController implements Initializable {
 
         setupToggleButtons();
 
-        moedaAtualSelecionada = watchlistView.getSelectionModel().getSelectedItem();
-        if (moedaAtualSelecionada != null) {
-            atualizarInformacoesMoeda();
-            aplicarFiltro("MAX");
-        }
-
+        // Só atualiza ao clicar em nova moeda
         watchlistView.setOnMouseClicked(event -> {
-            moedaAtualSelecionada = watchlistView.getSelectionModel().getSelectedItem();
-            if (moedaAtualSelecionada != null) {
+            Moeda selecionada = watchlistView.getSelectionModel().getSelectedItem();
+            if (selecionada != null && !selecionada.equals(moedaAtualSelecionada)) {
+                moedaAtualSelecionada = selecionada;
                 atualizarInformacoesMoeda();
                 aplicarFiltro("MAX");
             }
@@ -174,15 +158,15 @@ public class MarketController implements Initializable {
                     ponto.getXValue(), ponto.getYValue().doubleValue()));
             tooltip.setShowDelay(Duration.millis(50));
             tooltip.setStyle("""
-             -fx-background-color: #1f1f1f;
-             -fx-text-fill: #f0f0f0;
-            -fx-font-size: 12px;
-            -fx-padding: 10;
-            -fx-border-color: #b892ff;
-            -fx-border-width: 1;
-            -fx-border-radius: 6;
-            -fx-background-radius: 6;
-""");
+                 -fx-background-color: #1f1f1f;
+                 -fx-text-fill: #f0f0f0;
+                 -fx-font-size: 12px;
+                 -fx-padding: 10;
+                 -fx-border-color: #b892ff;
+                 -fx-border-width: 1;
+                 -fx-border-radius: 6;
+                 -fx-background-radius: 6;
+            """);
 
             ponto.nodeProperty().addListener((obs, oldNode, newNode) -> {
                 if (newNode != null) {
@@ -190,7 +174,6 @@ public class MarketController implements Initializable {
                     newNode.setStyle("-fx-background-color: white, #B892FF; -fx-background-radius: 6px;");
                     newNode.setEffect(new DropShadow(5, Color.web("#4B3F72")));
 
-                    //Interação ao passar o rato
                     newNode.setOnMouseEntered(e -> {
                         newNode.setScaleX(1.5);
                         newNode.setScaleY(1.5);
@@ -203,11 +186,9 @@ public class MarketController implements Initializable {
             });
         }
 
-
         marketChart.setAnimated(false);
         marketChart.getData().add(serie);
 
-        // 🔥 Fade-in da linha do gráfico
         serie.nodeProperty().addListener((obs, oldNode, newNode) -> {
             if (newNode != null) {
                 newNode.setOpacity(0);
@@ -215,31 +196,38 @@ public class MarketController implements Initializable {
                 ft.setFromValue(0);
                 ft.setToValue(1);
                 ft.play();
-            }
-        });
 
-        Platform.runLater(() -> {
-            Node chartLine = marketChart.lookup(".chart-series-line");
-            if (chartLine != null) {
-                chartLine.setStyle("-fx-stroke: #B892FF; -fx-stroke-width: 2px;");
-            }
+                Platform.runLater(() -> {
+                    Node chartLine = marketChart.lookup(".chart-series-line");
+                    if (chartLine != null) {
+                        chartLine.setStyle("-fx-stroke: #B892FF; -fx-stroke-width: 2px;");
+                    }
 
-            Node chartSymbol = marketChart.lookup(".chart-line-symbol");
-            if (chartSymbol != null) {
-                chartSymbol.setStyle("-fx-background-color: #B892FF, white;");
+                    Node chartSymbol = marketChart.lookup(".chart-line-symbol");
+                    if (chartSymbol != null) {
+                        chartSymbol.setStyle("-fx-background-color: #B892FF, white;");
+                    }
+                });
             }
         });
     }
-
 
     public void goToHome(ActionEvent event) {
         try {
             Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
+            Scene novaCena = new Scene(root);
+
+            stage.setScene(novaCena);
+
+            //  fullscreen
+            stage.setFullScreen(true);
+            stage.setMaximized(true);  // mais comum, para ocupar todo o ecrã
+
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 }
