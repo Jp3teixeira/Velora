@@ -1,0 +1,128 @@
+.root {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-background-color: #121212;
+}
+
+/* Gráfico */
+.chart {
+    -fx-background-color: #121212;
+}
+.chart-plot-background {
+    -fx-background-color: #1b1b1b;
+}
+.chart-vertical-grid-lines,
+.chart-horizontal-grid-lines {
+    -fx-stroke: #2a2a2a;
+}
+.default-color0.chart-series-line {
+    -fx-stroke: #b892ff;
+    -fx-stroke-width: 2px;
+}
+.default-color0.chart-line-symbol {
+    -fx-background-color: white, #b892ff;
+    -fx-background-radius: 6px;
+}
+
+/* Toggle Buttons + Hover */
+.toggle-button,
+.filtro-toggle {
+    -fx-background-color: #2a2a2a;
+    -fx-text-fill: #f0f0f0;
+    -fx-background-radius: 8;
+    -fx-font-size: 13px;
+    -fx-padding: 6 14;
+    -fx-border-color: transparent;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
+    -fx-cursor: hand;
+    -fx-transition: all 0.2s ease-in-out;
+}
+.filtro-toggle:hover,
+.toggle-button:hover {
+    -fx-background-color: #3a3a3a;
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+.toggle-button:selected,
+.filtro-toggle:selected {
+    -fx-background-color: #b892ff;
+    -fx-text-fill: #121212;
+}
+
+/* Menu Buttons */
+.menu-button {
+    -fx-text-fill: #e0e0e0;
+    -fx-background-color: transparent;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-padding: 6 10;
+    -fx-transition: all 0.2s ease-in-out;
+}
+.menu-button:hover {
+    -fx-text-fill: #b892ff;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* Watchlist */
+.list-view.watchlist {
+    -fx-background-color: #1a1a1a;
+    -fx-control-inner-background: #1a1a1a;
+    -fx-border-color: transparent;
+}
+.list-cell {
+    -fx-padding: 10 12;
+    -fx-background-color: transparent;
+    -fx-text-fill: #f0f0f0;
+    -fx-cursor: hand;
+    -fx-transition: all 0.2s ease-in-out;
+}
+.list-cell:hover {
+    -fx-background-color: #2e2e2e;
+}
+.list-cell:selected {
+    -fx-background-color: #b892ff;
+    -fx-text-fill: #121212;
+    -fx-font-weight: bold;
+}
+
+/* Título lista mercados */
+.title-mercado {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+
+/* Valores principais */
+.label-valor {
+    -fx-text-fill: #b892ff;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+.label-variacao-positiva {
+    -fx-text-fill: #7bd88f;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+.label-variacao-negativa {
+    -fx-text-fill: #ff6b6b;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+.label-volume {
+    -fx-text-fill: #bbbbbb;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+/* Watchlist: Nome + Valor */
+.nome-moeda {
+    -fx-text-fill: #f0f0f0;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+.valor-moeda {
+    -fx-text-fill: #bbbbbb;
+    -fx-font-size: 12px;
+
+
+}

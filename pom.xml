@@ -15,6 +15,14 @@
         <javafx.version>17.0.8</javafx.version>
     </properties>
 
+    <repositories>
+        <!-- JitPack para ChartsFX -->
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <!-- JavaFX -->
         <dependency>
@@ -35,7 +43,7 @@
             <version>8.0.33</version>
         </dependency>
 
-        <!-- BCrypt para hashing de passwords -->
+        <!-- BCrypt para hashing the passwords -->
         <dependency>
             <groupId>org.mindrot</groupId>
             <artifactId>jbcrypt</artifactId>
@@ -55,6 +63,14 @@
             <artifactId>javax.mail</artifactId>
             <version>1.6.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
+
+
 
 
     </dependencies>

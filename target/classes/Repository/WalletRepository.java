@@ -1,5 +1,5 @@
 // src/main/java/repository/WalletRepository.java
-package util;
+package Repository;
 
 import Database.DBConnection;
 import java.math.BigDecimal;
