@@ -17,6 +17,7 @@ import Repository.WalletRepository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.regex.Pattern;
@@ -446,5 +447,35 @@ public class UserManagementController {
         alert.setHeaderText(null);
         alert.setContentText(mensagem);
         alert.showAndWait();
+    }
+
+    // Componentes da Wallet
+    @FXML private Label balanceLabel;
+    @FXML private TableView<?> cryptoTable;
+    @FXML private TableView<?> transactionTable;
+
+    // Método de inicialização
+    @FXML
+    public void initialize() {
+        if (balanceLabel != null) { // Só executa se estiver na tela da carteira
+            balanceLabel.setText("€ " + SessaoAtual.saldoCarteira);
+            // Configurar tabelas...
+        }
+    }
+    @FXML
+    private void goToWallet(ActionEvent event) {
+        try {
+            URL url = getClass().getResource("/view/wallet.fxml");
+            if (url == null) {
+                throw new IOException("Arquivo wallet.fxml não encontrado em /view/");
+            }
+            Parent root = FXMLLoader.load(url);
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setMaximized(true);
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Erro crítico: " + e.getMessage(), AlertType.ERROR); // Mensagem detalhada
+        }
     }
 }

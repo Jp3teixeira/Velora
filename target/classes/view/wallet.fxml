@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.paint.Color?>
+
+<?import java.net.URL?>
+<?import javafx.scene.image.ImageView?>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="controller.UserManagementController"
+            prefWidth="1200" prefHeight="800"
+            style="-fx-background-color: #121212;">
+
+    <stylesheets>
+        <URL value="@/view/css/wallet.css"/>
+    </stylesheets>
+
+    <!-- TOPO: Cabeçalho Moderno -->
+    <top>
+        <VBox spacing="15" style="-fx-background-color: #1a1a1a;">
+            <padding>
+                <Insets top="25" right="30" bottom="25" left="30"/>
+            </padding>
+
+            <HBox spacing="20" alignment="CENTER_LEFT">
+                <ImageView fitWidth="40" fitHeight="40" preserveRatio="true"
+                           style="-fx-effect: dropshadow(gaussian, #2563eb, 10, 0.5, 0, 0);">
+                    <!-- Adicione ícone da carteira aqui -->
+                </ImageView>
+
+                <VBox>
+                    <Label text="CARTEIRA DIGITAL"
+                           style="-fx-text-fill: #94a3b8; -fx-font-size: 14px; -fx-font-weight: medium;"/>
+                    <Label fx:id="balanceLabel" text="€ 0,00"
+                           style="-fx-text-fill: #e2e8f0; -fx-font-size: 36px; -fx-font-weight: bold;"/>
+                </VBox>
+            </HBox>
+
+            <HBox spacing="15" alignment="CENTER_RIGHT">
+                <Button text="DEPOSITAR" fx:id="depositButton" styleClass="action-button deposit"/>
+                <Button text="RETIRAR" fx:id="withdrawButton" styleClass="action-button withdraw"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- CENTRO: Grid de Dados -->
+    <center>
+        <SplitPane dividerPositions="0.6" style="-fx-background-color: #121212;">
+
+            <!-- Seção de Ativos -->
+            <VBox spacing="10" styleClass="asset-section">
+                <Label text="MEUS ATIVOS" styleClass="section-title"/>
+
+                <TableView fx:id="cryptoTable" styleClass="modern-table">
+                    <columns>
+                        <TableColumn text="ATIVO" styleClass="table-column" prefWidth="200"/>
+                        <TableColumn text="TICKER" styleClass="table-column" prefWidth="100"/>
+                        <TableColumn text="QUANTIDADE" styleClass="table-column" prefWidth="150"/>
+                        <TableColumn text="VALOR (€)" styleClass="table-column" prefWidth="150"/>
+                    </columns>
+                </TableView>
+            </VBox>
+
+            <!-- Seção de Transações -->
+            <VBox spacing="10" styleClass="transaction-section">
+                <Label text="HISTÓRICO" styleClass="section-title"/>
+
+                <TableView fx:id="transactionTable" styleClass="modern-table">
+                    <columns>
+                        <TableColumn text="DATA" styleClass="table-column" prefWidth="150"/>
+                        <TableColumn text="TIPO" styleClass="table-column" prefWidth="100"/>
+                        <TableColumn text="ATIVO" styleClass="table-column" prefWidth="100"/>
+                        <TableColumn text="QUANTIDADE" styleClass="table-column" prefWidth="150"/>
+                        <TableColumn text="VALOR (€)" styleClass="table-column" prefWidth="150"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </SplitPane>
+    </center>
+
+    <!-- RODAPÉ: Ações Rápidas -->
+    <bottom>
+        <HBox spacing="20" alignment="CENTER" styleClass="quick-actions">
+            <Button text="COMPRAR RÁPIDO" styleClass="quick-action buy"/>
+            <Button text="VENDER RÁPIDO" styleClass="quick-action sell"/>
+            <Button text="CONVERTER" styleClass="quick-action convert"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

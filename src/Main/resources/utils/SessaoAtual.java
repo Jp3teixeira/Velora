@@ -12,4 +12,7 @@ public class SessaoAtual {
     // Para recuperação de senha
     public static String emailRecuperacao;
     public static int utilizadorRecuperacao;
+
+    {
+    }
 }
