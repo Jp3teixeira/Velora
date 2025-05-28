@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<HBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="controller.NavigationController"
+      spacing="30" alignment="CENTER_LEFT"
+      style="-fx-background-color: #1a1a1a; -fx-padding: 12 20;">
+
+    <Label text="Velora" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18;"/>
+
+    <Button fx:id="homeButton" text="Home" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+    <Button fx:id="portfolioButton" text="Portfolio" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+    <Button fx:id="marketButton" text="Market" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+    <Button fx:id="researchButton" text="Research" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+    <Button fx:id="transferButton" text="Transfer &amp; Pay" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+    <Button fx:id="reportsButton" text="Performance &amp; Reports" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+    <Button fx:id="coinsButton" text="Coins" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+
+    <Region HBox.hgrow="ALWAYS"/>
+    <Button fx:id="accountButton" text="Account" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+</HBox>

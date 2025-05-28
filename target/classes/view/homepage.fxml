@@ -4,12 +4,6 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
-<?import javafx.scene.shape.*?>
-<?import javafx.geometry.*?>
-<?import javafx.scene.paint.*?>
-<?import javafx.collections.*?>
-<?import javafx.scene.chart.CategoryAxis?>
-<?import javafx.scene.chart.NumberAxis?>
 
 <?import java.lang.String?>
 <AnchorPane xmlns="http://javafx.com/javafx"
@@ -27,12 +21,13 @@
         <Button text="Home" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Portfolio" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button fx:id="marketButton" text="Market"
-                onAction="#goToMarket"
+                onAction="#handleMenuNavigation"
                 style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Research" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Transfer &amp; Pay" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Performance &amp; Reports" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
-        <Button text="Education" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+        <Button fx:id="coinsButton" onAction="#handleMenuNavigation" text="Coins"
+                style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
 
         <Region HBox.hgrow="ALWAYS"/>
         <Button text="Account" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>

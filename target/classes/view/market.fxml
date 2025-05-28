@@ -4,30 +4,17 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
-
-
 <?import java.net.URL?>
+
 <BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="controller.MarketController"
             style="-fx-background-color: #121212;">
     <stylesheets>
-        <URL value="@/view/css/market.css"/>
+        <URL value="@/view/css/geral.css"/>
     </stylesheets>
 
-    <!-- Top Bar -->
+    <!-- Navbar centralizada -->
     <top>
-        <HBox spacing="30" alignment="CENTER_LEFT"
-              style="-fx-background-color: #1a1a1a; -fx-padding: 12 20;">
-            <Label text="Velora" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18;"/>
-            <Button text="Home" onAction="#goToHome" styleClass="menu-button"/>
-            <Button text="Portfolio" styleClass="menu-button"/>
-            <Button text="Market" styleClass="menu-button"/>
-            <Button text="Research" styleClass="menu-button"/>
-            <Button text="Transfer &amp; Pay" styleClass="menu-button"/>
-            <Button text="Performance &amp; Reports" styleClass="menu-button"/>
-            <Button text="Education" styleClass="menu-button"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Button text="Account" styleClass="menu-button"/>
-        </HBox>
+        <fx:include source="navbar.fxml"/>
     </top>
 
     <!-- Sidebar -->

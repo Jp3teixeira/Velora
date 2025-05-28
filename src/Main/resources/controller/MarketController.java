@@ -1,5 +1,6 @@
 package controller;
 
+import utils.NavigationHelper;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -212,22 +213,17 @@ public class MarketController implements Initializable {
         });
     }
 
-    public void goToHome(ActionEvent event) {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene novaCena = new Scene(root);
 
-            stage.setScene(novaCena);
 
-            //  fullscreen
-            stage.setFullScreen(true);
-            stage.setMaximized(true);  // mais comum, para ocupar todo o ecrã
-
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    @FXML
+    private void goToHome() {
+        NavigationHelper.goTo("/view/homepage.fxml", true);
     }
+
+    @FXML
+    private void goToCoins() {
+        NavigationHelper.goTo("/view/moeda.fxml", true);
+    }
+
 
 }
