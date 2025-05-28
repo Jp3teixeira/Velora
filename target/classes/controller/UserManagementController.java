@@ -7,10 +7,10 @@ import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import model.Moeda;
 import org.mindrot.jbcrypt.BCrypt;
-import Repository.UserRepository;
+import repository.UserRepository;
 import utils.EmailSender;
 import utils.SessaoAtual;
 import Repository.WalletRepository;
@@ -49,20 +49,73 @@ public class UserManagementController {
 
     @FXML private TextField codigoField;
 
-    // Botão Admin
-    @FXML private Button adminButton;
-    @FXML private StackPane contentArea;  // vinculado ao fx:id do center
+    @FXML private Button coinsButton;
 
-
-    @FXML
-    public void initialize() {
-        // Controle de visibilidade do botão admin
-        if (adminButton != null) {
-            boolean isAdmin = "Admin".equals(SessaoAtual.tipo);
-            adminButton.setVisible(isAdmin);
-            adminButton.setManaged(isAdmin);
+    // ================= NAVEGAÇÃO CENTRALIZADA =================
+    public void navegarPara(String fxmlPath, boolean fullscreen) {
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource(fxmlPath));
+            Stage stage = getStageAtual();
+            stage.setScene(new Scene(root));
+            if (fullscreen) stage.setFullScreen(true);
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarErro("Erro ao carregar: " + fxmlPath);
         }
     }
+
+    public <T> void navegarComController(String fxmlPath, ControllerConsumer<T> controllerConsumer, boolean fullscreen) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Parent root = loader.load();
+            T controller = loader.getController();
+            controllerConsumer.accept(controller);
+
+            Stage stage = getStageAtual();
+            stage.setScene(new Scene(root));
+            if (fullscreen) stage.setFullScreen(true);
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarErro("Erro ao carregar com dados: " + fxmlPath);
+        }
+    }
+
+    private Stage getStageAtual() {
+        return (Stage) (coinsButton != null ? coinsButton.getScene().getWindow() : new Stage());
+    }
+
+    @FunctionalInterface
+    public interface ControllerConsumer<T> {
+        void accept(T controller);
+    }
+
+    private void mostrarErro(String mensagem) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setHeaderText("Erro de Navegação");
+        alert.setContentText(mensagem);
+        alert.showAndWait();
+    }
+
+    @FXML
+    private void handleMenuNavigation(ActionEvent event) {
+        Button clicked = (Button) event.getSource();
+
+        switch (clicked.getId()) {
+            case "marketButton" -> navegarPara("/view/market.fxml", true);
+            case "coinsButton" -> navegarPara("/view/moeda.fxml", true);
+            case "homeButton" -> navegarPara("/view/homepage.fxml", true);
+            case "loginButton" -> navegarPara("/view/login.fxml", false);
+            case "registerButton" -> navegarPara("/view/register.fxml", false);
+            case "forgotButton" -> navegarPara("/view/forgot_password.fxml", false);
+            case "resetButton" -> navegarPara("/view/reset_password.fxml", false);
+            case "verifyButton" -> navegarPara("/view/verification.fxml", false);
+            case "codeButton" -> navegarPara("/view/code_verification.fxml", false);
+            default -> mostrarErro("Página não encontrada para: " + clicked.getId());
+        }
+    }
+
 
     // ================= LOGIN =================
     @FXML
@@ -91,38 +144,13 @@ public class UserManagementController {
                 SessaoAtual.nome = user.get("nome");
                 SessaoAtual.email = user.get("email");
                 SessaoAtual.tipo = user.get("tipo");
-                SessaoAtual.isSuperAdmin = Boolean.parseBoolean(user.getOrDefault("is_super_admin", "false"));
 
-                // Atualiza visibilidade do botão admin
-                if (adminButton != null) {
-                    boolean isAdmin = "Admin".equals(SessaoAtual.tipo);
-                    adminButton.setVisible(isAdmin);
-                    adminButton.setManaged(isAdmin);
+                if ("Cliente".equals(SessaoAtual.tipo)) {
+                    BigDecimal saldo = new WalletRepository().getUserWalletBalance(id);
+                    SessaoAtual.saldoCarteira = saldo;
                 }
 
-                BigDecimal saldo = new WalletRepository().getUserWalletBalance(id);
-                SessaoAtual.saldoCarteira = saldo;
-
-                try {
-                    Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
-                    Stage stage = (Stage) loginEmailField.getScene().getWindow();
-                    stage.setScene(new Scene(root, 1200, 700));
-                    stage.setFullScreen(true);
-                    stage.setTitle("Velora - Gestão de Criptomoedas");
-
-                    try (InputStream iconStream = getClass().getResourceAsStream("/icons/moedas.png")) {
-                        if (iconStream != null) {
-                            stage.getIcons().add(new Image(iconStream));
-                        }
-                    } catch (Exception e) {
-                        System.err.println("Erro ao carregar ícone: " + e.getMessage());
-                    }
-
-                    stage.show();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    showAlert("Erro ao carregar a página inicial.", AlertType.ERROR);
-                }
+                navegarPara("/view/homepage.fxml", true);
             } else {
                 showAlert("Password incorreta.", AlertType.ERROR);
             }
@@ -131,30 +159,6 @@ public class UserManagementController {
         }
     }
 
-    @FXML
-    private void goToAdminPanel(ActionEvent event) {
-        if (!"Admin".equals(SessaoAtual.tipo)) {
-            showAlert("Acesso não autorizado!", AlertType.ERROR);
-            return;
-        }
-
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/admin_dashboard.fxml"));
-            Parent root = loader.load();
-
-            Stage stage = (Stage) adminButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 1200, 700));
-            stage.setTitle("Painel de Administração");
-            stage.setFullScreen(true);
-
-
-        } catch (IOException e) {
-            showAlert("Erro ao carregar o painel admin: " + e.getMessage(), AlertType.ERROR);
-            e.printStackTrace();
-        }
-    }
-
-    // ================= LOGOUT =================
     @FXML
     private void handleLogOut(ActionEvent event) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -171,35 +175,7 @@ public class UserManagementController {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                try {
-                    Node source = (Node) event.getSource();
-                    Stage currentStage = (Stage) source.getScene().getWindow();
-
-                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
-                    Parent root = loader.load();
-
-                    Stage loginStage = new Stage();
-                    loginStage.setTitle("Velora - Gestão de Criptomoedas");
-                    loginStage.setScene(new Scene(root, 800, 600));
-                    loginStage.setResizable(false);
-
-                    try (InputStream iconStream = getClass().getResourceAsStream("/icons/moedas.png")) {
-                        loginStage.getIcons().add(new Image(iconStream));
-                    } catch (Exception e) {
-                        System.err.println("Erro ao carregar ícone: " + e.getMessage());
-                    }
-
-                    currentStage.close();
-                    loginStage.show();
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                    errorAlert.setTitle("Erro");
-                    errorAlert.setHeaderText("Erro ao carregar tela de login");
-                    errorAlert.setContentText(e.getMessage());
-                    errorAlert.showAndWait();
-                }
+                navegarPara("/view/login.fxml", false);
             }
         });
     }
@@ -248,15 +224,7 @@ public class UserManagementController {
 
         if (codigoCriado && EmailSender.sendVerificationCode(email, codigo)) {
             showAlert("Conta registada com sucesso! Verifique o seu email.");
-            try {
-                Parent root = FXMLLoader.load(getClass().getResource("/view/verification.fxml"));
-                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-                stage.setScene(new Scene(root));
-                stage.show();
-            } catch (IOException e) {
-                e.printStackTrace();
-                showAlert("Erro ao abrir página de verificação.");
-            }
+            navegarPara("/view/verification.fxml", false);
         } else {
             showAlert("Erro ao enviar código de verificação.");
         }
@@ -272,17 +240,7 @@ public class UserManagementController {
         }
 
         if (userRepository.validarCodigo(SessaoAtual.utilizadorId, "REGISTO", codigo)) {
-            try {
-                Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
-                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-                stage.setScene(new Scene(root));
-                stage.setFullScreen(true);
-                stage.setTitle("Velora - Gestão de Criptomoedas");
-                stage.show();
-            } catch (IOException e) {
-                e.printStackTrace();
-                showAlert("Erro ao carregar homepage.");
-            }
+            navegarPara("/view/homepage.fxml", true);
         } else {
             showAlert("Código incorreto ou expirado.");
         }
@@ -314,7 +272,7 @@ public class UserManagementController {
         if (criado && EmailSender.sendRecoveryCode(email, codigo)) {
             statusLabel.setText("Código enviado para: " + email);
             statusLabel.setStyle("-fx-text-fill: green;");
-            abrirTelaValidacaoCodigo();
+            navegarPara("/view/code_validation.fxml", false);
         } else {
             showAlert("Erro ao enviar e-mail. Tente novamente.", AlertType.ERROR);
         }
@@ -326,7 +284,7 @@ public class UserManagementController {
 
         if (codigo.isEmpty() || codigo.length() != 6) {
             validationStatusLabel.setText("Insira um código válido de 6 dígitos.");
-            validationStatusLabel.setStyle("-fx-text-fill: #ffffff;");
+            validationStatusLabel.setStyle("-fx-text-fill: red;");
             return;
         }
 
@@ -339,7 +297,7 @@ public class UserManagementController {
         int userId = userIdOpt.get();
         if (userRepository.validarCodigo(userId, "RECUPERACAO_SENHA", codigo)) {
             SessaoAtual.utilizadorRecuperacao = userId;
-            abrirTelaRedefinicaoSenha();
+            navegarPara("/view/reset_password.fxml", false);
         } else {
             validationStatusLabel.setText("Código incorreto ou expirado.");
             validationStatusLabel.setStyle("-fx-text-fill: red;");
@@ -376,100 +334,10 @@ public class UserManagementController {
             showAlert("Senha redefinida com sucesso!");
             SessaoAtual.utilizadorRecuperacao = 0;
             SessaoAtual.emailRecuperacao = null;
-            try {
-                Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
-                Stage stage = (Stage) newPasswordField.getScene().getWindow();
-                stage.setScene(new Scene(root));
-                stage.setTitle("Login");
-            } catch (IOException e) {
-                e.printStackTrace();
-                showAlert("Erro ao carregar tela de login.");
-            }
+            navegarPara("/view/login.fxml", false);
         } else {
             resetStatusLabel.setText("Erro ao redefinir senha.");
             resetStatusLabel.setStyle("-fx-text-fill: red;");
-        }
-    }
-
-    // ================= NAVEGAÇÃO =================
-    public void goToRegister(ActionEvent event) {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/register.fxml"));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void goToLogin(ActionEvent event) {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @FXML
-    private void abrirTelaRecuperacao() {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/forgot_password.fxml"));
-            Stage stage = new Stage();
-            stage.setTitle("Recuperar Senha");
-            stage.setScene(new Scene(root));
-            stage.setResizable(false);
-            stage.show();
-        } catch (IOException e) {
-            showAlert("Erro ao abrir a tela de recuperação de senha.", AlertType.ERROR);
-            e.printStackTrace();
-        }
-    }
-
-    private void abrirTelaValidacaoCodigo() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/code_validation.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) forgotEmailField.getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle("Validar Código");
-            stage.setResizable(false);
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("Erro ao abrir tela de validação.", AlertType.ERROR);
-        }
-    }
-
-    private void abrirTelaRedefinicaoSenha() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/reset_password.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) validationCodeField.getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle("Redefinir Senha");
-            stage.setResizable(false);
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("Erro ao abrir tela de redefinição.", AlertType.ERROR);
-        }
-    }
-
-    @FXML
-    private void goToMarket(ActionEvent event) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/market.fxml"));
-            Parent marketRoot = loader.load();
-
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(marketRoot);
-            stage.setScene(scene);
-            stage.setFullScreen(true);
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
