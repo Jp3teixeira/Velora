@@ -27,14 +27,14 @@
         <Button text="Home" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Portfolio" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button fx:id="marketButton" text="Market"
-                onAction="#goToMarket"
+                onAction="#handleMenuNavigation"
                 style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Research" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Transfer &amp; Pay" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Performance &amp; Reports" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Education" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button fx:id="adminButton" text="Painel Admin"
-                onAction="#goToAdminPanel"
+                onAction="#gotoAdmin"
                 style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
 
         <Region HBox.hgrow="ALWAYS"/>

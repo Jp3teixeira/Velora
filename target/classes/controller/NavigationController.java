@@ -15,6 +15,7 @@ public class NavigationController {
     @FXML private Button reportsButton;
     @FXML private Button coinsButton;
     @FXML private Button accountButton;
+    @FXML private Button adminButton;
 
     @FXML
     private void handleMenuNavigation(ActionEvent event) {
@@ -28,6 +29,7 @@ public class NavigationController {
             case "reportsButton" -> "/view/reports.fxml";
             case "coinsButton" -> "/view/moeda.fxml";
             case "accountButton" -> "/view/account.fxml";
+            case "adminButton" -> "/view/admin_dashboard.fxml";
             default -> null;
         };
 

@@ -10,8 +10,9 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import model.Moeda;
 import org.mindrot.jbcrypt.BCrypt;
-import repository.UserRepository;
+import Repository.UserRepository;
 import utils.EmailSender;
+import utils.NavigationHelper;
 import utils.SessaoAtual;
 import Repository.WalletRepository;
 
@@ -359,5 +360,10 @@ public class UserManagementController {
         alert.setHeaderText(null);
         alert.setContentText(mensagem);
         alert.showAndWait();
+    }
+
+    @FXML
+    private void gotoAdmin() {
+        NavigationHelper.goTo("/view/admin_dashboard.fxml", true);
     }
 }
