@@ -1,4 +1,4 @@
-package repository;
+package Repository;
 
 import Database.DBConnection;
 import org.mindrot.jbcrypt.BCrypt;
@@ -24,6 +24,7 @@ public class UserRepository {
                 user.put("email", rs.getString("email"));
                 user.put("senha", rs.getString("senha"));
                 user.put("tipo", rs.getString("tipo"));
+                user.put("is_super_admin", String.valueOf(rs.getBoolean("is_super_admin")));
                 return Optional.of(user);
             }
         } catch (SQLException e) {

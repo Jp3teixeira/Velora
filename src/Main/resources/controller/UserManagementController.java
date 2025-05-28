@@ -7,9 +7,10 @@ import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.mindrot.jbcrypt.BCrypt;
-import repository.UserRepository;
+import Repository.UserRepository;
 import utils.EmailSender;
 import utils.SessaoAtual;
 import Repository.WalletRepository;
@@ -48,6 +49,21 @@ public class UserManagementController {
 
     @FXML private TextField codigoField;
 
+    // Botão Admin
+    @FXML private Button adminButton;
+    @FXML private StackPane contentArea;  // vinculado ao fx:id do center
+
+
+    @FXML
+    public void initialize() {
+        // Controle de visibilidade do botão admin
+        if (adminButton != null) {
+            boolean isAdmin = "Admin".equals(SessaoAtual.tipo);
+            adminButton.setVisible(isAdmin);
+            adminButton.setManaged(isAdmin);
+        }
+    }
+
     // ================= LOGIN =================
     @FXML
     private void handleLogin() {
@@ -75,24 +91,38 @@ public class UserManagementController {
                 SessaoAtual.nome = user.get("nome");
                 SessaoAtual.email = user.get("email");
                 SessaoAtual.tipo = user.get("tipo");
+                SessaoAtual.isSuperAdmin = Boolean.parseBoolean(user.getOrDefault("is_super_admin", "false"));
 
-                if ("Cliente".equals(SessaoAtual.tipo)) {
-                    BigDecimal saldo = new WalletRepository().getUserWalletBalance(id);
-                    SessaoAtual.saldoCarteira = saldo;
+                // Atualiza visibilidade do botão admin
+                if (adminButton != null) {
+                    boolean isAdmin = "Admin".equals(SessaoAtual.tipo);
+                    adminButton.setVisible(isAdmin);
+                    adminButton.setManaged(isAdmin);
                 }
+
+                BigDecimal saldo = new WalletRepository().getUserWalletBalance(id);
+                SessaoAtual.saldoCarteira = saldo;
 
                 try {
                     Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
                     Stage stage = (Stage) loginEmailField.getScene().getWindow();
-                    stage.setScene(new Scene(root, 800, 600));
+                    stage.setScene(new Scene(root, 1200, 700));
                     stage.setFullScreen(true);
                     stage.setTitle("Velora - Gestão de Criptomoedas");
+
+                    try (InputStream iconStream = getClass().getResourceAsStream("/icons/moedas.png")) {
+                        if (iconStream != null) {
+                            stage.getIcons().add(new Image(iconStream));
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Erro ao carregar ícone: " + e.getMessage());
+                    }
+
                     stage.show();
                 } catch (IOException e) {
                     e.printStackTrace();
-                    showAlert("Erro ao carregar a página inicial.");
+                    showAlert("Erro ao carregar a página inicial.", AlertType.ERROR);
                 }
-
             } else {
                 showAlert("Password incorreta.", AlertType.ERROR);
             }
@@ -102,8 +132,31 @@ public class UserManagementController {
     }
 
     @FXML
-    private void handleLogOut(javafx.event.ActionEvent event) {
+    private void goToAdminPanel(ActionEvent event) {
+        if (!"Admin".equals(SessaoAtual.tipo)) {
+            showAlert("Acesso não autorizado!", AlertType.ERROR);
+            return;
+        }
 
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/admin_dashboard.fxml"));
+            Parent root = loader.load();
+
+            Stage stage = (Stage) adminButton.getScene().getWindow();
+            stage.setScene(new Scene(root, 1200, 700));
+            stage.setTitle("Painel de Administração");
+            stage.setFullScreen(true);
+
+
+        } catch (IOException e) {
+            showAlert("Erro ao carregar o painel admin: " + e.getMessage(), AlertType.ERROR);
+            e.printStackTrace();
+        }
+    }
+
+    // ================= LOGOUT =================
+    @FXML
+    private void handleLogOut(ActionEvent event) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirmação de Logout");
         alert.setHeaderText(null);
@@ -150,9 +203,6 @@ public class UserManagementController {
             }
         });
     }
-
-
-
 
     // ================= REGISTO =================
     @FXML
@@ -276,7 +326,7 @@ public class UserManagementController {
 
         if (codigo.isEmpty() || codigo.length() != 6) {
             validationStatusLabel.setText("Insira um código válido de 6 dígitos.");
-            validationStatusLabel.setStyle("-fx-text-fill: red;");
+            validationStatusLabel.setStyle("-fx-text-fill: #ffffff;");
             return;
         }
 
@@ -406,8 +456,8 @@ public class UserManagementController {
             showAlert("Erro ao abrir tela de redefinição.", AlertType.ERROR);
         }
     }
-    @FXML
 
+    @FXML
     private void goToMarket(ActionEvent event) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/market.fxml"));
@@ -416,17 +466,12 @@ public class UserManagementController {
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             Scene scene = new Scene(marketRoot);
             stage.setScene(scene);
-
-            // fullscreen
             stage.setFullScreen(true);
-
-
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
 
     // ================= UTILS =================
     private boolean isPasswordStrong(String password) {
