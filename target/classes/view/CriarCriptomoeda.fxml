@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="controller.CriptomoedaController"
+      spacing="15" alignment="TOP_CENTER"
+      style="-fx-background-color: #FFFFFF; -fx-padding: 20;">
+
+    <Label text="Criar Nova Criptomoeda"
+           style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #4B3F72;" />
+
+    <TextField fx:id="nomeField" promptText="Nome da Criptomoeda"
+               maxWidth="300"/>
+    <TextField fx:id="simboloField" promptText="Símbolo (ex: BTC)"
+               maxWidth="300"/>
+    <TextField fx:id="valorField" promptText="Valor Inicial (€)"
+               maxWidth="300"/>
+
+    <Button text="Criar"
+            onAction="#handleCriar"
+            style="-fx-background-color: #4B3F72; -fx-text-fill: white; -fx-font-weight: bold;"
+            maxWidth="150"/>
+
+    <Label fx:id="mensagemLabel"
+           text=""
+           style="-fx-text-fill: red;"/>
+</VBox>

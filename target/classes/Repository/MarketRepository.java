@@ -60,6 +60,46 @@ public class MarketRepository {
         return moedas;
     }
 
+
+    public static boolean addNewCoin(String name, String symbol, String imageName, BigDecimal initialValue) {
+        String sql = "INSERT INTO moeda (nome, simbolo) VALUES (?, ?)";
+        String sqlHistory = "INSERT INTO historico_valores (id_moeda, valor, volume, timestamp) VALUES (?, ?, ?, NOW())";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            // Insere a moeda
+            stmt.setString(1, name);
+            stmt.setString(2, symbol);
+            int affectedRows = stmt.executeUpdate();
+
+            if (affectedRows == 0) {
+                return false;
+            }
+
+            // Obtém o ID gerado
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    int coinId = generatedKeys.getInt(1);
+
+                    // Insere o valor inicial no histórico
+                    try (PreparedStatement stmtHistory = conn.prepareStatement(sqlHistory)) {
+                        stmtHistory.setInt(1, coinId);
+                        stmtHistory.setBigDecimal(2, initialValue);
+                        stmtHistory.setBigDecimal(3, BigDecimal.ZERO); // Volume inicial zero
+                        stmtHistory.executeUpdate();
+                    }
+
+                    return true;
+                }
+            }
+            return false;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public static List<XYChart.Data<String, Number>> getHistoricoPorMoedaFiltrado(int idMoeda, String intervalo) {
         List<XYChart.Data<String, Number>> dados = new ArrayList<>();
 

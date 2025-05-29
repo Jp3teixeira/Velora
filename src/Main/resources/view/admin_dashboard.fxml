@@ -48,9 +48,9 @@
                 <HBox spacing="20" alignment="CENTER">
                     <Button text="Criar Criptomoeda"
                             style="-fx-background-color: #4B3F72; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 10 20;"
-                            onAction="#handleManageUsers"/>
+                            onAction="#handleCreateCrypto"/>
 
-                    <Button text="Estatísticas"
+                    <Button text="Todas Criptomoedas"
                             style="-fx-background-color: #4B3F72; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 10 20;"
                             onAction="#handleViewStatistics"/>
 
