@@ -55,7 +55,7 @@ public class MoedaController implements Initializable {
             iconMoeda.setImage(null);
         }
 
-        carregarHistorico(moeda.getid_moeda());
+        carregarHistorico(moeda.getIdMoeda());
     }
 
     private void carregarHistorico(int idMoeda) {

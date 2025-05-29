@@ -12,6 +12,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import static Database.DBConnection.getConnection;
+
 public class MarketRepository {
 
     public static List<Moeda> getTodasAsMoedas() {
@@ -35,7 +37,7 @@ public class MarketRepository {
             FROM moeda m
             """;
 
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -61,11 +63,90 @@ public class MarketRepository {
     }
 
 
+
+    public static List<Moeda> getAllCoins() {
+        List<Moeda> moedas = new ArrayList<>();
+        String sql = "SELECT id_moeda, nome, simbolo, valor_atual, variacao_24h, volume_mercado FROM moeda";
+
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                int id = rs.getInt("id_moeda");
+                String nome = rs.getString("nome");
+                String simbolo = rs.getString("simbolo");
+                BigDecimal valorAtual = rs.getBigDecimal("valor_atual");
+                BigDecimal variacao24h = rs.getBigDecimal("variacao_24h");
+                BigDecimal volumeMercado = rs.getBigDecimal("volume_mercado");
+
+                Moeda moeda = new Moeda(id, nome, simbolo, valorAtual, variacao24h, volumeMercado);
+                moedas.add(moeda);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return moedas;
+    }
+
+    public static void updateMoeda(Moeda moeda) throws SQLException {
+        String sql = "UPDATE moeda SET nome=?, simbolo=?, valor_atual=?, variacao_24h=?, volume_mercado=? WHERE id_moeda=?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, moeda.getNome());
+            pstmt.setString(2, moeda.getSimbolo());
+            pstmt.setBigDecimal(3, moeda.getValorAtual());
+            pstmt.setBigDecimal(4, moeda.getVariacao24h());
+            pstmt.setBigDecimal(5, moeda.getVolumeMercado());
+            pstmt.setInt(6, moeda.getIdMoeda());
+
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static void deleteMoeda(int idMoeda) throws SQLException {
+        Connection conn = null;
+        PreparedStatement psHistorico = null;
+        PreparedStatement psMoeda = null;
+
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false);  // começar transação
+
+            // 1. Apagar histórico associado
+            psHistorico = conn.prepareStatement("DELETE FROM historico_valores WHERE id_moeda = ?");
+            psHistorico.setInt(1, idMoeda);
+            psHistorico.executeUpdate();
+
+            // 2. Apagar a moeda
+            psMoeda = conn.prepareStatement("DELETE FROM moeda WHERE id_moeda = ?");
+            psMoeda.setInt(1, idMoeda);
+            psMoeda.executeUpdate();
+
+            conn.commit();  // confirmar alterações
+        } catch (SQLException e) {
+            if (conn != null) {
+                conn.rollback();  // desfazer alterações em caso de erro
+            }
+            throw e;
+        } finally {
+            if (psHistorico != null) psHistorico.close();
+            if (psMoeda != null) psMoeda.close();
+            if (conn != null) {
+                conn.setAutoCommit(true);
+                conn.close();
+            }
+        }
+    }
+
+
+
     public static boolean addNewCoin(String name, String symbol, String imageName, BigDecimal initialValue) {
         String sql = "INSERT INTO moeda (nome, simbolo) VALUES (?, ?)";
         String sqlHistory = "INSERT INTO historico_valores (id_moeda, valor, volume, timestamp) VALUES (?, ?, ?, NOW())";
 
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             // Insere a moeda
@@ -118,7 +199,7 @@ public class MarketRepository {
         }
         sql += "ORDER BY timestamp ASC";
 
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, idMoeda);

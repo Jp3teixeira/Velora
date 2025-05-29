@@ -141,7 +141,7 @@ public class MarketController implements Initializable {
 
     private void aplicarFiltro(String intervalo) {
         if (moedaAtualSelecionada != null) {
-            atualizarGraficoComTooltip(moedaAtualSelecionada.getid_moeda(), intervalo);
+            atualizarGraficoComTooltip(moedaAtualSelecionada.getIdMoeda(), intervalo);
         }
     }
 
