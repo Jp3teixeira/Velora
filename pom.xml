@@ -43,6 +43,13 @@
             <version>8.0.33</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>12.6.1.jre11</version>
+        </dependency>
+
+
         <!-- BCrypt para hashing the passwords -->
         <dependency>
             <groupId>org.mindrot</groupId>

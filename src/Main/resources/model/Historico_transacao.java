@@ -2,7 +2,7 @@ package model;
 
 import java.time.LocalDateTime;
 
-public class Historico_Transacao {
+public class Historico_transacao {
     private int id_moeda;
     private LocalDateTime timestamp;
     private double valor;

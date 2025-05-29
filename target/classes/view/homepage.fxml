@@ -30,12 +30,15 @@
         style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"
         styleClass="menu-button"/>
         <Button fx:id="marketButton" text="Market"
-                onAction="#goToMarket"
+                onAction="#handleMenuNavigation"
                 style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Research" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Transfer &amp; Pay" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Performance &amp; Reports" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
         <Button text="Education" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+        <Button fx:id="adminButton" text="Painel Admin"
+                onAction="#gotoAdmin"
+                style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
 
         <Region HBox.hgrow="ALWAYS"/>
         <Button text="Account" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
@@ -136,7 +139,7 @@
         </styleClass>
     </Label>
 
-    <!-- Bottom Logout Button -->
+    <!-- Brottom Logout Button -->
     <Button text="LOGOUT" onAction="#handleLogOut"
             style="-fx-background-color: #4B3F72; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 15; -fx-cursor: hand; -fx-padding: 8 25;"
             AnchorPane.bottomAnchor="15" AnchorPane.rightAnchor="20"/>

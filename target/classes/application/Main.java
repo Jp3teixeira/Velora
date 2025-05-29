@@ -11,25 +11,24 @@ import utils.MarketSimulator;
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // Inicia o algoritmo (atualiza de hora em hora)
         MarketSimulator.iniciarAgendador();
 
-        Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
+        Parent root = loader.load();
+
+        // Define um tamanho menor para a janela (ajuste conforme necessário)
+        Scene scene = new Scene(root, 400, 500); // Largura 400, Altura 500
 
         try {
             primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/moedas.png")));
         } catch (Exception e) {
             System.out.println("Ícone não encontrado: " + e.getMessage());
-            e.printStackTrace();
         }
 
         primaryStage.setTitle("Velora - Gestão de Criptomoedas");
-        primaryStage.setScene(new Scene(root, 800, 600));
-        primaryStage.setResizable(false);
+        primaryStage.setScene(scene);
+        primaryStage.setResizable(false); // Impede redimensionamento
+        primaryStage.centerOnScreen(); // Centraliza na tela
         primaryStage.show();
-    }
-
-    public static void main(String[] args) {
-        launch(args);
     }
 }
