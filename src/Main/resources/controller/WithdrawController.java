@@ -18,9 +18,14 @@ public class WithdrawController {
     private Label statusLabel;
 
     private int userId;
+    private UserManagementController mainController;
 
     public void setUserId(int userId) {
         this.userId = userId;
+    }
+
+    public void setMainController(UserManagementController mainController) {
+        this.mainController = mainController;
     }
 
     @FXML
@@ -28,14 +33,14 @@ public class WithdrawController {
         try {
             BigDecimal amount = new BigDecimal(amountField.getText());
 
-            // Validação de valor positivo
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
                 statusLabel.setText("Valor deve ser positivo!");
                 return;
             }
 
-            // Verifica saldo suficiente
-            if (SessaoAtual.saldoCarteira.compareTo(amount) < 0) {
+            // Buscar saldo ATUALIZADO do banco
+            BigDecimal saldoAtual = WalletRepository.getSaldo(userId);
+            if (saldoAtual.compareTo(amount) < 0) {
                 statusLabel.setText("Saldo insuficiente!");
                 return;
             }
@@ -44,11 +49,17 @@ public class WithdrawController {
             boolean success = walletRepo.withdraw(userId, amount);
 
             if (success) {
-                // Atualiza a sessão
-                SessaoAtual.saldoCarteira = SessaoAtual.saldoCarteira.subtract(amount);
                 statusLabel.setText("Retirada efetuada com sucesso!");
 
-                // Fecha a janela após 1 segundo
+                // Atualizar a sessão com o novo saldo
+                SessaoAtual.saldoCarteira = WalletRepository.getSaldo(userId);
+
+                // Notificar o controlador principal para atualizar a interface
+                if (mainController != null) {
+                    mainController.atualizarSaldo();
+                }
+
+                // Fechar janela após 1 segundo
                 new java.util.Timer().schedule(
                         new java.util.TimerTask() {
                             @Override

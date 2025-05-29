@@ -17,10 +17,15 @@ public class DepositController {
     @FXML
     private Label statusLabel;
 
-    private int userId; // será definido pelo controlador principal
+    private int userId;
+    private UserManagementController mainController;
 
     public void setUserId(int userId) {
         this.userId = userId;
+    }
+
+    public void setMainController(UserManagementController mainController) {
+        this.mainController = mainController;
     }
 
     @FXML
@@ -28,7 +33,6 @@ public class DepositController {
         try {
             BigDecimal amount = new BigDecimal(amountField.getText());
 
-            // Validação adicional de valor positivo
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
                 statusLabel.setText("Valor deve ser positivo!");
                 return;
@@ -38,11 +42,16 @@ public class DepositController {
             boolean success = walletRepo.deposit(userId, amount);
 
             if (success) {
-                // ATUALIZA A SESSÃO
+                // Atualiza a sessão
                 SessaoAtual.saldoCarteira = SessaoAtual.saldoCarteira.add(amount);
                 statusLabel.setText("Depósito efetuado com sucesso!");
 
-                // FECHA A JANELA APÓS 1 SEGUNDO
+                // Notifica o controlador principal para atualizar
+                if (mainController != null) {
+                    mainController.atualizarSaldo();
+                }
+
+                // Fecha a janela após 1 segundo
                 new java.util.Timer().schedule(
                         new java.util.TimerTask() {
                             @Override
@@ -53,10 +62,10 @@ public class DepositController {
                                 });
                             }
                         },
-                        1000 // 1 segundo
+                        1000
                 );
             } else {
-                statusLabel.setText("Erro ao depositar. Tente novamente.");
+                statusLabel.setText("Erro ao processar depósito.");
             }
 
         } catch (NumberFormatException e) {

@@ -22,6 +22,9 @@ import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.regex.Pattern;
 
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
 public class UserManagementController {
 
     private final UserRepository userRepository = new UserRepository();
@@ -49,6 +52,12 @@ public class UserManagementController {
 
     @FXML private TextField codigoField;
     private int currentUserId;
+
+    // Atualizar Saldo
+    @FXML private Label balanceLabel;
+    @FXML private Button depositButton;
+    @FXML private Button withdrawButton;
+
 
     // ================= LOGIN =================
     @FXML
@@ -451,18 +460,11 @@ public class UserManagementController {
     }
 
     // Componentes da Wallet
-    @FXML private Label balanceLabel;
     @FXML private TableView<?> cryptoTable;
     @FXML private TableView<?> transactionTable;
 
-    // Método de inicialização
-    @FXML
-    public void initialize() {
-        if (balanceLabel != null) { // Só executa se estiver na tela da carteira
-            balanceLabel.setText("€ " + SessaoAtual.saldoCarteira);
-            // Configurar tabelas...
-        }
-    }
+
+
     @FXML
     private void goToWallet(ActionEvent event) {
         try {
@@ -487,7 +489,9 @@ public class UserManagementController {
             Parent root = loader.load();
 
             DepositController controller = loader.getController();
-            controller.setUserId(SessaoAtual.utilizadorId); // Usar ID da sessão
+            controller.setUserId(SessaoAtual.utilizadorId);
+            // PASSA A REFERÊNCIA DO CONTROLADOR PRINCIPAL
+            controller.setMainController(this);
 
             Stage stage = new Stage();
             stage.setTitle("Depósito");
@@ -498,9 +502,9 @@ public class UserManagementController {
             e.printStackTrace();
             showAlert("Erro ao abrir tela de depósito: " + e.getMessage(), AlertType.ERROR);
         }
-
     }
-    // Adicione este método
+
+    // Tela Retirada
     @FXML
     public void abrirTelaRetirada() {
         try {
@@ -509,6 +513,8 @@ public class UserManagementController {
 
             WithdrawController controller = loader.getController();
             controller.setUserId(SessaoAtual.utilizadorId);
+            // PASSA A REFERÊNCIA DO CONTROLADOR PRINCIPAL
+            controller.setMainController(this);
 
             Stage stage = new Stage();
             stage.setTitle("Retirada");
@@ -518,6 +524,42 @@ public class UserManagementController {
         } catch (IOException e) {
             e.printStackTrace();
             showAlert("Erro ao abrir tela de retirada: " + e.getMessage(), AlertType.ERROR);
+        }
+    }
+
+    @FXML
+    public void initialize() {
+        if (balanceLabel != null) {
+            // Atualiza o saldo ao inicializar
+            atualizarSaldo();
+
+            // Configura atualização automática ao focar na janela
+            balanceLabel.sceneProperty().addListener((obs, oldScene, newScene) -> {
+                if (newScene != null) {
+                    newScene.windowProperty().addListener((obs2, oldWindow, newWindow) -> {
+                        if (newWindow != null && newWindow.isShowing()) {
+                            atualizarSaldo();
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    // Atualizar Saldo
+    public void atualizarSaldo() {
+        try {
+            // Busca saldo atualizado diretamente do banco
+            BigDecimal novoSaldo = WalletRepository.getSaldo(SessaoAtual.utilizadorId);
+
+            // Atualiza a sessão e a interface
+            SessaoAtual.saldoCarteira = novoSaldo;
+            balanceLabel.setText("€ " + novoSaldo);
+
+        } catch (Exception e) {
+            System.err.println("Erro ao atualizar saldo: " + e.getMessage());
+            e.printStackTrace();
+            showAlert("Erro ao atualizar saldo", AlertType.ERROR);
         }
     }
 }

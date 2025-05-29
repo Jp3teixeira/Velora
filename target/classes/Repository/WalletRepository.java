@@ -5,6 +5,12 @@ import Database.DBConnection;
 import java.math.BigDecimal;
 import java.sql.*;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.math.BigDecimal;
+
 public class WalletRepository {
 
     public boolean createWalletForUser(int userId) {
@@ -59,30 +65,15 @@ public class WalletRepository {
         }
     }
     public boolean withdraw(int userId, BigDecimal amount) {
-        // Verifica saldo antes de retirar
-        String checkSql = "SELECT saldo FROM wallets WHERE id_user = ?";
-        String updateSql = "UPDATE wallets SET saldo = saldo - ? WHERE id_user = ?";
+        String updateSql = "UPDATE wallets SET saldo = saldo - ? WHERE id_user = ? AND saldo >= ?";
 
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement checkStmt = conn.prepareStatement(checkSql);
              PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
 
-            // Verifica saldo atual
-            checkStmt.setInt(1, userId);
-            ResultSet rs = checkStmt.executeQuery();
-
-            if (rs.next()) {
-                BigDecimal currentBalance = rs.getBigDecimal("saldo");
-                if (currentBalance.compareTo(amount) < 0) {
-                    return false; // Saldo insuficiente
-                }
-            } else {
-                return false; // Carteira não encontrada
-            }
-
-            // Executa a retirada
             updateStmt.setBigDecimal(1, amount);
             updateStmt.setInt(2, userId);
+            updateStmt.setBigDecimal(3, amount); // Garante saldo suficiente
+
             int rows = updateStmt.executeUpdate();
             return rows > 0;
 
@@ -91,5 +82,27 @@ public class WalletRepository {
             return false;
         }
     }
+
+    // Buscar novo Saldo
+
+    public static BigDecimal getSaldo(int userId) {
+        String sql = "SELECT saldo FROM wallets WHERE id_user = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getBigDecimal("saldo");
+            } else {
+                throw new RuntimeException("Carteira não encontrada para o usuário ID: " + userId);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao buscar saldo: " + e.getMessage(), e);
+        }
+    }
+
 
 }
