@@ -25,7 +25,10 @@
         <Label text="Velora" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18;"/>
 
         <Button text="Home" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
-        <Button text="Portfolio" style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>
+        <Button text="Portfolio"
+                onAction="#goToWallet"
+        style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"
+        styleClass="menu-button"/>
         <Button fx:id="marketButton" text="Market"
                 onAction="#handleMenuNavigation"
                 style="-fx-text-fill: white; -fx-background-color: transparent; -fx-font-size: 14;"/>

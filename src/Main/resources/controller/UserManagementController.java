@@ -8,21 +8,22 @@ import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
-import javafx.stage.Window;
-import model.Moeda;
 import org.mindrot.jbcrypt.BCrypt;
-import Repository.UserRepository;
+import repository.UserRepository;
 import utils.EmailSender;
-import utils.NavigationHelper;
 import utils.SessaoAtual;
 import Repository.WalletRepository;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.regex.Pattern;
+
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
 public class UserManagementController {
 
@@ -50,120 +51,12 @@ public class UserManagementController {
     @FXML private Label validationStatusLabel;
 
     @FXML private TextField codigoField;
+    private int currentUserId;
 
-    @FXML private Button coinsButton;
-
-    // ================= NAVEGAÇÃO CENTRALIZADA =================
-    public void navegarPara(String fxmlPath, boolean fullscreen) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-            Parent root = loader.load();
-
-            // Obter o Stage atual de uma forma segura
-            Stage stage = root.getScene() != null
-                    ? (Stage) root.getScene().getWindow()
-                    : null;
-
-            // Caso não tenha Stage, tentar obter pela janela focada
-            if (stage == null) {
-                stage = (Stage) javafx.stage.Window.getWindows().stream()
-                        .filter(Window::isShowing)
-                        .findFirst()
-                        .orElseThrow(() -> new RuntimeException("Nenhuma janela ativa encontrada"));
-            }
-
-            // Definir a nova cena
-            Scene scene = new Scene(root);
-            stage.setScene(scene);
-
-            // Configurar fullscreen e tamanho
-            if (fullscreen) {
-                stage.setFullScreen(true);
-            } else {
-                stage.setFullScreen(false);
-                if (fxmlPath.equals("/view/login.fxml")) {
-                    stage.setWidth(400);
-                    stage.setHeight(500);
-                    stage.setResizable(false);
-                    stage.centerOnScreen();
-                } else {
-                    stage.setResizable(true);
-                    stage.centerOnScreen();
-                }
-            }
-
-            stage.show();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            mostrarErro("Erro ao navegar: " + fxmlPath);
-        }
-    }
-
-
-
-
-
-
-    public <T> void navegarComController(String fxmlPath, ControllerConsumer<T> controllerConsumer, boolean fullscreen) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-            Parent root = loader.load();
-            T controller = loader.getController();
-            controllerConsumer.accept(controller);
-
-            Stage stage = getStageAtual();
-            stage.setScene(new Scene(root));
-            if (fullscreen) stage.setFullScreen(true);
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            mostrarErro("Erro ao carregar com dados: " + fxmlPath);
-        }
-    }
-
-    private Stage getStageAtual() {
-        return (Stage) (coinsButton != null ? coinsButton.getScene().getWindow() : new Stage());
-    }
-
-    @FunctionalInterface
-    public interface ControllerConsumer<T> {
-        void accept(T controller);
-    }
-
-    private void mostrarErro(String mensagem) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setHeaderText("Erro de Navegação");
-        alert.setContentText(mensagem);
-        alert.showAndWait();
-    }
-
-    @FXML
-    private void handleMenuNavigation(ActionEvent event) {
-        Node clicked = (Node) event.getSource();
-        String id = clicked.getId();
-
-        if (id == null) {
-            System.err.println("O controle clicado não tem ID definido.");
-            return;
-        }
-
-        switch (id) {
-            case "linkEsqueceuSenha":
-                navegarPara("/view/forgot_password.fxml", false);
-                break;
-            case "registerLink":
-                navegarPara("/view/register.fxml", false);
-                break;
-            case "loginlink":
-                navegarPara("/view/login.fxml", false);
-            default:
-                System.err.println("Botão não reconhecido: " + id);
-                break;
-        }
-    }
-
-
+    // Atualizar Saldo
+    @FXML private Label balanceLabel;
+    @FXML private Button depositButton;
+    @FXML private Button withdrawButton;
 
 
     // ================= LOGIN =================
@@ -199,7 +92,18 @@ public class UserManagementController {
                     SessaoAtual.saldoCarteira = saldo;
                 }
 
-                navegarPara("/view/homepage.fxml", true);
+                try {
+                    Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
+                    Stage stage = (Stage) loginEmailField.getScene().getWindow();
+                    stage.setScene(new Scene(root, 800, 600));
+                    stage.setFullScreen(true);
+                    stage.setTitle("Velora - Gestão de Criptomoedas");
+                    stage.show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    showAlert("Erro ao carregar a página inicial.");
+                }
+
             } else {
                 showAlert("Password incorreta.", AlertType.ERROR);
             }
@@ -209,7 +113,8 @@ public class UserManagementController {
     }
 
     @FXML
-    private void handleLogOut(ActionEvent event) {
+    private void handleLogOut(javafx.event.ActionEvent event) {
+
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirmação de Logout");
         alert.setHeaderText(null);
@@ -224,10 +129,41 @@ public class UserManagementController {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                navegarPara("/view/login.fxml", false);
+                try {
+                    Node source = (Node) event.getSource();
+                    Stage currentStage = (Stage) source.getScene().getWindow();
+
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
+                    Parent root = loader.load();
+
+                    Stage loginStage = new Stage();
+                    loginStage.setTitle("Velora - Gestão de Criptomoedas");
+                    loginStage.setScene(new Scene(root, 800, 600));
+                    loginStage.setResizable(false);
+
+                    try (InputStream iconStream = getClass().getResourceAsStream("/icons/moedas.png")) {
+                        loginStage.getIcons().add(new Image(iconStream));
+                    } catch (Exception e) {
+                        System.err.println("Erro ao carregar ícone: " + e.getMessage());
+                    }
+
+                    currentStage.close();
+                    loginStage.show();
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                    errorAlert.setTitle("Erro");
+                    errorAlert.setHeaderText("Erro ao carregar tela de login");
+                    errorAlert.setContentText(e.getMessage());
+                    errorAlert.showAndWait();
+                }
             }
         });
     }
+
+
+
 
     // ================= REGISTO =================
     @FXML
@@ -273,7 +209,15 @@ public class UserManagementController {
 
         if (codigoCriado && EmailSender.sendVerificationCode(email, codigo)) {
             showAlert("Conta registada com sucesso! Verifique o seu email.");
-            navegarPara("/view/verification.fxml", false);
+            try {
+                Parent root = FXMLLoader.load(getClass().getResource("/view/verification.fxml"));
+                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                stage.setScene(new Scene(root));
+                stage.show();
+            } catch (IOException e) {
+                e.printStackTrace();
+                showAlert("Erro ao abrir página de verificação.");
+            }
         } else {
             showAlert("Erro ao enviar código de verificação.");
         }
@@ -289,7 +233,17 @@ public class UserManagementController {
         }
 
         if (userRepository.validarCodigo(SessaoAtual.utilizadorId, "REGISTO", codigo)) {
-            navegarPara("/view/homepage.fxml", true);
+            try {
+                Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
+                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                stage.setScene(new Scene(root));
+                stage.setFullScreen(true);
+                stage.setTitle("Velora - Gestão de Criptomoedas");
+                stage.show();
+            } catch (IOException e) {
+                e.printStackTrace();
+                showAlert("Erro ao carregar homepage.");
+            }
         } else {
             showAlert("Código incorreto ou expirado.");
         }
@@ -321,7 +275,7 @@ public class UserManagementController {
         if (criado && EmailSender.sendRecoveryCode(email, codigo)) {
             statusLabel.setText("Código enviado para: " + email);
             statusLabel.setStyle("-fx-text-fill: green;");
-            navegarPara("/view/code_validation.fxml", false);
+            abrirTelaValidacaoCodigo();
         } else {
             showAlert("Erro ao enviar e-mail. Tente novamente.", AlertType.ERROR);
         }
@@ -346,7 +300,7 @@ public class UserManagementController {
         int userId = userIdOpt.get();
         if (userRepository.validarCodigo(userId, "RECUPERACAO_SENHA", codigo)) {
             SessaoAtual.utilizadorRecuperacao = userId;
-            navegarPara("/view/reset_password.fxml", false);
+            abrirTelaRedefinicaoSenha();
         } else {
             validationStatusLabel.setText("Código incorreto ou expirado.");
             validationStatusLabel.setStyle("-fx-text-fill: red;");
@@ -383,12 +337,107 @@ public class UserManagementController {
             showAlert("Senha redefinida com sucesso!");
             SessaoAtual.utilizadorRecuperacao = 0;
             SessaoAtual.emailRecuperacao = null;
-            navegarPara("/view/login.fxml", false);
+            try {
+                Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
+                Stage stage = (Stage) newPasswordField.getScene().getWindow();
+                stage.setScene(new Scene(root));
+                stage.setTitle("Login");
+            } catch (IOException e) {
+                e.printStackTrace();
+                showAlert("Erro ao carregar tela de login.");
+            }
         } else {
             resetStatusLabel.setText("Erro ao redefinir senha.");
             resetStatusLabel.setStyle("-fx-text-fill: red;");
         }
     }
+
+    // ================= NAVEGAÇÃO =================
+    public void goToRegister(ActionEvent event) {
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/view/register.fxml"));
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void goToLogin(ActionEvent event) {
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void abrirTelaRecuperacao() {
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/view/forgot_password.fxml"));
+            Stage stage = new Stage();
+            stage.setTitle("Recuperar Senha");
+            stage.setScene(new Scene(root));
+            stage.setResizable(false);
+            stage.show();
+        } catch (IOException e) {
+            showAlert("Erro ao abrir a tela de recuperação de senha.", AlertType.ERROR);
+            e.printStackTrace();
+        }
+    }
+
+    private void abrirTelaValidacaoCodigo() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/code_validation.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) forgotEmailField.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Validar Código");
+            stage.setResizable(false);
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Erro ao abrir tela de validação.", AlertType.ERROR);
+        }
+    }
+
+    private void abrirTelaRedefinicaoSenha() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/reset_password.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) validationCodeField.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Redefinir Senha");
+            stage.setResizable(false);
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Erro ao abrir tela de redefinição.", AlertType.ERROR);
+        }
+    }
+    @FXML
+
+    private void goToMarket(ActionEvent event) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/market.fxml"));
+            Parent marketRoot = loader.load();
+
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            Scene scene = new Scene(marketRoot);
+            stage.setScene(scene);
+
+            // fullscreen
+            stage.setFullScreen(true);
+
+
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     // ================= UTILS =================
     private boolean isPasswordStrong(String password) {
@@ -410,10 +459,107 @@ public class UserManagementController {
         alert.showAndWait();
     }
 
+    // Componentes da Wallet
+    @FXML private TableView<?> cryptoTable;
+    @FXML private TableView<?> transactionTable;
+
+
+
     @FXML
-    private void gotoAdmin() {
-        NavigationHelper.goTo("/view/admin_dashboard.fxml", true);
+    private void goToWallet(ActionEvent event) {
+        try {
+            URL url = getClass().getResource("/view/wallet.fxml");
+            if (url == null) {
+                throw new IOException("Arquivo wallet.fxml não encontrado em /view/");
+            }
+            Parent root = FXMLLoader.load(url);
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setMaximized(true);
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Erro crítico: " + e.getMessage(), AlertType.ERROR); // Mensagem detalhada
+        }
+    }
+
+    @FXML
+    public void abrirTelaDeposito() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/deposit.fxml"));
+            Parent root = loader.load();
+
+            DepositController controller = loader.getController();
+            controller.setUserId(SessaoAtual.utilizadorId);
+            // PASSA A REFERÊNCIA DO CONTROLADOR PRINCIPAL
+            controller.setMainController(this);
+
+            Stage stage = new Stage();
+            stage.setTitle("Depósito");
+            stage.setScene(new Scene(root));
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Erro ao abrir tela de depósito: " + e.getMessage(), AlertType.ERROR);
+        }
+    }
+
+    // Tela Retirada
+    @FXML
+    public void abrirTelaRetirada() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/withdraw.fxml"));
+            Parent root = loader.load();
+
+            WithdrawController controller = loader.getController();
+            controller.setUserId(SessaoAtual.utilizadorId);
+            // PASSA A REFERÊNCIA DO CONTROLADOR PRINCIPAL
+            controller.setMainController(this);
+
+            Stage stage = new Stage();
+            stage.setTitle("Retirada");
+            stage.setScene(new Scene(root));
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Erro ao abrir tela de retirada: " + e.getMessage(), AlertType.ERROR);
+        }
+    }
+
+    @FXML
+    public void initialize() {
+        if (balanceLabel != null) {
+            // Atualiza o saldo ao inicializar
+            atualizarSaldo();
+
+            // Configura atualização automática ao focar na janela
+            balanceLabel.sceneProperty().addListener((obs, oldScene, newScene) -> {
+                if (newScene != null) {
+                    newScene.windowProperty().addListener((obs2, oldWindow, newWindow) -> {
+                        if (newWindow != null && newWindow.isShowing()) {
+                            atualizarSaldo();
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    // Atualizar Saldo
+    public void atualizarSaldo() {
+        try {
+            // Busca saldo atualizado diretamente do banco
+            BigDecimal novoSaldo = WalletRepository.getSaldo(SessaoAtual.utilizadorId);
+
+            // Atualiza a sessão e a interface
+            SessaoAtual.saldoCarteira = novoSaldo;
+            balanceLabel.setText("€ " + novoSaldo);
+
+        } catch (Exception e) {
+            System.err.println("Erro ao atualizar saldo: " + e.getMessage());
+            e.printStackTrace();
+            showAlert("Erro ao atualizar saldo", AlertType.ERROR);
+        }
     }
 }
-
-
