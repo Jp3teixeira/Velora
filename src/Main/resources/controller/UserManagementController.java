@@ -140,20 +140,30 @@ public class UserManagementController {
 
     @FXML
     private void handleMenuNavigation(ActionEvent event) {
-        Button clicked = (Button) event.getSource();
+        Node clicked = (Node) event.getSource();
+        String id = clicked.getId();
 
-        switch (clicked.getId()) {
-            case "marketButton":
-                navegarPara("/view/market.fxml", true);
+        if (id == null) {
+            System.err.println("O controle clicado não tem ID definido.");
+            return;
+        }
+
+        switch (id) {
+            case "linkEsqueceuSenha":
+                navegarPara("/view/forgot_password.fxml", false);
                 break;
-            case "loginButton":
+            case "registerLink":
+                navegarPara("/view/register.fxml", false);
+                break;
+            case "loginlink":
                 navegarPara("/view/login.fxml", false);
-                break;
-            // ... outros casos ...
             default:
-                mostrarErro("Botão não reconhecido: " + clicked.getId());
+                System.err.println("Botão não reconhecido: " + id);
+                break;
         }
     }
+
+
 
 
     // ================= LOGIN =================
@@ -405,3 +415,5 @@ public class UserManagementController {
         NavigationHelper.goTo("/view/admin_dashboard.fxml", true);
     }
 }
+
+
