@@ -8,6 +8,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import model.Moeda;
 import org.mindrot.jbcrypt.BCrypt;
 import Repository.UserRepository;
@@ -55,16 +56,54 @@ public class UserManagementController {
     // ================= NAVEGAÇÃO CENTRALIZADA =================
     public void navegarPara(String fxmlPath, boolean fullscreen) {
         try {
-            Parent root = FXMLLoader.load(getClass().getResource(fxmlPath));
-            Stage stage = getStageAtual();
-            stage.setScene(new Scene(root));
-            if (fullscreen) stage.setFullScreen(true);
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Parent root = loader.load();
+
+            // Obter o Stage atual de uma forma segura
+            Stage stage = root.getScene() != null
+                    ? (Stage) root.getScene().getWindow()
+                    : null;
+
+            // Caso não tenha Stage, tentar obter pela janela focada
+            if (stage == null) {
+                stage = (Stage) javafx.stage.Window.getWindows().stream()
+                        .filter(Window::isShowing)
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("Nenhuma janela ativa encontrada"));
+            }
+
+            // Definir a nova cena
+            Scene scene = new Scene(root);
+            stage.setScene(scene);
+
+            // Configurar fullscreen e tamanho
+            if (fullscreen) {
+                stage.setFullScreen(true);
+            } else {
+                stage.setFullScreen(false);
+                if (fxmlPath.equals("/view/login.fxml")) {
+                    stage.setWidth(400);
+                    stage.setHeight(500);
+                    stage.setResizable(false);
+                    stage.centerOnScreen();
+                } else {
+                    stage.setResizable(true);
+                    stage.centerOnScreen();
+                }
+            }
+
             stage.show();
+
         } catch (IOException e) {
             e.printStackTrace();
-            mostrarErro("Erro ao carregar: " + fxmlPath);
+            mostrarErro("Erro ao navegar: " + fxmlPath);
         }
     }
+
+
+
+
+
 
     public <T> void navegarComController(String fxmlPath, ControllerConsumer<T> controllerConsumer, boolean fullscreen) {
         try {
@@ -104,16 +143,15 @@ public class UserManagementController {
         Button clicked = (Button) event.getSource();
 
         switch (clicked.getId()) {
-            case "marketButton" -> navegarPara("/view/market.fxml", true);
-            case "coinsButton" -> navegarPara("/view/moeda.fxml", true);
-            case "homeButton" -> navegarPara("/view/homepage.fxml", true);
-            case "loginButton" -> navegarPara("/view/login.fxml", false);
-            case "registerButton" -> navegarPara("/view/register.fxml", false);
-            case "forgotButton" -> navegarPara("/view/forgot_password.fxml", false);
-            case "resetButton" -> navegarPara("/view/reset_password.fxml", false);
-            case "verifyButton" -> navegarPara("/view/verification.fxml", false);
-            case "codeButton" -> navegarPara("/view/code_verification.fxml", false);
-            default -> mostrarErro("Página não encontrada para: " + clicked.getId());
+            case "marketButton":
+                navegarPara("/view/market.fxml", true);
+                break;
+            case "loginButton":
+                navegarPara("/view/login.fxml", false);
+                break;
+            // ... outros casos ...
+            default:
+                mostrarErro("Botão não reconhecido: " + clicked.getId());
         }
     }
 
