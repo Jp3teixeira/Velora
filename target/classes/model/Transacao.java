@@ -1,79 +1,63 @@
 package model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class Transacao {
-    private int id_transacao;
-    private int id_carteira;
-    private int id_moeda;
-    private String tipo;
-    private double quantidade;
-    private double valor_unitario;
-    private double valor_total;
-    private LocalDateTime timestamp;
+    private int id;
+    private int userId;
+    private String type;
+    private BigDecimal amount;
+    private String currency;
+    private LocalDateTime createdAt;
 
-    public int getId_transacao() {
-        return id_transacao;
+    // Getters e Setters
+
+    public int getId() {
+        return id;
     }
 
-    public void setId_transacao(int id_transacao) {
-        this.id_transacao = id_transacao;
+    public void setId(int id) {
+        this.id = id;
     }
 
-    public int getId_carteira() {
-        return id_carteira;
+    public int getUserId() {
+        return userId;
     }
 
-    public void setId_carteira(int id_carteira) {
-        this.id_carteira = id_carteira;
+    public void setUserId(int userId) {
+        this.userId = userId;
     }
 
-    public int getId_moeda() {
-        return id_moeda;
+    public String getType() {
+        return type;
     }
 
-    public void setId_moeda(int id_moeda) {
-        this.id_moeda = id_moeda;
+    public void setType(String type) {
+        this.type = type;
     }
 
-    public String getTipo() {
-        return tipo;
+    public BigDecimal getAmount() {
+        return amount;
     }
 
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
     }
 
-    public double getQuantidade() {
-        return quantidade;
+    public String getCurrency() {
+        return currency;
     }
 
-    public void setQuantidade(double quantidade) {
-        this.quantidade = quantidade;
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 
-    public double getValor_unitario() {
-        return valor_unitario;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setValor_unitario(double valor_unitario) {
-        this.valor_unitario = valor_unitario;
-    }
-
-    public double getValor_total() {
-        return valor_total;
-    }
-
-    public void setValor_total(double valor_total) {
-        this.valor_total = valor_total;
-    }
-
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }
-

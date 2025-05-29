@@ -41,8 +41,12 @@
             </HBox>
 
             <HBox spacing="15" alignment="CENTER_RIGHT">
-                <Button text="DEPOSITAR" fx:id="depositButton" styleClass="action-button deposit"/>
-                <Button text="RETIRAR" fx:id="withdrawButton" styleClass="action-button withdraw"/>
+                <Button text="DEPOSITAR" fx:id="depositButton"
+                        onAction="#abrirTelaDeposito"
+                        styleClass="action-button deposit"/>
+                <Button text="RETIRAR" fx:id="withdrawButton"
+                        onAction="#abrirTelaRetirada"
+                        styleClass="action-button withdraw"/>
             </HBox>
         </VBox>
     </top>

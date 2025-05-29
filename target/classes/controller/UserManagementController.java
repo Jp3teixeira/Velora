@@ -48,6 +48,7 @@ public class UserManagementController {
     @FXML private Label validationStatusLabel;
 
     @FXML private TextField codigoField;
+    private int currentUserId;
 
     // ================= LOGIN =================
     @FXML
@@ -476,6 +477,47 @@ public class UserManagementController {
         } catch (IOException e) {
             e.printStackTrace();
             showAlert("Erro crítico: " + e.getMessage(), AlertType.ERROR); // Mensagem detalhada
+        }
+    }
+
+    @FXML
+    public void abrirTelaDeposito() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/deposit.fxml"));
+            Parent root = loader.load();
+
+            DepositController controller = loader.getController();
+            controller.setUserId(SessaoAtual.utilizadorId); // Usar ID da sessão
+
+            Stage stage = new Stage();
+            stage.setTitle("Depósito");
+            stage.setScene(new Scene(root));
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Erro ao abrir tela de depósito: " + e.getMessage(), AlertType.ERROR);
+        }
+
+    }
+    // Adicione este método
+    @FXML
+    public void abrirTelaRetirada() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/withdraw.fxml"));
+            Parent root = loader.load();
+
+            WithdrawController controller = loader.getController();
+            controller.setUserId(SessaoAtual.utilizadorId);
+
+            Stage stage = new Stage();
+            stage.setTitle("Retirada");
+            stage.setScene(new Scene(root));
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Erro ao abrir tela de retirada: " + e.getMessage(), AlertType.ERROR);
         }
     }
 }
