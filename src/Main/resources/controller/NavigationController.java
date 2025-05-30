@@ -79,9 +79,21 @@ public class NavigationController {
                 adminButton.setManaged(shouldShowAdminButton);
             }
 
+            // Mostrar o nome do utilizador no botão Account
+            if (accountButton != null && SessaoAtual.nome != null && !SessaoAtual.nome.isEmpty()) {
+                // Mostrar apenas o primeiro nome se houver espaço
+                String firstName = SessaoAtual.nome.split(" ")[0];
+                accountButton.setText(firstName);
+
+                // Opcional: adicionar ícone de usuário
+                // accountButton.setGraphic(new ImageView(new Image("/images/user-icon.png")));
+            }
+
             // Debug (pode remover depois)
             System.out.println("Admin button visible: " + shouldShowAdminButton);
         }
+
+
 
 
 }
