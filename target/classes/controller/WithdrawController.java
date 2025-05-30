@@ -6,7 +6,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import utils.SessaoAtual;
-
 import java.math.BigDecimal;
 
 public class WithdrawController {

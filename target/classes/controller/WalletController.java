@@ -6,10 +6,8 @@ import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.stage.Stage;
-
 import Repository.WalletRepository;
 import utils.SessaoAtual;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 
@@ -27,7 +25,6 @@ public class WalletController {
     public void initialize() {
         atualizarSaldo();
 
-        // Atualiza o saldo quando a janela volta a ter foco
         if (balanceLabel != null) {
             balanceLabel.sceneProperty().addListener((obs, oldScene, newScene) -> {
                 if (newScene != null) {
@@ -62,7 +59,7 @@ public class WalletController {
 
             DepositController controller = loader.getController();
             controller.setUserId(SessaoAtual.utilizadorId);
-            controller.setMainController(this); // para atualizar saldo após depósito
+            controller.setMainController(this);
 
             Stage stage = new Stage();
             stage.setTitle("Depósito");
@@ -83,7 +80,7 @@ public class WalletController {
 
             WithdrawController controller = loader.getController();
             controller.setUserId(SessaoAtual.utilizadorId);
-            controller.setMainController(this); // para atualizar saldo após retirada
+            controller.setMainController(this);
 
             Stage stage = new Stage();
             stage.setTitle("Retirada");

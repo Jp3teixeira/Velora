@@ -16,8 +16,8 @@ public class Main extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
         Parent root = loader.load();
 
-        // Define um tamanho menor para a janela (ajuste conforme necessário)
-        Scene scene = new Scene(root, 400, 500); // Largura 400, Altura 500
+
+        Scene scene = new Scene(root, 400, 500);
 
         try {
             primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/moedas.png")));
@@ -27,8 +27,8 @@ public class Main extends Application {
 
         primaryStage.setTitle("Velora - Gestão de Criptomoedas");
         primaryStage.setScene(scene);
-        primaryStage.setResizable(false); // Impede redimensionamento
-        primaryStage.centerOnScreen(); // Centraliza na tela
+        primaryStage.setResizable(false);
+        primaryStage.centerOnScreen();
         primaryStage.show();
     }
 }

@@ -36,9 +36,9 @@ public class AdminDashboardController {
 
     @FXML
     public void initialize() {
-
         if (adminButton != null) {
-            boolean isAdmin = "Admin".equals(SessaoAtual.tipo);
+            boolean isAdmin = SessaoAtual.tipo != null &&
+                    SessaoAtual.tipo.equalsIgnoreCase("admin");
             adminButton.setVisible(isAdmin);
             adminButton.setManaged(isAdmin);
         }

@@ -36,9 +36,9 @@ public class AdminDashboardController {
 
     @FXML
     public void initialize() {
-        // Controle de visibilidade do botão admin
         if (adminButton != null) {
-            boolean isAdmin = "Admin".equals(SessaoAtual.tipo);
+            boolean isAdmin = SessaoAtual.tipo != null &&
+                    SessaoAtual.tipo.equalsIgnoreCase("admin");
             adminButton.setVisible(isAdmin);
             adminButton.setManaged(isAdmin);
         }
@@ -154,7 +154,7 @@ public class AdminDashboardController {
 
         tableView.getColumns().addAll(nomeCol, simboloCol, valorCol, variacaoCol, volumeCol);
 
-        // Busca lista de moedas na base de dados (assumindo método existente em MarketRepository)
+        // Procura lista de moedas na base de dados
         var listaMoedas = MarketRepository.getAllCoins();
 
         tableView.getItems().addAll((Collection<? extends Moeda>) listaMoedas);
@@ -214,7 +214,7 @@ public class AdminDashboardController {
         });
 
 
-// Adicione a coluna de ações à tabela
+
         tableView.getColumns().add(actionCol);
 
 
@@ -249,7 +249,7 @@ public class AdminDashboardController {
                 statusLabel.setText("Moeda atualizada com sucesso!");
                 statusLabel.setStyle("-fx-text-fill: green;");
 
-                // Atualizar a tabela - para isso, poderias recarregar a lista ou manipular diretamente o TableView
+
                 handleViewStatistics(); // Recarrega a tabela
 
             } catch (NumberFormatException ex) {
@@ -343,17 +343,6 @@ public class AdminDashboardController {
     @FXML
     private void handleLogOut() {
         NavigationHelper.goTo("/view/login.fxml", false);
-    }
-
-    @FXML
-    private void goToMarket() {
-        NavigationHelper.goTo("/view/market.fxml", true);
-    }
-
-
-    @FXML
-    private void goToHome() {
-        NavigationHelper.goTo("/view/homepage.fxml", true);
     }
 
 

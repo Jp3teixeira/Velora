@@ -39,10 +39,11 @@ public class HomeController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         carregarListaMoedas();
         atualizarSaldo();
+
     }
 
     private void carregarListaMoedas() {
-        List<Moeda> moedas = MarketRepository.getTodasAsMoedas();  // sem getInstance()
+        List<Moeda> moedas = MarketRepository.getTodasAsMoedas();
         for (Moeda moeda : moedas) {
             cryptoList.getItems().add(moeda.getNome());
         }
@@ -69,7 +70,7 @@ public class HomeController implements Initializable {
         priceChart.getData().add(serie);
     }
 
-    // Exemplo simples só para não dar erro de compilação
+    //REVER ISTO
     private List<Double> getHistoricoSimples(String nomeMoeda) {
         // ⚠️ Tens de adaptar isto ao teu sistema (por id, símbolo, etc)
         return List.of(1.0, 1.2, 1.3, 1.25, 1.4); // Simulação temporária

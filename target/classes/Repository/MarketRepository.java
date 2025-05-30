@@ -1,9 +1,8 @@
 package Repository;
 
-import Database.DBConnection;
+import static Database.DBConnection.getConnection;
 import javafx.scene.chart.XYChart;
 import model.Moeda;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
@@ -11,8 +10,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-
-import static Database.DBConnection.getConnection;
 
 public class MarketRepository {
 

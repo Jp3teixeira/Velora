@@ -1,7 +1,6 @@
 package utils;
 
 import Database.DBConnection;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
@@ -57,14 +56,6 @@ public class MarketSimulator {
                     stmtInsert.executeUpdate();
                 }
             }
-
-            // 🔥 Limpar registos com mais de 6 meses
-            try (PreparedStatement stmtLimpar = conn.prepareStatement(
-                    "DELETE FROM historico_valores WHERE timestamp < NOW() - INTERVAL 6 MONTH")) {
-                int apagados = stmtLimpar.executeUpdate();
-                System.out.println("🧹 Registos antigos apagados: " + apagados);
-            }
-
             System.out.println("✔ Simulação concluída. Moedas processadas: " + moedasProcessadas);
 
         } catch (Exception e) {

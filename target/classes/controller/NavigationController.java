@@ -9,6 +9,7 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import utils.NavigationHelper;
 import utils.Routes;
+import utils.SessaoAtual;
 
 import java.io.InputStream;
 import java.util.Map;
@@ -65,5 +66,22 @@ public class NavigationController {
             }
         });
     }
+
+        @FXML
+        public void initialize() {
+            // Verificação robusta de admin
+            boolean shouldShowAdminButton = SessaoAtual.tipo != null &&
+                    (SessaoAtual.tipo.equalsIgnoreCase("admin") ||
+                            SessaoAtual.isSuperAdmin);
+
+            if (adminButton != null) {
+                adminButton.setVisible(shouldShowAdminButton);
+                adminButton.setManaged(shouldShowAdminButton);
+            }
+
+            // Debug (pode remover depois)
+            System.out.println("Admin button visible: " + shouldShowAdminButton);
+        }
+
 
 }
