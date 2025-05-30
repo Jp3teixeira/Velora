@@ -6,8 +6,8 @@ import java.util.Properties;
 
 public class EmailSender {
     // Configurações do Gmail SMTP
-    private static final String GMAIL_USER = "veloraapi@gmail.com"; // Substitua pelo seu e-mail
-    private static final String GMAIL_PASSWORD = "lexp bvwk prcd hsli"; // Use senha de app se tiver 2FA ativado
+    private static final String GMAIL_USER = "veloraapi@gmail.com";
+    private static final String GMAIL_PASSWORD = "lexp bvwk prcd hsli";
     private static final String FROM_NAME = "Velora";
 
     /**

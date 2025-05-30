@@ -2,18 +2,14 @@ package controller;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.image.Image;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
 import org.mindrot.jbcrypt.BCrypt;
 import Repository.UserRepository;
 import Repository.WalletRepository;
 import utils.EmailSender;
 import utils.SessaoAtual;
-import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.Random;
 import static utils.NavigationHelper.goTo;
