@@ -15,7 +15,6 @@
     <Rectangle width="400" height="500"
                fill="linear-gradient(to bottom right, #4B3F72, #232323)"/>
 
-
     <StackPane AnchorPane.topAnchor="50" AnchorPane.bottomAnchor="50"
                AnchorPane.leftAnchor="50" AnchorPane.rightAnchor="50">
 
@@ -27,6 +26,7 @@
               style="-fx-padding: 40;"
               maxWidth="280">
 
+            <!-- Título -->
             <VBox alignment="CENTER" spacing="10">
                 <Label text="Velora"
                        style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white; -fx-font-family: 'Arial Rounded MT Bold';"/>
@@ -34,7 +34,9 @@
                        style="-fx-font-size: 12px; -fx-text-fill: rgba(255,255,255,0.8);"/>
             </VBox>
 
+            <!-- Formulário -->
             <VBox spacing="20" alignment="CENTER_LEFT">
+                <!-- Username / Email -->
                 <VBox spacing="5">
                     <Label text="Username ou Email" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px;"/>
                     <TextField fx:id="loginEmailField"
@@ -42,6 +44,7 @@
                                prefWidth="250" promptText="Username ou email"/>
                 </VBox>
 
+                <!-- Password -->
                 <VBox spacing="5">
                     <Label text="Senha" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px;"/>
                     <PasswordField fx:id="loginPasswordField"
@@ -49,22 +52,25 @@
                                    prefWidth="250" promptText="••••••••"/>
                 </VBox>
 
+                <!-- Botão Login -->
                 <Button text="ENTRAR" onAction="#handleLogin"
                         style="-fx-background-color: #EAEAEA; -fx-text-fill: #4B3F72; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 15; -fx-cursor: hand; -fx-padding: 8 25;"
                         maxWidth="Infinity"/>
             </VBox>
 
+            <!-- Links extras -->
             <VBox alignment="CENTER" spacing="15">
+                <!-- Esqueceu a senha -->
                 <Hyperlink fx:id="linkEsqueceuSenha" text="Esqueceu a senha?"
-                           style="-fx-text-fill: white; -fx-border-color: transparent; -fx-font-size: 12px;"
-                           onAction="#handleMenuNavigation"/>
+                           onAction="#GoToRecuperacao"
+                           style="-fx-text-fill: white; -fx-border-color: transparent; -fx-font-size: 12px;"/>
 
+                <!-- Criar conta -->
                 <HBox alignment="CENTER" spacing="5">
                     <Label text="Novo por aqui?" style="-fx-text-fill: white; -fx-font-size: 12px;"/>
                     <Hyperlink fx:id="registerLink" text="Crie uma conta"
-                               onAction="#handleMenuNavigation"
+                               onAction="#GoToRegister"
                                style="-fx-text-fill: white; -fx-font-weight: bold; -fx-border-color: transparent; -fx-font-size: 12px;"/>
-
                 </HBox>
             </VBox>
         </VBox>

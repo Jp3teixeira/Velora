@@ -1,4 +1,38 @@
 /* wallet.css - Tema Unificado */
+/* ===========================
+   NAVBAR (Velora)
+=========================== */
+
+/* Botões da navbar ( */
+.menu-button {
+    -fx-text-fill: #e0e0e0;
+    -fx-background-color: transparent;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-padding: 6 10;
+    -fx-border-color: transparent;
+}
+
+
+.menu-button:hover {
+    -fx-text-fill: #b892ff;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* Navbar container */
+.navbar {
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 12 20;
+}
+
+/* Título da navbar  */
+.navbar-title {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 18px;
+}
+
 
 /* ==================== FUNDAMENTOS ==================== */
 .root {

@@ -11,13 +11,10 @@
     <Label text="Velora" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18;"/>
 
     <Button fx:id="homeButton" text="Home" onAction="#handleMenuNavigation" styleClass="menu-button"/>
-    <Button fx:id="portfolioButton" text="Portfolio" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+    <Button fx:id="portfolioButton" text="Wallet" onAction="#handleMenuNavigation" styleClass="menu-button"/>
     <Button fx:id="marketButton" text="Market" onAction="#handleMenuNavigation" styleClass="menu-button"/>
-    <Button fx:id="researchButton" text="Research" onAction="#handleMenuNavigation" styleClass="menu-button"/>
-    <Button fx:id="transferButton" text="Transfer &amp; Pay" onAction="#handleMenuNavigation" styleClass="menu-button"/>
-    <Button fx:id="reportsButton" text="Performance &amp; Reports" onAction="#handleMenuNavigation" styleClass="menu-button"/>
     <Button fx:id="coinsButton" text="Coins" onAction="#handleMenuNavigation" styleClass="menu-button"/>
-
     <Region HBox.hgrow="ALWAYS"/>
     <Button fx:id="accountButton" text="Account" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+    <Button fx:id="adminButton" text="Admin" onAction="#handleMenuNavigation" styleClass="menu-button"/>
 </HBox>

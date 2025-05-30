@@ -11,7 +11,7 @@
 <?import javafx.scene.image.ImageView?>
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="controller.UserManagementController"
+            fx:controller="controller.WalletController"
             prefWidth="1200" prefHeight="800"
             style="-fx-background-color: #121212;">
 
@@ -21,33 +21,38 @@
 
     <!-- TOPO: Cabeçalho Moderno -->
     <top>
-        <VBox spacing="15" style="-fx-background-color: #1a1a1a;">
-            <padding>
-                <Insets top="25" right="30" bottom="25" left="30"/>
-            </padding>
+        <VBox spacing="0">
+            <fx:include source="/view/navbar.fxml"/>
 
-            <HBox spacing="20" alignment="CENTER_LEFT">
-                <ImageView fitWidth="40" fitHeight="40" preserveRatio="true"
-                           style="-fx-effect: dropshadow(gaussian, #2563eb, 10, 0.5, 0, 0);">
-                    <!-- Adicione ícone da carteira aqui -->
-                </ImageView>
+            <!-- Cabeçalho Moderno da Wallet -->
+            <VBox spacing="15" style="-fx-background-color: #1a1a1a;">
+                <padding>
+                    <Insets top="25" right="30" bottom="25" left="30"/>
+                </padding>
 
-                <VBox>
-                    <Label text="CARTEIRA DIGITAL"
-                           style="-fx-text-fill: #94a3b8; -fx-font-size: 14px; -fx-font-weight: medium;"/>
-                    <Label fx:id="balanceLabel" text="€ 0,00"
-                           style="-fx-text-fill: #e2e8f0; -fx-font-size: 36px; -fx-font-weight: bold;"/>
-                </VBox>
-            </HBox>
+                <HBox spacing="20" alignment="CENTER_LEFT">
+                    <ImageView fitWidth="40" fitHeight="40" preserveRatio="true"
+                               style="-fx-effect: dropshadow(gaussian, #2563eb, 10, 0.5, 0, 0);">
+                        <!-- Adicione ícone da carteira aqui -->
+                    </ImageView>
 
-            <HBox spacing="15" alignment="CENTER_RIGHT">
-                <Button text="DEPOSITAR" fx:id="depositButton"
-                        onAction="#abrirTelaDeposito"
-                        styleClass="action-button deposit"/>
-                <Button text="RETIRAR" fx:id="withdrawButton"
-                        onAction="#abrirTelaRetirada"
-                        styleClass="action-button withdraw"/>
-            </HBox>
+                    <VBox>
+                        <Label text="CARTEIRA DIGITAL"
+                               style="-fx-text-fill: #94a3b8; -fx-font-size: 14px; -fx-font-weight: medium;"/>
+                        <Label fx:id="balanceLabel" text="€ 0,00"
+                               style="-fx-text-fill: #e2e8f0; -fx-font-size: 36px; -fx-font-weight: bold;"/>
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="15" alignment="CENTER_RIGHT">
+                    <Button text="DEPOSITAR" fx:id="depositButton"
+                            onAction="#abrirTelaDeposito"
+                            styleClass="action-button deposit"/>
+                    <Button text="RETIRAR" fx:id="withdrawButton"
+                            onAction="#abrirTelaRetirada"
+                            styleClass="action-button withdraw"/>
+                </HBox>
+            </VBox>
         </VBox>
     </top>
 

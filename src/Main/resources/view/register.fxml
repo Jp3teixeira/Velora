@@ -12,8 +12,9 @@
             style="-fx-background-color: transparent;"
             prefHeight="800.0" prefWidth="1000.0">
 
-    <Rectangle fx:id="backgroundOverlay" width="1000" height="800"
-               fill="linear-gradient(to bottom right, #4B3F72, #232323)" arcWidth="20" arcHeight="20"/>
+    <Rectangle width="1000" height="800"
+               fill="linear-gradient(to bottom right, #4B3F72, #232323)"
+               arcWidth="20" arcHeight="20" opacity="0.95"/>
 
     <StackPane AnchorPane.topAnchor="100"
                AnchorPane.bottomAnchor="100"
@@ -28,6 +29,7 @@
               style="-fx-padding: 40;"
               maxWidth="280">
 
+            <!-- Header -->
             <VBox alignment="CENTER" spacing="10">
                 <Label text="Velora"
                        style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white; -fx-font-family: 'Arial Rounded MT Bold';"/>
@@ -35,7 +37,9 @@
                        style="-fx-font-size: 12px; -fx-text-fill: rgba(255,255,255,0.8);"/>
             </VBox>
 
+            <!-- Campos -->
             <VBox spacing="15" alignment="CENTER_LEFT">
+                <!-- Username -->
                 <VBox spacing="5">
                     <Label text="Username" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px;"/>
                     <TextField fx:id="registerUsernameField"
@@ -43,6 +47,7 @@
                                prefWidth="250" promptText="O seu username"/>
                 </VBox>
 
+                <!-- Email -->
                 <VBox spacing="5">
                     <Label text="Email" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px;"/>
                     <TextField fx:id="registerEmailField"
@@ -50,6 +55,7 @@
                                prefWidth="250" promptText="O seu email"/>
                 </VBox>
 
+                <!-- Password -->
                 <VBox spacing="5">
                     <Label text="Senha" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px;"/>
                     <PasswordField fx:id="registerPasswordField"
@@ -60,6 +66,7 @@
                            wrapText="true"/>
                 </VBox>
 
+                <!-- Confirmar Password -->
                 <VBox spacing="5">
                     <Label text="Confirmar Senha" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px;"/>
                     <PasswordField fx:id="registerConfirmPasswordField"
@@ -67,17 +74,19 @@
                                    prefWidth="250" promptText="••••••••"/>
                 </VBox>
 
-                <Button text="REGISTAR" onAction="#handleRegister"
+                <!-- Botão Registar -->
+                <Button fx:id="registerButton" text="REGISTAR" onAction="#handleRegister"
                         style="-fx-background-color: #EAEAEA; -fx-text-fill: #4B3F72; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 15; -fx-cursor: hand; -fx-padding: 8 25;"
                         maxWidth="Infinity"/>
             </VBox>
 
+            <!-- Link para login -->
             <VBox alignment="CENTER" spacing="15">
                 <HBox alignment="CENTER" spacing="5">
                     <Label text="Já tem conta?" style="-fx-text-fill: white; -fx-font-size: 12px;"/>
                     <Hyperlink text="Entrar"
                                fx:id="loginlink"
-                               onAction="#handleMenuNavigation"
+                               onAction="#GoToLogin"
                                style="-fx-text-fill: white; -fx-font-weight: bold; -fx-border-color: transparent; -fx-font-size: 12px;"/>
                 </HBox>
             </VBox>

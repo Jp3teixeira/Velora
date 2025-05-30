@@ -11,7 +11,7 @@
             style="-fx-background-color: #121212;">
 
     <stylesheets>
-        <URL value="@/view/css/geral.css"/>
+        <URL value="@/view/css/navbar.css"/>
     </stylesheets>
 
     <!-- Navbar no topo -->

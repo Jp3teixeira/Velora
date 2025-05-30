@@ -1,9 +1,14 @@
+/* ===========================
+   BASE
+=========================== */
 .root {
     -fx-font-family: "Segoe UI", sans-serif;
     -fx-background-color: #121212;
 }
 
-/* Gráfico */
+/* ===========================
+   GRÁFICOS
+=========================== */
 .chart {
     -fx-background-color: #121212;
 }
@@ -23,7 +28,9 @@
     -fx-background-radius: 6px;
 }
 
-/* Toggle Buttons + Hover */
+/* ===========================
+   TOGGLE BUTTONS
+=========================== */
 .toggle-button,
 .filtro-toggle {
     -fx-background-color: #2a2a2a;
@@ -34,10 +41,9 @@
     -fx-border-color: transparent;
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
     -fx-cursor: hand;
-    -fx-transition: all 0.2s ease-in-out;
 }
-.filtro-toggle:hover,
-.toggle-button:hover {
+.toggle-button:hover,
+.filtro-toggle:hover {
     -fx-background-color: #3a3a3a;
     -fx-scale-x: 1.03;
     -fx-scale-y: 1.03;
@@ -48,14 +54,15 @@
     -fx-text-fill: #121212;
 }
 
-/* Menu Buttons */
+/* ===========================
+   NAVBAR MENU BUTTONS
+=========================== */
 .menu-button {
     -fx-text-fill: #e0e0e0;
     -fx-background-color: transparent;
     -fx-font-size: 14px;
     -fx-cursor: hand;
     -fx-padding: 6 10;
-    -fx-transition: all 0.2s ease-in-out;
 }
 .menu-button:hover {
     -fx-text-fill: #b892ff;
@@ -63,7 +70,9 @@
     -fx-scale-y: 1.05;
 }
 
-/* Watchlist */
+/* ===========================
+   WATCHLIST
+=========================== */
 .list-view.watchlist {
     -fx-background-color: #1a1a1a;
     -fx-control-inner-background: #1a1a1a;
@@ -74,7 +83,6 @@
     -fx-background-color: transparent;
     -fx-text-fill: #f0f0f0;
     -fx-cursor: hand;
-    -fx-transition: all 0.2s ease-in-out;
 }
 .list-cell:hover {
     -fx-background-color: #2e2e2e;
@@ -85,14 +93,18 @@
     -fx-font-weight: bold;
 }
 
-/* Título lista mercados */
+/* ===========================
+   TÍTULOS
+=========================== */
 .title-mercado {
     -fx-font-size: 16px;
     -fx-font-weight: bold;
     -fx-text-fill: #ffffff;
 }
 
-/* Valores principais */
+/* ===========================
+   LABELS PRINCIPAIS
+=========================== */
 .label-valor {
     -fx-text-fill: #b892ff;
     -fx-font-size: 20px;
@@ -114,7 +126,9 @@
     -fx-font-weight: bold;
 }
 
-/* Watchlist: Nome + Valor */
+/* ===========================
+   NOME + VALOR MOEDA
+=========================== */
 .nome-moeda {
     -fx-text-fill: #f0f0f0;
     -fx-font-size: 14px;
@@ -123,6 +137,14 @@
 .valor-moeda {
     -fx-text-fill: #bbbbbb;
     -fx-font-size: 12px;
+}
 
+/* ===========================
+   ANIMAÇÕES
+=========================== */
 
+.animated-hover:hover {
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+    -fx-effect: dropshadow(gaussian, #b892ff, 8, 0.4, 0, 0);
 }

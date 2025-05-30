@@ -13,18 +13,7 @@ public class NavigationHelper {
         try {
             FXMLLoader loader = new FXMLLoader(NavigationHelper.class.getResource(fxmlPath));
             Parent root = loader.load();
-
-            Stage stage = (Stage) Stage.getWindows().stream()
-                    .filter(Window -> Window.isShowing())
-                    .findFirst()
-                    .orElseThrow()
-                    .getScene()
-                    .getWindow();
-
-            stage.setScene(new Scene(root));
-            if (fullscreen) stage.setFullScreen(true);
-            stage.show();
-
+            showScene(root, fullscreen);
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Erro ao navegar para: " + fxmlPath);
@@ -37,21 +26,24 @@ public class NavigationHelper {
             Parent root = loader.load();
             T controller = loader.getController();
             consumer.accept(controller);
-
-            Stage stage = (Stage) Stage.getWindows().stream()
-                    .filter(Window -> Window.isShowing())
-                    .findFirst()
-                    .orElseThrow()
-                    .getScene()
-                    .getWindow();
-
-            stage.setScene(new Scene(root));
-            if (fullscreen) stage.setFullScreen(true);
-            stage.show();
+            showScene(root, fullscreen);
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Erro ao navegar com controller para: " + fxmlPath);
         }
+    }
+
+    private static void showScene(Parent root, boolean fullscreen) {
+        Stage stage = (Stage) Stage.getWindows().stream()
+                .filter(window -> window.isShowing())
+                .findFirst()
+                .orElseThrow()
+                .getScene()
+                .getWindow();
+
+        stage.setScene(new Scene(root));
+        if (fullscreen) stage.setFullScreen(true);
+        stage.show();
     }
 
     @FunctionalInterface

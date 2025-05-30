@@ -2,8 +2,16 @@ package controller;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.image.Image;
+import javafx.stage.Stage;
 import utils.NavigationHelper;
+import utils.Routes;
+
+import java.io.InputStream;
+import java.util.Map;
 
 public class NavigationController {
 
@@ -17,24 +25,45 @@ public class NavigationController {
     @FXML private Button accountButton;
     @FXML private Button adminButton;
 
+    private static final Map<String, String> routeMap = Map.of(
+            "homeButton", Routes.HOMEPAGE,
+            "portfolioButton", Routes.PORTFOLIO,
+            "marketButton", Routes.MARKET,
+            "researchButton", Routes.RESEARCH,
+            "transferButton", Routes.TRANSFER,
+            "reportsButton", Routes.REPORTS,
+            "coinsButton", Routes.MOEDAS,
+            "accountButton", Routes.ACCOUNT,
+            "adminButton", Routes.ADMIN_DASHBOARD
+    );
+
     @FXML
     private void handleMenuNavigation(ActionEvent event) {
         Button source = (Button) event.getSource();
-        String route = switch (source.getId()) {
-            case "homeButton" -> "/view/homepage.fxml";
-            case "portfolioButton" -> "/view/portfolio.fxml";
-            case "marketButton" -> "/view/market.fxml";
-            case "researchButton" -> "/view/research.fxml";
-            case "transferButton" -> "/view/transfer.fxml";
-            case "reportsButton" -> "/view/reports.fxml";
-            case "coinsButton" -> "/view/moeda.fxml";
-            case "accountButton" -> "/view/account.fxml";
-            case "adminButton" -> "/view/admin_dashboard.fxml";
-            default -> null;
-        };
-
+        String route = routeMap.get(source.getId());
         if (route != null) {
             NavigationHelper.goTo(route, true);
+        } else {
+            System.err.println("ID de botão desconhecido: " + source.getId());
         }
     }
+    // ================= LOGOUT =================
+    @FXML
+    private void handleLogOut(ActionEvent event) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Tem certeza que deseja sair?", ButtonType.OK, ButtonType.CANCEL);
+        alert.setTitle("Confirmação de Logout");
+
+        try (InputStream iconStream = getClass().getResourceAsStream("/icons/moedas.png")) {
+            if (iconStream != null) {
+                ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(new Image(iconStream));
+            }
+        } catch (Exception ignored) {}
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                NavigationHelper.goTo(Routes.LOGIN, false);
+            }
+        });
+    }
+
 }

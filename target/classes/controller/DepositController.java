@@ -11,68 +11,62 @@ import java.math.BigDecimal;
 
 public class DepositController {
 
-    @FXML
-    private TextField amountField;
-
-    @FXML
-    private Label statusLabel;
+    @FXML private TextField amountField;
+    @FXML private Label statusLabel;
 
     private int userId;
-    private UserManagementController mainController;
+    private WalletController mainController;
 
     public void setUserId(int userId) {
         this.userId = userId;
     }
 
-    public void setMainController(UserManagementController mainController) {
+    public void setMainController(WalletController mainController) {
         this.mainController = mainController;
     }
 
     @FXML
     public void handleDeposit() {
         try {
-            BigDecimal amount = new BigDecimal(amountField.getText());
+            String input = amountField.getText().trim();
+            BigDecimal amount = new BigDecimal(input);
 
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
                 statusLabel.setText("Valor deve ser positivo!");
                 return;
             }
 
-            WalletRepository walletRepo = new WalletRepository();
-            boolean success = walletRepo.deposit(userId, amount);
+            WalletRepository repo = WalletRepository.getInstance();
 
+            boolean success = repo.deposit(userId, amount);
             if (success) {
-                // Atualiza a sessão
                 SessaoAtual.saldoCarteira = SessaoAtual.saldoCarteira.add(amount);
                 statusLabel.setText("Depósito efetuado com sucesso!");
 
-                // Notifica o controlador principal para atualizar
-                if (mainController != null) {
-                    mainController.atualizarSaldo();
-                }
+                if (mainController != null) mainController.atualizarSaldo();
 
-                // Fecha a janela após 1 segundo
-                new java.util.Timer().schedule(
-                        new java.util.TimerTask() {
-                            @Override
-                            public void run() {
-                                javafx.application.Platform.runLater(() -> {
-                                    Stage stage = (Stage) amountField.getScene().getWindow();
-                                    stage.close();
-                                });
-                            }
-                        },
-                        1000
-                );
+                fecharJanelaAposDelay();
             } else {
                 statusLabel.setText("Erro ao processar depósito.");
             }
 
         } catch (NumberFormatException e) {
-            statusLabel.setText("Formato inválido! Use números ex: 100.50");
+            statusLabel.setText("Valor inválido. Ex: 100.50");
         } catch (Exception e) {
-            statusLabel.setText("Erro inesperado: " + e.getMessage());
+            statusLabel.setText("Erro: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private void fecharJanelaAposDelay() {
+        new java.util.Timer().schedule(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                javafx.application.Platform.runLater(() -> {
+                    Stage stage = (Stage) amountField.getScene().getWindow();
+                    stage.close();
+                });
+            }
+        }, 1000);
     }
 }

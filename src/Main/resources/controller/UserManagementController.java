@@ -2,28 +2,21 @@ package controller;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.*;
+
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.mindrot.jbcrypt.BCrypt;
-import repository.UserRepository;
+import Repository.UserRepository;
+import Repository.WalletRepository;
 import utils.EmailSender;
 import utils.SessaoAtual;
-import Repository.WalletRepository;
-
-import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigDecimal;
-import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.Random;
-import java.util.regex.Pattern;
-
-import javafx.scene.Scene;
-import javafx.stage.Stage;
+import static utils.NavigationHelper.goTo;
 
 public class UserManagementController {
 
@@ -39,24 +32,22 @@ public class UserManagementController {
     @FXML private PasswordField registerPasswordField;
     @FXML private PasswordField registerConfirmPasswordField;
 
+    // Verificação
+    @FXML private TextField codigoField;
+
     // Recuperação de senha
     @FXML private TextField forgotEmailField;
     @FXML private Label statusLabel;
-
+    @FXML private TextField validationCodeField;
+    @FXML private Label validationStatusLabel;
     @FXML private PasswordField newPasswordField;
     @FXML private PasswordField confirmPasswordField;
     @FXML private Label resetStatusLabel;
+    @FXML private VBox painelEmail;
+    @FXML private VBox painelCodigo;
+    @FXML private VBox painelReset;
+    @FXML private Button btnEnviarCodigo;
 
-    @FXML private TextField validationCodeField;
-    @FXML private Label validationStatusLabel;
-
-    @FXML private TextField codigoField;
-    private int currentUserId;
-
-    // Atualizar Saldo
-    @FXML private Label balanceLabel;
-    @FXML private Button depositButton;
-    @FXML private Button withdrawButton;
 
 
     // ================= LOGIN =================
@@ -71,97 +62,34 @@ public class UserManagementController {
         }
 
         var userOpt = userRepository.findUserByEmailOrUsername(input);
-        if (userOpt.isPresent()) {
-            var user = userOpt.get();
-            int id = Integer.parseInt(user.get("id"));
-            String hashed = user.get("senha");
-
-            if (!userRepository.isContaVerificada(id)) {
-                showAlert("A conta ainda não foi verificada.", AlertType.WARNING);
-                return;
-            }
-
-            if (BCrypt.checkpw(password, hashed)) {
-                SessaoAtual.utilizadorId = id;
-                SessaoAtual.nome = user.get("nome");
-                SessaoAtual.email = user.get("email");
-                SessaoAtual.tipo = user.get("tipo");
-
-                if ("Cliente".equals(SessaoAtual.tipo)) {
-                    BigDecimal saldo = new WalletRepository().getUserWalletBalance(id);
-                    SessaoAtual.saldoCarteira = saldo;
-                }
-
-                try {
-                    Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
-                    Stage stage = (Stage) loginEmailField.getScene().getWindow();
-                    stage.setScene(new Scene(root, 800, 600));
-                    stage.setFullScreen(true);
-                    stage.setTitle("Velora - Gestão de Criptomoedas");
-                    stage.show();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    showAlert("Erro ao carregar a página inicial.");
-                }
-
-            } else {
-                showAlert("Password incorreta.", AlertType.ERROR);
-            }
-        } else {
+        if (userOpt.isEmpty()) {
             showAlert("Utilizador não encontrado.", AlertType.ERROR);
-        }
-    }
-
-    @FXML
-    private void handleLogOut(javafx.event.ActionEvent event) {
-
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Confirmação de Logout");
-        alert.setHeaderText(null);
-        alert.setContentText("Tem certeza que deseja sair?");
-
-        try (InputStream iconStream = getClass().getResourceAsStream("/icons/moedas.png")) {
-            Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
-            alertStage.getIcons().add(new Image(iconStream));
-        } catch (Exception e) {
-            System.err.println("Erro ao carregar ícone para alerta: " + e.getMessage());
+            return;
         }
 
-        alert.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                try {
-                    Node source = (Node) event.getSource();
-                    Stage currentStage = (Stage) source.getScene().getWindow();
+        var user = userOpt.get();
+        int id = Integer.parseInt(user.get("id"));
+        String hashed = user.get("senha");
 
-                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
-                    Parent root = loader.load();
+        if (!userRepository.isContaVerificada(id)) {
+            showAlert("A conta ainda não foi verificada.", AlertType.WARNING);
+            return;
+        }
 
-                    Stage loginStage = new Stage();
-                    loginStage.setTitle("Velora - Gestão de Criptomoedas");
-                    loginStage.setScene(new Scene(root, 800, 600));
-                    loginStage.setResizable(false);
+        if (!BCrypt.checkpw(password, hashed)) {
+            showAlert("Password incorreta.", AlertType.ERROR);
+            return;
+        }
 
-                    try (InputStream iconStream = getClass().getResourceAsStream("/icons/moedas.png")) {
-                        loginStage.getIcons().add(new Image(iconStream));
-                    } catch (Exception e) {
-                        System.err.println("Erro ao carregar ícone: " + e.getMessage());
-                    }
+        SessaoAtual.utilizadorId = id;
+        SessaoAtual.nome = user.get("nome");
+        SessaoAtual.email = user.get("email");
+        SessaoAtual.tipo = user.get("tipo");
+        SessaoAtual.saldoCarteira = WalletRepository.getInstance().getSaldo(id);
 
-                    currentStage.close();
-                    loginStage.show();
 
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                    errorAlert.setTitle("Erro");
-                    errorAlert.setHeaderText("Erro ao carregar tela de login");
-                    errorAlert.setContentText(e.getMessage());
-                    errorAlert.showAndWait();
-                }
-            }
-        });
+        goTo("/view/homepage.fxml", true);
     }
-
 
 
 
@@ -184,13 +112,12 @@ public class UserManagementController {
         }
 
         if (!isPasswordStrong(password)) {
-            showAlert("A password deve ter pelo menos:\n- 10 caracteres\n- 1 letra maiúscula\n- 1 número\n- 1 caractere especial.");
+            showAlert("A password deve ter pelo menos:\n- 10 caracteres\n- 1 maiúscula\n- 1 número\n- 1 especial.");
             return;
         }
 
-        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
-
-        var userIdOpt = userRepository.registarNovoUtilizador(username, email, hashedPassword);
+        String hashed = BCrypt.hashpw(password, BCrypt.gensalt());
+        var userIdOpt = userRepository.registarNovoUtilizador(username, email, hashed);
         if (userIdOpt.isEmpty()) {
             showAlert("Erro ao criar conta.");
             return;
@@ -199,51 +126,31 @@ public class UserManagementController {
         int userId = userIdOpt.get();
         SessaoAtual.utilizadorId = userId;
 
-        if (!new WalletRepository().createWalletForUser(userId)) {
-            showAlert("Conta criada, mas falha ao criar carteira.");
+        if (!WalletRepository.getInstance().createWalletForUser(userId)) {
+            showAlert("Conta criada, mas erro ao criar carteira.");
             return;
         }
 
         String codigo = String.format("%06d", new Random().nextInt(999999));
-        boolean codigoCriado = userRepository.inserirCodigoVerificacao(userId, codigo, LocalDateTime.now().plusDays(1), "REGISTO");
-
-        if (codigoCriado && EmailSender.sendVerificationCode(email, codigo)) {
-            showAlert("Conta registada com sucesso! Verifique o seu email.");
-            try {
-                Parent root = FXMLLoader.load(getClass().getResource("/view/verification.fxml"));
-                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-                stage.setScene(new Scene(root));
-                stage.show();
-            } catch (IOException e) {
-                e.printStackTrace();
-                showAlert("Erro ao abrir página de verificação.");
-            }
+        if (userRepository.inserirCodigoVerificacao(userId, codigo, LocalDateTime.now().plusDays(1), "REGISTO")
+                && EmailSender.sendVerificationCode(email, codigo)) {
+            showAlert("Verifique o seu email.");
+            goTo("/view/verification.fxml", false);
         } else {
-            showAlert("Erro ao enviar código de verificação.");
+            showAlert("Erro ao enviar código.");
         }
     }
 
     @FXML
     private void handleVerify(ActionEvent event) {
         String codigo = codigoField.getText().trim();
-
         if (codigo.isEmpty()) {
-            showAlert("Por favor, insira o código.");
+            showAlert("Insira o código.");
             return;
         }
 
         if (userRepository.validarCodigo(SessaoAtual.utilizadorId, "REGISTO", codigo)) {
-            try {
-                Parent root = FXMLLoader.load(getClass().getResource("/view/homepage.fxml"));
-                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-                stage.setScene(new Scene(root));
-                stage.setFullScreen(true);
-                stage.setTitle("Velora - Gestão de Criptomoedas");
-                stage.show();
-            } catch (IOException e) {
-                e.printStackTrace();
-                showAlert("Erro ao carregar homepage.");
-            }
+            goTo("/view/homepage.fxml", true);
         } else {
             showAlert("Código incorreto ou expirado.");
         }
@@ -253,9 +160,8 @@ public class UserManagementController {
     @FXML
     private void handleEnviarLink() {
         String email = forgotEmailField.getText().trim();
-
         if (email.isEmpty()) {
-            showAlert("Por favor, insira o seu e-mail.", AlertType.WARNING);
+            showAlert("Insira o e-mail.", AlertType.WARNING);
             return;
         }
 
@@ -269,24 +175,22 @@ public class UserManagementController {
         SessaoAtual.emailRecuperacao = email;
 
         String codigo = String.format("%06d", new Random().nextInt(999999));
-        LocalDateTime expira = LocalDateTime.now().plusHours(1);
-
-        boolean criado = userRepository.inserirCodigoVerificacao(userId, codigo, expira, "RECUPERACAO_SENHA");
-        if (criado && EmailSender.sendRecoveryCode(email, codigo)) {
+        if (userRepository.inserirCodigoVerificacao(userId, codigo, LocalDateTime.now().plusHours(1), "RECUPERACAO_SENHA")
+                && EmailSender.sendRecoveryCode(email, codigo)) {
             statusLabel.setText("Código enviado para: " + email);
             statusLabel.setStyle("-fx-text-fill: green;");
-            abrirTelaValidacaoCodigo();
+            painelEmail.setVisible(false);
+            painelCodigo.setVisible(true);
         } else {
-            showAlert("Erro ao enviar e-mail. Tente novamente.", AlertType.ERROR);
+            showAlert("Erro ao enviar código.");
         }
     }
 
     @FXML
     private void handleValidarCodigoRecuperacao() {
         String codigo = validationCodeField.getText().trim();
-
-        if (codigo.isEmpty() || codigo.length() != 6) {
-            validationStatusLabel.setText("Insira um código válido de 6 dígitos.");
+        if (codigo.length() != 6) {
+            validationStatusLabel.setText("Código inválido.");
             validationStatusLabel.setStyle("-fx-text-fill: red;");
             return;
         }
@@ -300,7 +204,8 @@ public class UserManagementController {
         int userId = userIdOpt.get();
         if (userRepository.validarCodigo(userId, "RECUPERACAO_SENHA", codigo)) {
             SessaoAtual.utilizadorRecuperacao = userId;
-            abrirTelaRedefinicaoSenha();
+            painelCodigo.setVisible(false);
+            painelReset.setVisible(true);
         } else {
             validationStatusLabel.setText("Código incorreto ou expirado.");
             validationStatusLabel.setStyle("-fx-text-fill: red;");
@@ -309,257 +214,77 @@ public class UserManagementController {
 
     @FXML
     private void handleRedefinirSenha() {
-        String novaSenha = newPasswordField.getText();
-        String confirmacao = confirmPasswordField.getText();
+        String nova = newPasswordField.getText();
+        String confirm = confirmPasswordField.getText();
 
-        if (novaSenha.isEmpty() || confirmacao.isEmpty()) {
-            resetStatusLabel.setText("Por favor, preencha ambos os campos.");
-            resetStatusLabel.setStyle("-fx-text-fill: red;");
+        if (nova.isEmpty() || confirm.isEmpty()) {
+            resetStatusLabel.setText("Preencha os campos.");
             return;
         }
 
-        if (!novaSenha.equals(confirmacao)) {
-            resetStatusLabel.setText("As senhas não coincidem.");
-            resetStatusLabel.setStyle("-fx-text-fill: red;");
+        if (!nova.equals(confirm)) {
+            resetStatusLabel.setText("Senhas não coincidem.");
             return;
         }
 
-        if (!isPasswordStrong(novaSenha)) {
-            resetStatusLabel.setText("A senha deve ter:\n- 10+ caracteres\n- 1 maiúscula\n- 1 número\n- 1 especial");
-            resetStatusLabel.setStyle("-fx-text-fill: red;");
+        if (!isPasswordStrong(nova)) {
+            resetStatusLabel.setText("Senha fraca.");
             return;
         }
 
-        String hashed = BCrypt.hashpw(novaSenha, BCrypt.gensalt());
-        boolean atualizada = userRepository.atualizarSenha(SessaoAtual.utilizadorRecuperacao, hashed);
-
-        if (atualizada) {
+        String hashed = BCrypt.hashpw(nova, BCrypt.gensalt());
+        if (userRepository.atualizarSenha(SessaoAtual.utilizadorRecuperacao, hashed)) {
             showAlert("Senha redefinida com sucesso!");
             SessaoAtual.utilizadorRecuperacao = 0;
             SessaoAtual.emailRecuperacao = null;
-            try {
-                Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
-                Stage stage = (Stage) newPasswordField.getScene().getWindow();
-                stage.setScene(new Scene(root));
-                stage.setTitle("Login");
-            } catch (IOException e) {
-                e.printStackTrace();
-                showAlert("Erro ao carregar tela de login.");
-            }
+            GoToLogin();
         } else {
-            resetStatusLabel.setText("Erro ao redefinir senha.");
-            resetStatusLabel.setStyle("-fx-text-fill: red;");
-        }
-    }
-
-    // ================= NAVEGAÇÃO =================
-    public void goToRegister(ActionEvent event) {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/register.fxml"));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void goToLogin(ActionEvent event) {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @FXML
-    private void abrirTelaRecuperacao() {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/forgot_password.fxml"));
-            Stage stage = new Stage();
-            stage.setTitle("Recuperar Senha");
-            stage.setScene(new Scene(root));
-            stage.setResizable(false);
-            stage.show();
-        } catch (IOException e) {
-            showAlert("Erro ao abrir a tela de recuperação de senha.", AlertType.ERROR);
-            e.printStackTrace();
-        }
-    }
-
-    private void abrirTelaValidacaoCodigo() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/code_validation.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) forgotEmailField.getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle("Validar Código");
-            stage.setResizable(false);
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("Erro ao abrir tela de validação.", AlertType.ERROR);
-        }
-    }
-
-    private void abrirTelaRedefinicaoSenha() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/reset_password.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) validationCodeField.getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle("Redefinir Senha");
-            stage.setResizable(false);
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("Erro ao abrir tela de redefinição.", AlertType.ERROR);
+            resetStatusLabel.setText("Erro ao atualizar senha.");
         }
     }
     @FXML
+    private void handleEmailDigitado() {
+        String email = forgotEmailField.getText().trim();
 
-    private void goToMarket(ActionEvent event) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/market.fxml"));
-            Parent marketRoot = loader.load();
-
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(marketRoot);
-            stage.setScene(scene);
-
-            // fullscreen
-            stage.setFullScreen(true);
-
-
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        btnEnviarCodigo.setDisable(!email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$"));
     }
+
 
 
     // ================= UTILS =================
     private boolean isPasswordStrong(String password) {
-        if (password.length() < 10) return false;
-        return Pattern.matches(".*[A-Z].*", password)
-                && Pattern.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*", password)
-                && Pattern.matches(".*\\d.*", password);
+        return password.length() >= 10
+                && password.matches(".*[A-Z].*")
+                && password.matches(".*\\d.*")
+                && password.matches(".*[!@#$%^&*()_+=\\-{}\\[\\]:;\"'<>,.?/\\\\|].*");
     }
 
-    private void showAlert(String mensagem) {
-        showAlert(mensagem, AlertType.INFORMATION);
+    private void showAlert(String msg) {
+        showAlert(msg, AlertType.INFORMATION);
     }
 
-    private void showAlert(String mensagem, AlertType tipo) {
-        Alert alert = new Alert(tipo);
-        alert.setTitle("Mensagem");
+    private void showAlert(String msg, AlertType type) {
+        Alert alert = new Alert(type);
+        alert.setTitle("Aviso");
         alert.setHeaderText(null);
-        alert.setContentText(mensagem);
+        alert.setContentText(msg);
         alert.showAndWait();
     }
 
-    // Componentes da Wallet
-    @FXML private TableView<?> cryptoTable;
-    @FXML private TableView<?> transactionTable;
-
-
 
     @FXML
-    private void goToWallet(ActionEvent event) {
-        try {
-            URL url = getClass().getResource("/view/wallet.fxml");
-            if (url == null) {
-                throw new IOException("Arquivo wallet.fxml não encontrado em /view/");
-            }
-            Parent root = FXMLLoader.load(url);
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setMaximized(true);
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("Erro crítico: " + e.getMessage(), AlertType.ERROR); // Mensagem detalhada
-        }
+    private void GoToRegister() {
+        goTo("/view/register.fxml", false);
     }
 
     @FXML
-    public void abrirTelaDeposito() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/deposit.fxml"));
-            Parent root = loader.load();
-
-            DepositController controller = loader.getController();
-            controller.setUserId(SessaoAtual.utilizadorId);
-            // PASSA A REFERÊNCIA DO CONTROLADOR PRINCIPAL
-            controller.setMainController(this);
-
-            Stage stage = new Stage();
-            stage.setTitle("Depósito");
-            stage.setScene(new Scene(root));
-            stage.show();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("Erro ao abrir tela de depósito: " + e.getMessage(), AlertType.ERROR);
-        }
+    private void GoToRecuperacao() {
+        goTo("/view/recover_account.fxml", false);
     }
-
-    // Tela Retirada
     @FXML
-    public void abrirTelaRetirada() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/withdraw.fxml"));
-            Parent root = loader.load();
-
-            WithdrawController controller = loader.getController();
-            controller.setUserId(SessaoAtual.utilizadorId);
-            // PASSA A REFERÊNCIA DO CONTROLADOR PRINCIPAL
-            controller.setMainController(this);
-
-            Stage stage = new Stage();
-            stage.setTitle("Retirada");
-            stage.setScene(new Scene(root));
-            stage.show();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("Erro ao abrir tela de retirada: " + e.getMessage(), AlertType.ERROR);
-        }
+    private void GoToLogin() {
+        goTo("/view/login.fxml", false);
     }
 
-    @FXML
-    public void initialize() {
-        if (balanceLabel != null) {
-            // Atualiza o saldo ao inicializar
-            atualizarSaldo();
 
-            // Configura atualização automática ao focar na janela
-            balanceLabel.sceneProperty().addListener((obs, oldScene, newScene) -> {
-                if (newScene != null) {
-                    newScene.windowProperty().addListener((obs2, oldWindow, newWindow) -> {
-                        if (newWindow != null && newWindow.isShowing()) {
-                            atualizarSaldo();
-                        }
-                    });
-                }
-            });
-        }
-    }
-
-    // Atualizar Saldo
-    public void atualizarSaldo() {
-        try {
-            // Busca saldo atualizado diretamente do banco
-            BigDecimal novoSaldo = WalletRepository.getSaldo(SessaoAtual.utilizadorId);
-
-            // Atualiza a sessão e a interface
-            SessaoAtual.saldoCarteira = novoSaldo;
-            balanceLabel.setText("€ " + novoSaldo);
-
-        } catch (Exception e) {
-            System.err.println("Erro ao atualizar saldo: " + e.getMessage());
-            e.printStackTrace();
-            showAlert("Erro ao atualizar saldo", AlertType.ERROR);
-        }
-    }
 }
