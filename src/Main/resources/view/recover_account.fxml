@@ -9,25 +9,27 @@
             prefHeight="500.0" prefWidth="700.0"
             style="-fx-background-color: linear-gradient(to bottom, #4B3F72, #232323);">
 
-    <StackPane prefWidth="700" prefHeight="500">
+    <StackPane prefWidth="700" prefHeight="500" alignment="CENTER">
+
+        <!-- Painel 1: Introduzir email -->
         <VBox fx:id="painelEmail"
               spacing="15"
               alignment="CENTER"
               maxWidth="360"
+              visible="true" managed="true"
               style="-fx-background-color: rgba(255,255,255,0.05); -fx-background-radius: 15; -fx-padding: 25;">
 
             <Label text="Recuperar Acesso à Conta"
                    style="-fx-font-size: 24px; -fx-text-fill: white; -fx-font-weight: bold;"/>
 
             <Label text="Insira o e-mail associado à sua conta. Iremos enviar um código de verificação."
-                   wrapText="true"
-                   maxWidth="300"
+                   wrapText="true" maxWidth="300"
                    style="-fx-text-fill: #cccccc; -fx-font-size: 13px;"/>
 
             <TextField fx:id="forgotEmailField"
                        promptText="exemplo@email.com"
                        style="-fx-background-radius: 10; -fx-padding: 10; -fx-pref-width: 300;"
-                       onKeyReleased="#handleEmailDigitado" />
+                       onKeyReleased="#handleEmailDigitado"/>
 
             <Button fx:id="btnEnviarCodigo"
                     text="Enviar Código"
@@ -39,8 +41,59 @@
             <Button text="Voltar ao Login"
                     onAction="#GoToLogin"
                     style="-fx-background-color: transparent; -fx-text-fill: #ffffff; -fx-underline: true; -fx-cursor: hand;"/>
-
         </VBox>
-    </StackPane>
 
+        <!-- Painel 2: Código de validação -->
+        <VBox fx:id="painelCodigo"
+              spacing="15"
+              alignment="CENTER"
+              maxWidth="360"
+              visible="false" managed="false"
+              style="-fx-background-color: rgba(255,255,255,0.05); -fx-background-radius: 15; -fx-padding: 25;">
+
+            <Label text="Validação do Código"
+                   style="-fx-font-size: 20px; -fx-text-fill: white; -fx-font-weight: bold;"/>
+
+            <Label text="Insira o código que recebeu no e-mail"
+                   wrapText="true" maxWidth="300"
+                   style="-fx-text-fill: #cccccc; -fx-font-size: 13px;"/>
+
+            <TextField fx:id="validationCodeField"
+                       promptText="Código de 6 dígitos"
+                       style="-fx-background-radius: 10; -fx-padding: 10; -fx-pref-width: 200;"/>
+
+            <Button text="Validar Código"
+                    onAction="#handleValidarCodigoRecuperacao"
+                    style="-fx-background-color: #EAEAEA; -fx-text-fill: #4B3F72; -fx-font-weight: bold;"/>
+
+            <Label fx:id="validationStatusLabel" text="" style="-fx-text-fill: white; -fx-font-size: 12px;"/>
+        </VBox>
+
+        <!-- Painel 3: Redefinir senha -->
+        <VBox fx:id="painelReset"
+              spacing="15"
+              alignment="CENTER"
+              maxWidth="360"
+              visible="false" managed="false"
+              style="-fx-background-color: rgba(255,255,255,0.05); -fx-background-radius: 15; -fx-padding: 25;">
+
+            <Label text="Nova Palavra-Passe"
+                   style="-fx-font-size: 20px; -fx-text-fill: white; -fx-font-weight: bold;"/>
+
+            <PasswordField fx:id="newPasswordField"
+                           promptText="Nova senha"
+                           style="-fx-background-radius: 10; -fx-padding: 10; -fx-pref-width: 250;"/>
+
+            <PasswordField fx:id="confirmPasswordField"
+                           promptText="Confirmar senha"
+                           style="-fx-background-radius: 10; -fx-padding: 10; -fx-pref-width: 250;"/>
+
+            <Button text="Redefinir Senha"
+                    onAction="#handleRedefinirSenha"
+                    style="-fx-background-color: #EAEAEA; -fx-text-fill: #4B3F72; -fx-font-weight: bold;"/>
+
+            <Label fx:id="resetStatusLabel" text="" style="-fx-text-fill: white; -fx-font-size: 12px;"/>
+        </VBox>
+
+    </StackPane>
 </AnchorPane>

@@ -14,29 +14,33 @@
 
     <stylesheets>
         <URL value="@/view/css/wallet.css"/>
+
     </stylesheets>
 
     <!-- TOP -->
     <top>
         <VBox spacing="0">
-            <fx:include source="/view/navbar.fxml"/>
+            <fx:include source="navbar.fxml"/>
 
-
-            <VBox spacing="15" style="-fx-background-color: #1a1a1a;">
+            <VBox spacing="20" style="-fx-background-color: #121212;">
                 <padding>
-                    <Insets top="25" right="30" bottom="25" left="30"/>
+                    <Insets top="20" right="20" bottom="20" left="20"/>
                 </padding>
 
+
                 <HBox spacing="20" alignment="CENTER_LEFT">
-                    <ImageView fitWidth="40" fitHeight="40" preserveRatio="true"
-                               style="-fx-effect: dropshadow(gaussian, #2563eb, 10, 0.5, 0, 0);">
-                    </ImageView>
+                    <ImageView fx:id="walletIcon" fitWidth="40" fitHeight="40" preserveRatio="true"
+                               styleClass="wallet-icon"/>
 
                     <VBox>
                         <Label text="CARTEIRA DIGITAL"
                                style="-fx-text-fill: #94a3b8; -fx-font-size: 14px; -fx-font-weight: medium;"/>
                         <Label fx:id="balanceLabel" text="€ 0,00"
-                               style="-fx-text-fill: #e2e8f0; -fx-font-size: 36px; -fx-font-weight: bold;"/>
+                               styleClass="balance-display">
+                            <tooltip>
+                                <Tooltip text="Saldo atual disponível na sua carteira"/>
+                            </tooltip>
+                        </Label>
                     </VBox>
                 </HBox>
 
@@ -54,13 +58,15 @@
 
     <!-- CENTRO -->
     <center>
-        <SplitPane dividerPositions="0.6" style="-fx-background-color: #121212;">
+        <VBox spacing="20" style="-fx-background-color: #121212;">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
 
-            <!-- Secção de Ativos -->
-            <VBox spacing="10" styleClass="asset-section">
+            <!-- Secção Ativos -->
+            <VBox spacing="10" styleClass="card-shadow asset-section">
                 <Label text="MEUS ATIVOS" styleClass="section-title"/>
-
-                <TableView fx:id="cryptoTable" styleClass="modern-table">
+                <TableView fx:id="cryptoTable" styleClass="asset-table">
                     <columns>
                         <TableColumn text="ATIVO" styleClass="table-column" prefWidth="200"/>
                         <TableColumn text="TICKER" styleClass="table-column" prefWidth="100"/>
@@ -70,11 +76,10 @@
                 </TableView>
             </VBox>
 
-            <!-- Secção de Transações -->
-            <VBox spacing="10" styleClass="transaction-section">
-                <Label text="HISTÓRICO" styleClass="section-title"/>
-
-                <TableView fx:id="transactionTable" styleClass="modern-table">
+            <!-- Secção Histórico -->
+            <VBox spacing="10" styleClass="card-shadow transaction-section">
+                <Label text="HISTÓRICO DE TRANSAÇÕES" styleClass="section-title"/>
+                <TableView fx:id="transactionTable" styleClass="transaction-table">
                     <columns>
                         <TableColumn text="DATA" styleClass="table-column" prefWidth="150"/>
                         <TableColumn text="TIPO" styleClass="table-column" prefWidth="100"/>
@@ -84,12 +89,14 @@
                     </columns>
                 </TableView>
             </VBox>
-        </SplitPane>
+        </VBox>
     </center>
+
 
     <!-- RODAPÉ -->
     <bottom>
-        <HBox spacing="20" alignment="CENTER" styleClass="quick-actions">
+        <HBox spacing="20" alignment="CENTER" styleClass="quick-actions card-shadow"
+              style="-fx-background-color: #1a1a1a; -fx-padding: 20 0;">
             <Button text="COMPRAR RÁPIDO" styleClass="quick-action buy"/>
             <Button text="VENDER RÁPIDO" styleClass="quick-action sell"/>
             <Button text="CONVERTER" styleClass="quick-action convert"/>

@@ -154,6 +154,7 @@ public class UserManagementController {
 
     // ================= RECUPERAÇÃO DE SENHA =================
     @FXML
+
     private void handleEnviarLink() {
         String email = forgotEmailField.getText().trim();
         if (email.isEmpty()) {
@@ -175,12 +176,12 @@ public class UserManagementController {
                 && EmailSender.sendRecoveryCode(email, codigo)) {
             statusLabel.setText("Código enviado para: " + email);
             statusLabel.setStyle("-fx-text-fill: green;");
-            painelEmail.setVisible(false);
-            painelCodigo.setVisible(true);
+            mostrarPainel(painelCodigo);
         } else {
             showAlert("Erro ao enviar código.");
         }
     }
+
 
     @FXML
     private void handleValidarCodigoRecuperacao() {
@@ -200,13 +201,13 @@ public class UserManagementController {
         int userId = userIdOpt.get();
         if (userRepository.validarCodigo(userId, "RECUPERACAO_SENHA", codigo)) {
             SessaoAtual.utilizadorRecuperacao = userId;
-            painelCodigo.setVisible(false);
-            painelReset.setVisible(true);
+            mostrarPainel(painelReset);
         } else {
             validationStatusLabel.setText("Código incorreto ou expirado.");
             validationStatusLabel.setStyle("-fx-text-fill: red;");
         }
     }
+
 
     @FXML
     private void handleRedefinirSenha() {
@@ -282,5 +283,13 @@ public class UserManagementController {
         goTo("/view/login.fxml", false);
     }
 
+    private void mostrarPainel(VBox ativo) {
+        painelEmail.setVisible(false); painelEmail.setManaged(false);
+        painelCodigo.setVisible(false); painelCodigo.setManaged(false);
+        painelReset.setVisible(false); painelReset.setManaged(false);
+
+        ativo.setVisible(true);
+        ativo.setManaged(true);
+    }
 
 }

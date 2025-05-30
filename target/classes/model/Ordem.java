@@ -8,7 +8,7 @@ public class Ordem {
     private int id_moeda;
     private String tipo;
     private double quantidade;
-    private double valor_por_unidade;
+    private double valor_por_unidade; // mudar para ValorAtual da moeda
     private LocalDateTime timestamp_criacao;
     private String status;
 
