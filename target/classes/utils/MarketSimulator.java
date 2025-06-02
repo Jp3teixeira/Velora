@@ -1,76 +1,113 @@
 package utils;
 
 import Database.DBConnection;
+import model.Moeda;
+import Repository.MarketRepository;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class MarketSimulator {
 
+    private static final Map<Integer, Moeda> moedasAtuais = new ConcurrentHashMap<>();
+    private static LocalDateTime ultimaGravacao = LocalDateTime.now();
+    private static final Random rand = new Random();
     private static boolean agendadorIniciado = false;
 
-    public static void simularValores() {
-        String select = "SELECT id_moeda FROM moeda";
-        String selectUltimo = "SELECT valor FROM historico_valores WHERE id_moeda = ? ORDER BY timestamp DESC LIMIT 1";
-        String insert = "INSERT INTO historico_valores (id_moeda, valor, volume) VALUES (?, ?, ?)";
+    public static void startSimulador() {
+        if (agendadorIniciado) return;
+        agendadorIniciado = true;
 
-        int moedasProcessadas = 0;
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
+        scheduler.scheduleAtFixedRate(() -> {
+            simularValoresEmMemoria();
+            verificarGravacaoBD();
+        }, 0, 1, TimeUnit.SECONDS);
+
+        System.out.println("🚀 Simulador de mercado iniciado (atualização por segundo).");
+    }
+
+    private static void simularValoresEmMemoria() {
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmtSelectMoedas = conn.prepareStatement(select);
-             ResultSet rsMoedas = stmtSelectMoedas.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement("SELECT id_moeda FROM moeda");
+             ResultSet rs = stmt.executeQuery()) {
 
-            Random rand = new Random();
+            while (rs.next()) {
+                int id = rs.getInt("id_moeda");
 
-            while (rsMoedas.next()) {
-                int idMoeda = rsMoedas.getInt("id_moeda");
-                moedasProcessadas++;
+                Moeda moeda = moedasAtuais.getOrDefault(id, carregarUltimosDadosDaMoeda(conn, id));
+                BigDecimal valorAnterior = moeda.getValorAtual();
+                BigDecimal novoValor = aplicarVariacao(valorAnterior);
+                BigDecimal novoVolume = gerarVolume();
 
-                double valorAnterior;
-
-                try (PreparedStatement stmtUltimo = conn.prepareStatement(selectUltimo)) {
-                    stmtUltimo.setInt(1, idMoeda);
-                    ResultSet rsUltimo = stmtUltimo.executeQuery();
-                    if (rsUltimo.next()) {
-                        valorAnterior = rsUltimo.getDouble("valor");
-                    } else {
-                        valorAnterior = 100 + rand.nextDouble() * 100; // valor inicial aleatório
-                    }
-                }
-
-                // Variação entre -3% e +3%
-                double variacao = 1 + ((rand.nextDouble() * 6 - 3) / 100.0);
-                double novoValor = Math.round(valorAnterior * variacao * 100.0) / 100.0;
-
-                // Volume entre 1000 e 10000
-                double volume = Math.round((1000 + rand.nextDouble() * 9000) * 100.0) / 100.0;
-
-                try (PreparedStatement stmtInsert = conn.prepareStatement(insert)) {
-                    stmtInsert.setInt(1, idMoeda);
-                    stmtInsert.setBigDecimal(2, BigDecimal.valueOf(novoValor).setScale(2, RoundingMode.HALF_UP));
-                    stmtInsert.setBigDecimal(3, BigDecimal.valueOf(volume).setScale(2, RoundingMode.HALF_UP));
-                    stmtInsert.executeUpdate();
-                }
+                moeda.setValorAtual(novoValor);
+                moeda.setVolumeMercado(novoVolume);
+                moedasAtuais.put(id, moeda);
             }
-            System.out.println("✔ Simulação concluída. Moedas processadas: " + moedasProcessadas);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public static void iniciarAgendador() {
-        if (agendadorIniciado) return;
-        agendadorIniciado = true;
+    private static Moeda carregarUltimosDadosDaMoeda(Connection conn, int idMoeda) throws SQLException {
+        String sql = """
+            SELECT m.nome, m.simbolo, hv.valor, hv.volume
+            FROM moeda m
+            LEFT JOIN historico_valores hv ON m.id_moeda = hv.id_moeda
+            WHERE m.id_moeda = ?
+            ORDER BY hv.timestamp DESC
+            LIMIT 1
+        """;
 
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, idMoeda);
+            ResultSet rs = stmt.executeQuery();
 
-        scheduler.scheduleAtFixedRate(MarketSimulator::simularValores, 0, 1, TimeUnit.HOURS);
+            String nome = "";
+            String simbolo = "";
+            BigDecimal valor = BigDecimal.valueOf(100 + rand.nextDouble() * 100);
+            BigDecimal volume = BigDecimal.valueOf(1000 + rand.nextDouble() * 9000);
 
-        System.out.println("⏳ Agendador de simulação de mercado iniciado.");
+            if (rs.next()) {
+                nome = rs.getString("nome");
+                simbolo = rs.getString("simbolo");
+                BigDecimal dbValor = rs.getBigDecimal("valor");
+                BigDecimal dbVolume = rs.getBigDecimal("volume");
+
+                if (dbValor != null) valor = dbValor;
+                if (dbVolume != null) volume = dbVolume;
+            }
+
+            return new Moeda(idMoeda, nome, simbolo, valor, BigDecimal.ZERO, volume);
+        }
+    }
+
+    private static BigDecimal aplicarVariacao(BigDecimal valorAnterior) {
+        double variacao = 1 + ((rand.nextDouble() * 6 - 3) / 100.0);
+        return valorAnterior.multiply(BigDecimal.valueOf(variacao)).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal gerarVolume() {
+        return BigDecimal.valueOf(1000 + rand.nextDouble() * 9000).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static void verificarGravacaoBD() {
+        if (Duration.between(ultimaGravacao, LocalDateTime.now()).toHours() >= 1) {
+            MarketRepository.gravarSnapshot(moedasAtuais);
+            ultimaGravacao = LocalDateTime.now();
+            System.out.println("🕒 Snapshot de mercado guardado na BD.");
+        }
+    }
+
+    public static Map<Integer, Moeda> getMoedasAtuais() {
+        return moedasAtuais;
     }
 }
