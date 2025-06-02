@@ -11,7 +11,7 @@ import utils.MarketSimulator;
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        MarketSimulator.iniciarAgendador();
+        MarketSimulator.startSimulador();
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
         Parent root = loader.load();
