@@ -1,41 +1,30 @@
 package controller;
 
+import utils.NavigationHelper;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
-import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
+import javafx.scene.effect.DropShadow;
 import javafx.util.Duration;
 import model.Moeda;
 import Repository.MarketRepository;
-import utils.MarketSimulator;
-
-import java.io.IOException;
 import java.net.URL;
-import java.sql.Connection;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class MarketController implements Initializable {
-
 
     @FXML private ToggleButton btn1D, btn1W, btn1M, btn3M, btn1Y, btnMAX;
     @FXML private ImageView iconMoeda;
@@ -43,24 +32,16 @@ public class MarketController implements Initializable {
     @FXML private ListView<Moeda> watchlistView;
     @FXML private LineChart<String, Number> marketChart;
 
-    private final ObservableList<Moeda> listaMoedas = FXCollections.observableArrayList();
+    private ObservableList<Moeda> listaMoedas = FXCollections.observableArrayList();
     private Moeda moedaAtualSelecionada = null;
-    private final int ID_UTILIZADOR_SIMULADO = 1;
-    private Connection connection;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Carregar moedas
         listaMoedas.addAll(MarketRepository.getTodasAsMoedas());
         watchlistView.setItems(listaMoedas);
 
-        if (connection == null) {
-            try {
-                connection = Database.DBConnection.getConnection();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
+        // Personalização visual da lista
         watchlistView.setCellFactory(param -> new ListCell<>() {
             private final HBox hBox = new HBox(10);
             private final ImageView imageView = new ImageView();
@@ -84,9 +65,6 @@ public class MarketController implements Initializable {
                 if (empty || moeda == null) {
                     setGraphic(null);
                 } else {
-                    hBox.setStyle(moeda.equals(moedaAtualSelecionada)
-                            ? "-fx-background-color: #2a2a2a; -fx-border-color: #b892ff; -fx-border-radius: 6; -fx-background-radius: 6;"
-                            : "");
                     labelNome.setText(moeda.getNome());
                     labelValor.setText(String.format("$%.2f", moeda.getValorAtual()));
                     try {
@@ -102,6 +80,7 @@ public class MarketController implements Initializable {
 
         setupToggleButtons();
 
+        // Só atualiza ao clicar em nova moeda
         watchlistView.setOnMouseClicked(event -> {
             Moeda selecionada = watchlistView.getSelectionModel().getSelectedItem();
             if (selecionada != null && !selecionada.equals(moedaAtualSelecionada)) {
@@ -110,24 +89,6 @@ public class MarketController implements Initializable {
                 aplicarFiltro("MAX");
             }
         });
-
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(() -> {
-            Platform.runLater(() -> {
-                listaMoedas.clear();
-                listaMoedas.addAll(MarketSimulator.getMoedasAtuais().values());
-                watchlistView.refresh();
-
-                if (moedaAtualSelecionada != null) {
-                    Moeda moedaAtual = MarketSimulator.getMoedasAtuais().get(moedaAtualSelecionada.getIdMoeda());
-                    if (moedaAtual != null) {
-                        moedaAtualSelecionada.setValorAtual(moedaAtual.getValorAtual());
-                        moedaAtualSelecionada.setVolumeMercado(moedaAtual.getVolumeMercado());
-                        atualizarInformacoesMoeda();
-                    }
-                }
-            });
-        }, 0, 1, TimeUnit.SECONDS);
     }
 
     private void setupToggleButtons() {
@@ -154,16 +115,18 @@ public class MarketController implements Initializable {
         labelVariacao.setText(String.format("%.2f%%", moedaAtualSelecionada.getVariacao24h()));
         labelVolume.setText(String.format("$%,.2f", moedaAtualSelecionada.getVolumeMercado()));
 
-        labelVariacao.getStyleClass().setAll(
-                moedaAtualSelecionada.getVariacao24h().doubleValue() >= 0
-                        ? "label-variacao-positiva"
-                        : "label-variacao-negativa"
-        );
+        if (moedaAtualSelecionada.getVariacao24h().doubleValue() >= 0) {
+            labelVariacao.getStyleClass().setAll("label-variacao-positiva");
+        } else {
+            labelVariacao.getStyleClass().setAll("label-variacao-negativa");
+        }
 
         try {
             String path = "/icons/" + moedaAtualSelecionada.getSimbolo().toLowerCase() + ".png";
-            iconMoeda.setImage(new Image(getClass().getResourceAsStream(path)));
+            Image image = new Image(getClass().getResourceAsStream(path));
+            iconMoeda.setImage(image);
         } catch (Exception e) {
+            System.out.println("Ícone não encontrado para: " + moedaAtualSelecionada.getSimbolo());
             iconMoeda.setImage(null);
         }
     }
@@ -203,6 +166,7 @@ public class MarketController implements Initializable {
                     Tooltip.install(newNode, tooltip);
                     newNode.setStyle("-fx-background-color: white, #B892FF; -fx-background-radius: 6px;");
                     newNode.setEffect(new DropShadow(5, Color.web("#4B3F72")));
+
                     newNode.setOnMouseEntered(e -> {
                         newNode.setScaleX(1.5);
                         newNode.setScaleY(1.5);
@@ -228,45 +192,16 @@ public class MarketController implements Initializable {
 
                 Platform.runLater(() -> {
                     Node chartLine = marketChart.lookup(".chart-series-line");
-                    if (chartLine != null)
+                    if (chartLine != null) {
                         chartLine.setStyle("-fx-stroke: #B892FF; -fx-stroke-width: 2px;");
+                    }
+
+                    Node chartSymbol = marketChart.lookup(".chart-line-symbol");
+                    if (chartSymbol != null) {
+                        chartSymbol.setStyle("-fx-background-color: #B892FF, white;");
+                    }
                 });
             }
         });
-    }
-
-    @FXML
-    private void abrirModalCompra() {
-        abrirModalOrdem("COMPRA");
-    }
-
-    @FXML
-    private void abrirModalVenda() {
-        abrirModalOrdem("VENDA");
-    }
-
-    private void abrirModalOrdem(String tipo) {
-        if (moedaAtualSelecionada == null) return;
-
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/BuySell.fxml"));
-
-            Scene scene = new Scene(loader.load());
-
-            OrdemController controller = loader.getController();
-            controller.configurar(tipo, moedaAtualSelecionada, connection, ID_UTILIZADOR_SIMULADO); // ✅ Agora com 4 args
-
-            Stage stage = new Stage();
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setTitle(tipo + " de " + moedaAtualSelecionada.getNome());
-            stage.setScene(scene);
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void setConnection(Connection connection) {
-        this.connection = connection;
     }
 }

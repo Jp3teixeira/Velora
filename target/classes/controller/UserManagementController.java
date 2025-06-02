@@ -48,7 +48,6 @@ public class UserManagementController {
 
     // ================= LOGIN =================
     @FXML
-
     private void handleLogin() {
         String input = loginEmailField.getText().trim();
         String password = loginPasswordField.getText();
@@ -84,21 +83,9 @@ public class UserManagementController {
         SessaoAtual.tipo = user.get("tipo");
         SessaoAtual.saldoCarteira = WalletRepository.getInstance().getSaldo(id);
 
-        try {
-            java.sql.Connection connection = Database.DBConnection.getConnection();
 
-            utils.NavigationHelper.goToWithController("/view/homepage.fxml", controller -> {
-                if (controller instanceof controller.MarketController marketController) {
-                    marketController.setConnection(connection);
-                }
-            }, true);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            showAlert("Erro ao ligar à base de dados.", AlertType.ERROR);
-        }
+        goTo("/view/homepage.fxml", true);
     }
-
 
 
 

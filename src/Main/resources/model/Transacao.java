@@ -5,29 +5,59 @@ import java.time.LocalDateTime;
 
 public class Transacao {
     private int id;
-    private int id_ordem_compra;
-    private int id_ordem_venda;
-    private int id_moeda;
-    private double quantidade_executada;
-    private double preco_executado; // unitário
-    private LocalDateTime timestamp;
+    private int userId;
+    private String type;
+    private BigDecimal amount;
+    private String currency;
+    private LocalDateTime createdAt;
 
     // Getters e Setters
 
-    public int getId() {return id;}
-    public int getId_ordem_compra() {return id_ordem_compra;}
-    public int getId_ordem_venda() {return id_ordem_venda;}
-    public int getId_moeda() {return id_moeda;}
-    public double getQuantidade_executada() {return quantidade_executada;}
-    public double getPreco_executado() {return preco_executado;}
-    public LocalDateTime getTimestamp() {return timestamp;}
+    public int getId() {
+        return id;
+    }
 
+    public void setId(int id) {
+        this.id = id;
+    }
 
-    public void setId(int id) {this.id = id;}
-    public void setId_ordem_compra(int id_ordem_compra) {this.id_ordem_compra = id_ordem_compra;}
-    public void setId_ordem_venda(int id_ordem_venda) {this.id_ordem_venda = id_ordem_venda;}
-    public void setId_moeda(int id_moeda) {this.id_moeda = id_moeda;}
-    public void setQuantidade_executada(double quantidadeExecutada) {this.quantidade_executada = quantidadeExecutada;}
-    public void setPreco_executado(double precoExecutado) {this.preco_executado = precoExecutado;}
-    public void setTimestamp(LocalDateTime timestamp) {this.timestamp = timestamp;}
+    public int getUserId() {
+        return userId;
+    }
+
+    public void setUserId(int userId) {
+        this.userId = userId;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 }

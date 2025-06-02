@@ -13,6 +13,7 @@
     <Button fx:id="homeButton" text="Home" onAction="#handleMenuNavigation" styleClass="menu-button"/>
     <Button fx:id="portfolioButton" text="Wallet" onAction="#handleMenuNavigation" styleClass="menu-button"/>
     <Button fx:id="marketButton" text="Market" onAction="#handleMenuNavigation" styleClass="menu-button"/>
+    <Button fx:id="coinsButton" text="Coins" onAction="#handleMenuNavigation" styleClass="menu-button"/>
     <Region HBox.hgrow="ALWAYS"/>
     <Button fx:id="accountButton" text="Account" onAction="#handleMenuNavigation" styleClass="menu-button"/>
     <Button fx:id="adminButton" text="Admin" onAction="#handleMenuNavigation" styleClass="menu-button"/>

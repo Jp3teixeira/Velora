@@ -10,8 +10,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-
 
 public class MarketRepository {
 
@@ -235,27 +233,4 @@ public class MarketRepository {
                 .multiply(BigDecimal.valueOf(100))
                 .setScale(2, RoundingMode.HALF_UP);
     }
-
-    public static void gravarSnapshot(Map<Integer, Moeda> moedas) {
-        String sql = "INSERT INTO historico_valores (id_moeda, valor, volume) VALUES (?, ?, ?)";
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            for (Moeda moeda : moedas.values()) {
-                stmt.setInt(1, moeda.getIdMoeda());
-                stmt.setBigDecimal(2, moeda.getValorAtual().setScale(2, RoundingMode.HALF_UP));
-                stmt.setBigDecimal(3, moeda.getVolumeMercado().setScale(2, RoundingMode.HALF_UP));
-                stmt.addBatch();
-            }
-
-            stmt.executeBatch();
-            System.out.println("✅ Snapshot gravado na base de dados com " + moedas.size() + " moedas.");
-
-        } catch (SQLException e) {
-            System.err.println("Erro ao gravar snapshot de mercado:");
-            e.printStackTrace();
-        }
-    }
-
 }
