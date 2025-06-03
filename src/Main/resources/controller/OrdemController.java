@@ -132,9 +132,11 @@ public class OrdemController {
             TradeService tradeService = new TradeService(connection);
             if ("COMPRA".equalsIgnoreCase(tipoOrdem)) {
                 tradeService.processarOrdemCompra(ordem);
+                System.out.println("Ordem comprada com sucesso.");
             }
             else {
                 tradeService.processarOrdemVenda(ordem);
+                System.out.println("Ordem venda com sucesso.");
             }
 
             // 6) Notificar usuário e fechar janela
