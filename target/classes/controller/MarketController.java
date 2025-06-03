@@ -24,6 +24,7 @@ import javafx.util.Duration;
 import model.Moeda;
 import Repository.MarketRepository;
 import utils.MarketSimulator;
+import utils.SessaoAtual;
 
 import java.io.IOException;
 import java.net.URL;
@@ -36,7 +37,6 @@ import java.util.concurrent.TimeUnit;
 
 public class MarketController implements Initializable {
 
-
     @FXML private ToggleButton btn1D, btn1W, btn1M, btn3M, btn1Y, btnMAX;
     @FXML private ImageView iconMoeda;
     @FXML private Label labelValorAtual, labelVariacao, labelVolume, marketTitle;
@@ -45,21 +45,14 @@ public class MarketController implements Initializable {
 
     private final ObservableList<Moeda> listaMoedas = FXCollections.observableArrayList();
     private Moeda moedaAtualSelecionada = null;
-    private final int ID_UTILIZADOR_SIMULADO = 1;
+
+    // Adiciona campo para conexão
     private Connection connection;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         listaMoedas.addAll(MarketRepository.getTodasAsMoedas());
         watchlistView.setItems(listaMoedas);
-
-        if (connection == null) {
-            try {
-                connection = Database.DBConnection.getConnection();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
 
         watchlistView.setCellFactory(param -> new ListCell<>() {
             private final HBox hBox = new HBox(10);
@@ -88,7 +81,7 @@ public class MarketController implements Initializable {
                             ? "-fx-background-color: #2a2a2a; -fx-border-color: #b892ff; -fx-border-radius: 6; -fx-background-radius: 6;"
                             : "");
                     labelNome.setText(moeda.getNome());
-                    labelValor.setText(String.format("$%.2f", moeda.getValorAtual()));
+                    labelValor.setText(String.format("€ %.2f", moeda.getValorAtual()));
                     try {
                         String path = "/icons/" + moeda.getSimbolo().toLowerCase() + ".png";
                         imageView.setImage(new Image(getClass().getResourceAsStream(path)));
@@ -119,7 +112,8 @@ public class MarketController implements Initializable {
                 watchlistView.refresh();
 
                 if (moedaAtualSelecionada != null) {
-                    Moeda moedaAtual = MarketSimulator.getMoedasAtuais().get(moedaAtualSelecionada.getIdMoeda());
+                    Moeda moedaAtual = MarketSimulator.getMoedasAtuais()
+                            .get(moedaAtualSelecionada.getIdMoeda());
                     if (moedaAtual != null) {
                         moedaAtualSelecionada.setValorAtual(moedaAtual.getValorAtual());
                         moedaAtualSelecionada.setVolumeMercado(moedaAtual.getVolumeMercado());
@@ -150,9 +144,9 @@ public class MarketController implements Initializable {
 
     private void atualizarInformacoesMoeda() {
         marketTitle.setText(moedaAtualSelecionada.getNome() + " (" + moedaAtualSelecionada.getSimbolo() + ")");
-        labelValorAtual.setText(String.format("$%.2f", moedaAtualSelecionada.getValorAtual()));
+        labelValorAtual.setText(String.format("€ %.2f", moedaAtualSelecionada.getValorAtual()));
         labelVariacao.setText(String.format("%.2f%%", moedaAtualSelecionada.getVariacao24h()));
-        labelVolume.setText(String.format("$%,.2f", moedaAtualSelecionada.getVolumeMercado()));
+        labelVolume.setText(String.format("€ %,.2f", moedaAtualSelecionada.getVolumeMercado()));
 
         labelVariacao.getStyleClass().setAll(
                 moedaAtualSelecionada.getVariacao24h().doubleValue() >= 0
@@ -176,7 +170,8 @@ public class MarketController implements Initializable {
 
     private void atualizarGraficoComTooltip(int idMoeda, String intervalo) {
         marketChart.getData().clear();
-        List<XYChart.Data<String, Number>> historico = MarketRepository.getHistoricoPorMoedaFiltrado(idMoeda, intervalo);
+        List<XYChart.Data<String, Number>> historico =
+                MarketRepository.getHistoricoPorMoedaFiltrado(idMoeda, intervalo);
 
         XYChart.Series<String, Number> serie = new XYChart.Series<>();
         serie.setName("Variação");
@@ -184,19 +179,19 @@ public class MarketController implements Initializable {
         for (XYChart.Data<String, Number> ponto : historico) {
             serie.getData().add(ponto);
 
-            Tooltip tooltip = new Tooltip(String.format("Hora: %s\nValor: $%.2f",
+            Tooltip tooltip = new Tooltip(String.format("Hora: %s\nValor: € %.2f",
                     ponto.getXValue(), ponto.getYValue().doubleValue()));
             tooltip.setShowDelay(Duration.millis(50));
             tooltip.setStyle("""
-                 -fx-background-color: #1f1f1f;
-                 -fx-text-fill: #f0f0f0;
-                 -fx-font-size: 12px;
-                 -fx-padding: 10;
-                 -fx-border-color: #b892ff;
-                 -fx-border-width: 1;
-                 -fx-border-radius: 6;
-                 -fx-background-radius: 6;
-            """);
+                    -fx-background-color: #1f1f1f;
+                    -fx-text-fill: #f0f0f0;
+                    -fx-font-size: 12px;
+                    -fx-padding: 10;
+                    -fx-border-color: #b892ff;
+                    -fx-border-width: 1;
+                    -fx-border-radius: 6;
+                    -fx-background-radius: 6;
+                    """);
 
             ponto.nodeProperty().addListener((obs, oldNode, newNode) -> {
                 if (newNode != null) {
@@ -250,11 +245,15 @@ public class MarketController implements Initializable {
 
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/BuySell.fxml"));
-
             Scene scene = new Scene(loader.load());
 
             OrdemController controller = loader.getController();
-            controller.configurar(tipo, moedaAtualSelecionada, connection, ID_UTILIZADOR_SIMULADO); // ✅ Agora com 4 args
+            controller.configurar(
+                    tipo,
+                    moedaAtualSelecionada,             // usa moedaAtualSelecionada
+                    SessaoAtual.utilizadorId,
+                    this.connection                    // usa campo connection
+            );
 
             Stage stage = new Stage();
             stage.initModality(Modality.APPLICATION_MODAL);
@@ -266,6 +265,7 @@ public class MarketController implements Initializable {
         }
     }
 
+    // Setter que será chamado pelo NavigationHelper.goToWithController
     public void setConnection(Connection connection) {
         this.connection = connection;
     }

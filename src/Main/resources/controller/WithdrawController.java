@@ -6,6 +6,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import utils.SessaoAtual;
+
 import java.math.BigDecimal;
 
 public class WithdrawController {
@@ -37,18 +38,23 @@ public class WithdrawController {
 
             WalletRepository repo = WalletRepository.getInstance();
 
+            // Obtem saldo atual da CarteiraEuro
             BigDecimal saldoAtual = repo.getSaldo(userId);
             if (saldoAtual.compareTo(amount) < 0) {
                 statusLabel.setText("Saldo insuficiente!");
                 return;
             }
 
+            // Realiza retirada na tabela CarteiraEuro e registra em HistoricoTransacoes
             boolean success = repo.withdraw(userId, amount);
             if (success) {
+                // Atualiza saldo na SessaoAtual
                 SessaoAtual.saldoCarteira = repo.getSaldo(userId);
                 statusLabel.setText("Retirada efetuada com sucesso!");
 
-                if (mainController != null) mainController.atualizarSaldo();
+                if (mainController != null) {
+                    mainController.atualizarSaldo(); // atualiza label no controlador principal
+                }
 
                 fecharJanelaAposDelay();
             } else {

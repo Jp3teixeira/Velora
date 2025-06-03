@@ -15,8 +15,6 @@ public class NavigationHelper {
     /**
      * Abre um FXML sem passagem de dados.
      *
-     * @param fxmlPath   caminho relativo ao ficheiro FXML (ex: "/view/homepage.fxml")
-     * @param fullscreen se a cena deve abrir em fullscreen
      */
     public static void goTo(String fxmlPath, boolean fullscreen) {
         try {

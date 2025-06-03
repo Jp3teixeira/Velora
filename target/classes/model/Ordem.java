@@ -1,66 +1,82 @@
 package model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class Ordem {
-    private int id_ordem;
-    private int id_carteira;
-    private int id_moeda;
-    private String tipo; // "compra" ou "venda"
-    private double quantidade_total;
-    private double quantidade_restante;
-    private double preco_no_momento; // valor da moeda no momento da ordem
-    private LocalDateTime timestamp_criacao;
-    private String status; // "PENDENTE", "EXECUTADA", "PARCIAL", "CANCELADA"
+    private Integer idOrdem;
+    private Utilizador utilizador;
+    private Moeda moeda;
+    private String tipo;
+    private BigDecimal quantidade;
+    private BigDecimal precoUnitarioEur;
+    private LocalDateTime dataCriacao;
+    private LocalDateTime dataExpiracao;
+    private String status;
 
-    //Getters e Setters
+    // ====== Construtores, getters e setters ======
+    public Ordem() { }
 
-    public int getId_ordem() {
-        return id_ordem;
+    public Integer getIdOrdem() {
+        return idOrdem;
     }
-    public int getId_carteira() {
-        return id_carteira;
+    public void setIdOrdem(Integer idOrdem) {
+        this.idOrdem = idOrdem;
     }
-    public int getId_moeda() {
-        return id_moeda;
+
+    public Utilizador getUtilizador() {
+        return utilizador;
     }
+    public void setUtilizador(Utilizador utilizador) {
+        this.utilizador = utilizador;
+    }
+
+    public Moeda getMoeda() {
+        return moeda;
+    }
+    public void setMoeda(Moeda moeda) {
+        this.moeda = moeda;
+    }
+
     public String getTipo() {
         return tipo;
-    }
-    public double getQuantidade_total() {
-        return quantidade_total;
-    }
-    public double getQuantidade_restante() {return quantidade_restante;}
-    public double getPreco_no_momento() {
-        return preco_no_momento;
-    }
-    public LocalDateTime getTimestamp_criacao() {
-        return timestamp_criacao;
-    }
-    public String getStatus() {
-        return status;
-    }
-
-
-    public void setId_ordem(int id_ordem) {
-        this.id_ordem = id_ordem;
-    }
-    public void setId_carteira(int id_carteira) {
-        this.id_carteira = id_carteira;
-    }
-    public void setId_moeda(int id_moeda) {
-        this.id_moeda = id_moeda;
     }
     public void setTipo(String tipo) {
         this.tipo = tipo;
     }
-    public void setQuantidade_total(double quantidade_total) {this.quantidade_total = quantidade_total;}
 
-    public void setQuantidade_restante(double quantidade) {
-        this.quantidade_restante = quantidade;
+    public BigDecimal getQuantidade() {
+        return quantidade;
     }
-    public void setPreco_no_momento(double valor_por_unidade) {this.preco_no_momento = valor_por_unidade;}
-    public void setTimestamp_criacao(LocalDateTime timestamp_criacao) {this.timestamp_criacao = timestamp_criacao;}
-    public void setStatus(String status) {this.status = status;}
+    public void setQuantidade(BigDecimal quantidade) {
+        this.quantidade = quantidade;
+    }
 
+    public BigDecimal getPrecoUnitarioEur() {
+        return precoUnitarioEur;
+    }
+    public void setPrecoUnitarioEur(BigDecimal precoUnitarioEur) {
+        this.precoUnitarioEur = precoUnitarioEur;
+    }
+
+    public LocalDateTime getDataCriacao() {
+        return dataCriacao;
+    }
+    public void setDataCriacao(LocalDateTime dataCriacao) {
+        this.dataCriacao = dataCriacao;
+    }
+
+    public LocalDateTime getDataExpiracao() {
+        return dataExpiracao;
+    }
+    public void setDataExpiracao(LocalDateTime dataExpiracao) {
+        this.dataExpiracao = dataExpiracao;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+    public void setStatus(String status) {
+        this.status = status;
+    }
 }

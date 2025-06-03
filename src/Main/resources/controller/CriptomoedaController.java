@@ -35,7 +35,15 @@ public class CriptomoedaController {
         try {
             BigDecimal valor = new BigDecimal(valorStr);
 
-            boolean sucesso = MarketRepository.addNewCoin(nome, simbolo.toUpperCase(), "imagem.png", valor);
+            // Ao criar nova moeda:
+            // - addNewCoin insere em Moeda (nome, simbolo) e em PrecoMoeda (valor inicial).
+
+            boolean sucesso = MarketRepository.addNewCoin(
+                    nome,
+                    simbolo.toUpperCase(),
+                    "imagem.png",  //
+                    valor
+            );
 
             if (sucesso) {
                 mensagemLabel.setText("Criptomoeda criada com sucesso!");
@@ -44,6 +52,8 @@ public class CriptomoedaController {
                 nomeField.clear();
                 simboloField.clear();
                 valorField.clear();
+
+
             } else {
                 mensagemLabel.setText("Erro ao criar criptomoeda.");
                 mensagemLabel.setStyle("-fx-text-fill: red;");

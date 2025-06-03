@@ -12,6 +12,7 @@ import javafx.stage.Stage;
 import model.Moeda;
 import Repository.MarketRepository;
 import Repository.WalletRepository;
+import utils.Routes;
 import utils.SessaoAtual;
 
 import java.io.InputStream;
@@ -31,26 +32,28 @@ public class HomeController implements Initializable {
     @FXML private NumberAxis yAxis;
 
     @FXML private Label balanceLabel;
-    @FXML private TableView<?> walletTable;
+    @FXML private ListView<String> walletTable;
     @FXML private Button depositButton;
     @FXML private Button withdrawButton;
 
+    private List<Moeda> todasMoedas;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // 1) Carrega lista de moedas
+        todasMoedas = MarketRepository.getTodasAsMoedas();
         carregarListaMoedas();
         atualizarSaldo();
-
     }
 
     private void carregarListaMoedas() {
-        List<Moeda> moedas = MarketRepository.getTodasAsMoedas();
-        for (Moeda moeda : moedas) {
+        for (Moeda moeda : todasMoedas) {
             cryptoList.getItems().add(moeda.getNome());
         }
 
-        cryptoList.getSelectionModel().selectedItemProperty().addListener((obs, old, novaMoeda) -> {
-            if (novaMoeda != null) {
-                carregarGrafico(novaMoeda);
+        cryptoList.getSelectionModel().selectedItemProperty().addListener((obs, old, novaMoedaNome) -> {
+            if (novaMoedaNome != null) {
+                carregarGrafico(novaMoedaNome);
             }
         });
     }
@@ -58,22 +61,27 @@ public class HomeController implements Initializable {
     private void carregarGrafico(String nomeMoeda) {
         priceChart.getData().clear();
         XYChart.Series<Number, Number> serie = new XYChart.Series<>();
+        serie.setName(nomeMoeda);
 
-        // ❗ Placeholder: Este método tens de criar ou adaptar
-        List<Double> historico = getHistoricoSimples(nomeMoeda);
+        // Encontra o objeto Moeda pelo nome
+        Moeda selecionada = todasMoedas.stream()
+                .filter(m -> m.getNome().equals(nomeMoeda))
+                .findFirst()
+                .orElse(null);
+        if (selecionada == null) return;
 
-        for (int i = 0; i < historico.size(); i++) {
-            serie.getData().add(new XYChart.Data<>(i, historico.get(i)));
+        int idMoeda = selecionada.getIdMoeda();
+
+        // Obtém histórico (String→Number) e converte para índice X
+        List<XYChart.Data<String, Number>> historicoString =
+                MarketRepository.getHistoricoPorMoedaFiltrado(idMoeda, "MAX");
+
+        for (int i = 0; i < historicoString.size(); i++) {
+            Number y = historicoString.get(i).getYValue();
+            serie.getData().add(new XYChart.Data<>(i, y));
         }
 
-        serie.setName(nomeMoeda);
         priceChart.getData().add(serie);
-    }
-
-    //REVER ISTO
-    private List<Double> getHistoricoSimples(String nomeMoeda) {
-        // ⚠️ Tens de adaptar isto ao teu sistema (por id, símbolo, etc)
-        return List.of(1.0, 1.2, 1.3, 1.25, 1.4); // Simulação temporária
     }
 
     private void atualizarSaldo() {
@@ -84,17 +92,25 @@ public class HomeController implements Initializable {
 
     @FXML
     private void handleLogOut(ActionEvent event) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Tem certeza que deseja sair?", ButtonType.OK, ButtonType.CANCEL);
+        Alert alert = new Alert(
+                Alert.AlertType.CONFIRMATION,
+                "Tem certeza que deseja sair?",
+                ButtonType.OK,
+                ButtonType.CANCEL
+        );
         alert.setTitle("Confirmação de Logout");
 
         try (InputStream iconStream = getClass().getResourceAsStream("/icons/moedas.png")) {
             if (iconStream != null) {
-                ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(new Image(iconStream));
+                ((Stage) alert.getDialogPane().getScene().getWindow())
+                        .getIcons().add(new Image(iconStream));
             }
         } catch (Exception ignored) {}
 
         alert.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) goTo("/view/login.fxml", false);
+            if (response == ButtonType.OK) {
+                goTo(Routes.LOGIN, false);
+            }
         });
     }
 }

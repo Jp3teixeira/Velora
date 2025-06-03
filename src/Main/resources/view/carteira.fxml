@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import java.net.URL?>
+<?import javafx.scene.image.ImageView?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="controller.WalletController"
+            prefWidth="1200" prefHeight="800"
+            style="-fx-background-color: #121212;">
+
+    <stylesheets>
+        <!-- Certifique-se de que esse caminho bate com a localização do seu arquivo CSS -->
+        <URL value="@/view/css/wallet.css"/>
+    </stylesheets>
+
+    <!-- ====== TOPO ====== -->
+    <top>
+        <VBox spacing="0">
+            <fx:include source="navbar.fxml"/>
+
+            <VBox spacing="20" style="-fx-background-color: #121212;">
+                <padding>
+                    <Insets top="20" right="20" bottom="20" left="20"/>
+                </padding>
+
+                <HBox spacing="20" alignment="CENTER_LEFT">
+                    <ImageView fx:id="walletIcon"
+                               fitWidth="40" fitHeight="40"
+                               preserveRatio="true"
+                               styleClass="wallet-icon"/>
+                    <VBox>
+                        <Label text="CARTEIRA DIGITAL"
+                               style="-fx-text-fill: #94a3b8;
+                                      -fx-font-size: 14px;
+                                      -fx-font-weight: medium;"/>
+                        <Label fx:id="balanceLabel"
+                               text="€ 0,00"
+                               styleClass="balance-display">
+                            <tooltip>
+                                <Tooltip text="Saldo atual disponível na sua carteira"/>
+                            </tooltip>
+                        </Label>
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="15" alignment="CENTER_RIGHT">
+                    <Button text="DEPOSITAR"
+                            fx:id="depositButton"
+                            onAction="#abrirTelaDeposito"
+                            styleClass="action-button deposit"/>
+                    <Button text="RETIRAR"
+                            fx:id="withdrawButton"
+                            onAction="#abrirTelaRetirada"
+                            styleClass="action-button withdraw"/>
+                </HBox>
+            </VBox>
+        </VBox>
+    </top>
+
+    <!-- ====== CENTRO ====== -->
+    <center>
+        <VBox spacing="20" style="-fx-background-color: #121212;">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+
+            <!-- TABELA “MEUS ATIVOS” -->
+            <TableView fx:id="cryptoTable"
+                       styleClass="asset-table">
+                <columns>
+                    <TableColumn fx:id="colAtivo"
+                                 text="ATIVO"
+                                 styleClass="table-column"
+                                 prefWidth="200" />
+                    <TableColumn fx:id="colTicker"
+                                 text="TICKER"
+                                 styleClass="table-column"
+                                 prefWidth="100" />
+                    <TableColumn fx:id="colQuantidade"
+                                 text="QUANTIDADE"
+                                 styleClass="table-column"
+                                 prefWidth="150" />
+                    <TableColumn fx:id="colValor"
+                                 text="VALOR (€)"
+                                 styleClass="table-column"
+                                 prefWidth="150" />
+                </columns>
+            </TableView>
+
+            <!-- TABELA “HISTÓRICO DE TRANSAÇÕES” -->
+            <TableView fx:id="transactionTable"
+                       styleClass="transaction-table">
+                <columns>
+                    <TableColumn fx:id="colData"
+                                 text="DATA"
+                                 styleClass="table-column"
+                                 prefWidth="150" />
+                    <TableColumn fx:id="colTipo"
+                                 text="TIPO"
+                                 styleClass="table-column"
+                                 prefWidth="100" />
+                    <TableColumn fx:id="colAtivoTx"
+                                 text="ATIVO"
+                                 styleClass="table-column"
+                                 prefWidth="100" />
+                    <TableColumn fx:id="colQuantidadeTx"
+                                 text="QUANTIDADE"
+                                 styleClass="table-column"
+                                 prefWidth="150" />
+                    <TableColumn fx:id="colValorTx"
+                                 text="VALOR (€)"
+                                 styleClass="table-column"
+                                 prefWidth="150" />
+                </columns>
+            </TableView>
+        </VBox>
+    </center>
+
+    <!-- ====== RODAPÉ ====== -->
+    <bottom>
+        <HBox spacing="20"
+              alignment="CENTER"
+              styleClass="quick-actions card-shadow"
+              style="-fx-background-color: #1a1a1a; -fx-padding: 20 0;">
+            <Button text="COMPRAR RÁPIDO"
+                    styleClass="quick-action buy"/>
+            <Button text="VENDER RÁPIDO"
+                    styleClass="quick-action sell"/>
+            <Button text="CONVERTER"
+                    styleClass="quick-action convert"/>
+        </HBox>
+    </bottom>
+</BorderPane>

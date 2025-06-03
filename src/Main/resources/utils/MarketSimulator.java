@@ -25,7 +25,6 @@ public class MarketSimulator {
         agendadorIniciado = true;
 
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-
         scheduler.scheduleAtFixedRate(() -> {
             simularValoresEmMemoria();
             verificarGravacaoBD();
@@ -35,14 +34,17 @@ public class MarketSimulator {
     }
 
     private static void simularValoresEmMemoria() {
+        String sqlMoedas = "SELECT id_moeda FROM Moeda";
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement("SELECT id_moeda FROM moeda");
-             ResultSet rs = stmt.executeQuery()) {
+             PreparedStatement stmtMoedas = conn.prepareStatement(sqlMoedas);
+             ResultSet rsMoedas = stmtMoedas.executeQuery()) {
 
-            while (rs.next()) {
-                int id = rs.getInt("id_moeda");
-
-                Moeda moeda = moedasAtuais.getOrDefault(id, carregarUltimosDadosDaMoeda(conn, id));
+            while (rsMoedas.next()) {
+                int id = rsMoedas.getInt("id_moeda");
+                Moeda moeda = moedasAtuais.get(id);
+                if (moeda == null) {
+                    moeda = carregarUltimosDadosDaMoeda(conn, id);
+                }
                 BigDecimal valorAnterior = moeda.getValorAtual();
                 BigDecimal novoValor = aplicarVariacao(valorAnterior);
                 BigDecimal novoVolume = gerarVolume();
@@ -51,52 +53,73 @@ public class MarketSimulator {
                 moeda.setVolumeMercado(novoVolume);
                 moedasAtuais.put(id, moeda);
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private static Moeda carregarUltimosDadosDaMoeda(Connection conn, int idMoeda) throws SQLException {
-        String sql = """
-            SELECT m.nome, m.simbolo, hv.valor, hv.volume
-            FROM moeda m
-            LEFT JOIN historico_valores hv ON m.id_moeda = hv.id_moeda
-            WHERE m.id_moeda = ?
-            ORDER BY hv.timestamp DESC
-            LIMIT 1
-        """;
+        String sqlPreco = """
+            SELECT TOP 1 preco_em_eur
+              FROM PrecoMoeda
+             WHERE id_moeda = ?
+             ORDER BY timestamp_hora DESC
+            """;
+        String sqlVolume = """
+            SELECT TOP 1 volume
+              FROM VolumeMercado
+             WHERE id_moeda = ?
+             ORDER BY timestamp_hora DESC
+            """;
+        String sqlMoeda = "SELECT nome, simbolo FROM Moeda WHERE id_moeda = ?";
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, idMoeda);
-            ResultSet rs = stmt.executeQuery();
+        String nome = "";
+        String simbolo = "";
+        BigDecimal valor = BigDecimal.valueOf(100 + rand.nextDouble() * 100);
+        BigDecimal volume = BigDecimal.valueOf(1000 + rand.nextDouble() * 9000);
 
-            String nome = "";
-            String simbolo = "";
-            BigDecimal valor = BigDecimal.valueOf(100 + rand.nextDouble() * 100);
-            BigDecimal volume = BigDecimal.valueOf(1000 + rand.nextDouble() * 9000);
-
-            if (rs.next()) {
-                nome = rs.getString("nome");
-                simbolo = rs.getString("simbolo");
-                BigDecimal dbValor = rs.getBigDecimal("valor");
-                BigDecimal dbVolume = rs.getBigDecimal("volume");
-
-                if (dbValor != null) valor = dbValor;
-                if (dbVolume != null) volume = dbVolume;
+        try (PreparedStatement stmtMoeda = conn.prepareStatement(sqlMoeda)) {
+            stmtMoeda.setInt(1, idMoeda);
+            try (ResultSet rs = stmtMoeda.executeQuery()) {
+                if (rs.next()) {
+                    nome = rs.getString("nome");
+                    simbolo = rs.getString("simbolo");
+                }
             }
-
-            return new Moeda(idMoeda, nome, simbolo, valor, BigDecimal.ZERO, volume);
         }
+
+        try (PreparedStatement stmtPreco = conn.prepareStatement(sqlPreco)) {
+            stmtPreco.setInt(1, idMoeda);
+            try (ResultSet rsPreco = stmtPreco.executeQuery()) {
+                if (rsPreco.next()) {
+                    BigDecimal dbValor = rsPreco.getBigDecimal("preco_em_eur");
+                    if (dbValor != null) valor = dbValor;
+                }
+            }
+        }
+
+        try (PreparedStatement stmtVolume = conn.prepareStatement(sqlVolume)) {
+            stmtVolume.setInt(1, idMoeda);
+            try (ResultSet rsVol = stmtVolume.executeQuery()) {
+                if (rsVol.next()) {
+                    BigDecimal dbVol = rsVol.getBigDecimal("volume");
+                    if (dbVol != null) volume = dbVol;
+                }
+            }
+        }
+
+        return new Moeda(idMoeda, nome, simbolo, valor, BigDecimal.ZERO, volume);
     }
 
     private static BigDecimal aplicarVariacao(BigDecimal valorAnterior) {
         double variacao = 1 + ((rand.nextDouble() * 6 - 3) / 100.0);
-        return valorAnterior.multiply(BigDecimal.valueOf(variacao)).setScale(2, RoundingMode.HALF_UP);
+        return valorAnterior.multiply(BigDecimal.valueOf(variacao))
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal gerarVolume() {
-        return BigDecimal.valueOf(1000 + rand.nextDouble() * 9000).setScale(2, RoundingMode.HALF_UP);
+        return BigDecimal.valueOf(1000 + rand.nextDouble() * 9000)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private static void verificarGravacaoBD() {

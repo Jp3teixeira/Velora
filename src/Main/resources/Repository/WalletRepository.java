@@ -1,9 +1,14 @@
 package Repository;
 
 import Database.DBConnection;
+
 import java.math.BigDecimal;
 import java.sql.*;
 
+/**
+ * Repositório para gerir o saldo em euros de cada utilizador,
+ *  tabela "CarteiraEuro" (colunas: id_carteira_euro, id_utilizador, saldo_eur).
+ */
 public class WalletRepository {
 
     // === SINGLETON ===
@@ -18,9 +23,9 @@ public class WalletRepository {
         return instance;
     }
 
-    // === CRIAR CARTEIRA ===
+    // === CRIAR CARTEIRA (inserir linha da tabela CarteiraEuro com saldo_eur = 0) ===
     public boolean createWalletForUser(int userId) {
-        String sql = "INSERT INTO wallets (saldo, id_user) VALUES (0, ?)";
+        String sql = "INSERT INTO CarteiraEuro (id_utilizador, saldo_eur) VALUES (?, 0)";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -34,9 +39,9 @@ public class WalletRepository {
         }
     }
 
-    // === OBTER SALDO ===
+    // === OBTER SALDO (selecionar saldo_eur da tabela CarteiraEuro) ===
     public BigDecimal getSaldo(int userId) {
-        String sql = "SELECT saldo FROM wallets WHERE id_user = ?";
+        String sql = "SELECT saldo_eur FROM CarteiraEuro WHERE id_utilizador = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -45,7 +50,7 @@ public class WalletRepository {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                return rs.getBigDecimal("saldo");
+                return rs.getBigDecimal("saldo_eur");
             } else {
                 throw new RuntimeException("Carteira não encontrada para o utilizador ID: " + userId);
             }
@@ -55,9 +60,9 @@ public class WalletRepository {
         }
     }
 
-    // === DEPOSITAR ===
+    // === DEPOSITAR (incrementar saldo_eur) ===
     public boolean deposit(int userId, BigDecimal amount) {
-        String sql = "UPDATE wallets SET saldo = saldo + ? WHERE id_user = ?";
+        String sql = "UPDATE CarteiraEuro SET saldo_eur = saldo_eur + ? WHERE id_utilizador = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -72,9 +77,10 @@ public class WalletRepository {
         }
     }
 
-    // === LEVANTAR ===
+    // === LEVANTAR (levantar saldo_eur, só se houver saldo suficiente) ===
     public boolean withdraw(int userId, BigDecimal amount) {
-        String sql = "UPDATE wallets SET saldo = saldo - ? WHERE id_user = ? AND saldo >= ?";
+        String sql = "UPDATE CarteiraEuro SET saldo_eur = saldo_eur - ? " +
+                "WHERE id_utilizador = ? AND saldo_eur >= ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
