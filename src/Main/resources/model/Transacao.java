@@ -4,60 +4,70 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class Transacao {
-    private int id;
-    private int userId;
-    private String type;
-    private BigDecimal amount;
-    private String currency;
-    private LocalDateTime createdAt;
+    private Integer idTransacao;
+    private Utilizador utilizador;
+    private Moeda moeda;
+    private String tipo;
+    private BigDecimal quantidade;
+    private BigDecimal precoUnitarioEur;
+    private BigDecimal totalEur;
+    private LocalDateTime dataHora;
+    // ====== Construtores, getters e setters ======
+    public Transacao() { }
 
-    // Getters e Setters
-
-    public int getId() {
-        return id;
+    public Integer getIdTransacao() {
+        return idTransacao;
+    }
+    public void setIdTransacao(Integer idTransacao) {
+        this.idTransacao = idTransacao;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public Utilizador getUtilizador() {
+        return utilizador;
+    }
+    public void setUtilizador(Utilizador utilizador) {
+        this.utilizador = utilizador;
     }
 
-    public int getUserId() {
-        return userId;
+    public Moeda getMoeda() {
+        return moeda;
+    }
+    public void setMoeda(Moeda moeda) {
+        this.moeda = moeda;
     }
 
-    public void setUserId(int userId) {
-        this.userId = userId;
+    public String getTipo() {
+        return tipo;
+    }
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
     }
 
-    public String getType() {
-        return type;
+    public BigDecimal getQuantidade() {
+        return quantidade;
+    }
+    public void setQuantidade(BigDecimal quantidade) {
+        this.quantidade = quantidade;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public BigDecimal getPrecoUnitarioEur() {
+        return precoUnitarioEur;
+    }
+    public void setPrecoUnitarioEur(BigDecimal precoUnitarioEur) {
+        this.precoUnitarioEur = precoUnitarioEur;
     }
 
-    public BigDecimal getAmount() {
-        return amount;
+    public BigDecimal getTotalEur() {
+        return totalEur;
+    }
+    public void setTotalEur(BigDecimal totalEur) {
+        this.totalEur = totalEur;
     }
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+    public LocalDateTime getDataHora() {
+        return dataHora;
     }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setDataHora(LocalDateTime dataHora) {
+        this.dataHora = dataHora;
     }
 }

@@ -2,7 +2,7 @@ package utils;
 
 public class Routes {
     public static final String HOMEPAGE = "/view/homepage.fxml";
-    public static final String PORTFOLIO = "/view/wallet.fxml";
+    public static final String PORTFOLIO = "/view/carteira.fxml";
     public static final String MARKET = "/view/market.fxml";
     public static final String RESEARCH = "/view/research.fxml";
     public static final String TRANSFER = "/view/transfer.fxml";

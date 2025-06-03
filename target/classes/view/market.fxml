@@ -77,7 +77,21 @@
                 <ToggleButton text="Último ano" fx:id="btn1Y" styleClass="toggle-button filtro-toggle"/>
                 <ToggleButton text="Todos os dados" fx:id="btnMAX" styleClass="toggle-button filtro-toggle"/>
             </HBox>
+
+            <!-- Compra e Venda -->
+            <HBox spacing="10" alignment="CENTER" style="-fx-padding: 20 0 0 0;">
+                <Label text="Quantidade:"
+                       style="-fx-text-fill: white; -fx-font-size: 14px;"/>
+                <TextField fx:id="txtQuantidade" promptText="Ex: 2.5"
+                           style="-fx-background-color: #1f1f1f; -fx-text-fill: white; -fx-border-color: #B892FF; -fx-border-radius: 6; -fx-background-radius: 6;"
+                           maxWidth="100"/>
+                <Button text="Comprar" onAction="#abrirModalCompra"
+                        style="-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;"/>
+                <Button text="Vender" onAction="#abrirModalVenda"
+                        style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;"/>
+
+            </HBox>
+
         </VBox>
     </center>
-
 </BorderPane>

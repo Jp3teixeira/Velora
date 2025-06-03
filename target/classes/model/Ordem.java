@@ -1,77 +1,81 @@
 package model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class Ordem {
-    private int id_ordem;
-    private int id_carteira;
-    private int id_moeda;
+    private Integer idOrdem;
+    private Utilizador utilizador;
+    private Moeda moeda;
     private String tipo;
-    private double quantidade;
-    private double valor_por_unidade; // mudar para ValorAtual da moeda
-    private LocalDateTime timestamp_criacao;
+    private BigDecimal quantidade;
+    private BigDecimal precoUnitarioEur;
+    private LocalDateTime dataCriacao;
+    private LocalDateTime dataExpiracao;
     private String status;
 
-    public int getId_ordem() {
-        return id_ordem;
+    // ====== Construtores, getters e setters ======
+    public Ordem() { }
+
+    public Integer getIdOrdem() {
+        return idOrdem;
+    }
+    public void setIdOrdem(Integer idOrdem) {
+        this.idOrdem = idOrdem;
     }
 
-    public void setId_ordem(int id_ordem) {
-        this.id_ordem = id_ordem;
+    public Utilizador getUtilizador() {
+        return utilizador;
+    }
+    public void setUtilizador(Utilizador utilizador) {
+        this.utilizador = utilizador;
     }
 
-    public int getId_carteira() {
-        return id_carteira;
+    public Moeda getMoeda() {
+        return moeda;
     }
-
-    public void setId_carteira(int id_carteira) {
-        this.id_carteira = id_carteira;
-    }
-
-    public int getId_moeda() {
-        return id_moeda;
-    }
-
-    public void setId_moeda(int id_moeda) {
-        this.id_moeda = id_moeda;
+    public void setMoeda(Moeda moeda) {
+        this.moeda = moeda;
     }
 
     public String getTipo() {
         return tipo;
     }
-
     public void setTipo(String tipo) {
         this.tipo = tipo;
     }
 
-    public double getQuantidade() {
+    public BigDecimal getQuantidade() {
         return quantidade;
     }
-
-    public void setQuantidade(double quantidade) {
+    public void setQuantidade(BigDecimal quantidade) {
         this.quantidade = quantidade;
     }
 
-    public double getValor_por_unidade() {
-        return valor_por_unidade;
+    public BigDecimal getPrecoUnitarioEur() {
+        return precoUnitarioEur;
+    }
+    public void setPrecoUnitarioEur(BigDecimal precoUnitarioEur) {
+        this.precoUnitarioEur = precoUnitarioEur;
     }
 
-    public void setValor_por_unidade(double valor_por_unidade) {
-        this.valor_por_unidade = valor_por_unidade;
+    public LocalDateTime getDataCriacao() {
+        return dataCriacao;
+    }
+    public void setDataCriacao(LocalDateTime dataCriacao) {
+        this.dataCriacao = dataCriacao;
     }
 
-    public LocalDateTime getTimestamp_criacao() {
-        return timestamp_criacao;
+    public LocalDateTime getDataExpiracao() {
+        return dataExpiracao;
     }
-
-    public void setTimestamp_criacao(LocalDateTime timestamp_criacao) {
-        this.timestamp_criacao = timestamp_criacao;
+    public void setDataExpiracao(LocalDateTime dataExpiracao) {
+        this.dataExpiracao = dataExpiracao;
     }
 
     public String getStatus() {
         return status;
     }
-
     public void setStatus(String status) {
         this.status = status;
     }

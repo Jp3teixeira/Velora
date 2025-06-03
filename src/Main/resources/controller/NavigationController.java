@@ -27,15 +27,15 @@ public class NavigationController {
     @FXML private Button adminButton;
 
     private static final Map<String, String> routeMap = Map.of(
-            "homeButton", Routes.HOMEPAGE,
-            "portfolioButton", Routes.PORTFOLIO,
-            "marketButton", Routes.MARKET,
-            "researchButton", Routes.RESEARCH,
-            "transferButton", Routes.TRANSFER,
-            "reportsButton", Routes.REPORTS,
-            "coinsButton", Routes.MOEDAS,
-            "accountButton", Routes.ACCOUNT,
-            "adminButton", Routes.ADMIN_DASHBOARD
+            "homeButton",       Routes.HOMEPAGE,
+            "portfolioButton",  Routes.PORTFOLIO,
+            "marketButton",     Routes.MARKET,
+            "researchButton",   Routes.RESEARCH,
+            "transferButton",   Routes.TRANSFER,
+            "reportsButton",    Routes.REPORTS,
+            "coinsButton",      Routes.MOEDAS,
+            "accountButton",    Routes.ACCOUNT,
+            "adminButton",      Routes.ADMIN_DASHBOARD
     );
 
     @FXML
@@ -48,52 +48,54 @@ public class NavigationController {
             System.err.println("ID de botão desconhecido: " + source.getId());
         }
     }
+
     // ================= LOGOUT =================
     @FXML
     private void handleLogOut(ActionEvent event) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Tem certeza que deseja sair?", ButtonType.OK, ButtonType.CANCEL);
+        Alert alert = new Alert(
+                Alert.AlertType.CONFIRMATION,
+                "Tem certeza que deseja sair?",
+                ButtonType.OK,
+                ButtonType.CANCEL
+        );
         alert.setTitle("Confirmação de Logout");
 
         try (InputStream iconStream = getClass().getResourceAsStream("/icons/moedas.png")) {
             if (iconStream != null) {
-                ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(new Image(iconStream));
+                ((Stage) alert.getDialogPane().getScene().getWindow())
+                        .getIcons().add(new Image(iconStream));
             }
         } catch (Exception ignored) {}
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
+                SessaoAtual.limparSessao();
                 NavigationHelper.goTo(Routes.LOGIN, false);
             }
         });
     }
 
-        @FXML
-        public void initialize() {
-            // Verificação robusta de admin
-            boolean shouldShowAdminButton = SessaoAtual.tipo != null &&
-                    (SessaoAtual.tipo.equalsIgnoreCase("admin") ||
-                            SessaoAtual.isSuperAdmin);
+    @FXML
+    public void initialize() {
+        // Mostrar/esconder botão de admin conforme permissões em SessaoAtual
+        boolean shouldShowAdminButton = SessaoAtual.tipo != null &&
+                (SessaoAtual.tipo.equalsIgnoreCase("admin") || SessaoAtual.isSuperAdmin);
 
-            if (adminButton != null) {
-                adminButton.setVisible(shouldShowAdminButton);
-                adminButton.setManaged(shouldShowAdminButton);
-            }
-
-            // Mostrar o nome do utilizador no botão Account
-            if (accountButton != null && SessaoAtual.nome != null && !SessaoAtual.nome.isEmpty()) {
-                // Mostrar apenas o primeiro nome se houver espaço
-                String firstName = SessaoAtual.nome.split(" ")[0];
-                accountButton.setText(firstName);
-
-                // Opcional: adicionar ícone de usuário
-                // accountButton.setGraphic(new ImageView(new Image("/images/user-icon.png")));
-            }
-
-            // Debug (pode remover depois)
-            System.out.println("Admin button visible: " + shouldShowAdminButton);
+        if (adminButton != null) {
+            adminButton.setVisible(shouldShowAdminButton);
+            adminButton.setManaged(shouldShowAdminButton);
         }
 
+        // Exibir primeiro nome no botão Account
+        if (accountButton != null &&
+                SessaoAtual.nome != null &&
+                !SessaoAtual.nome.isEmpty()) {
 
+            String firstName = SessaoAtual.nome.split(" ")[0];
+            accountButton.setText(firstName);
+        }
 
-
+        // Debug (pode remover depois)
+        System.out.println("Admin button visible: " + shouldShowAdminButton);
+    }
 }

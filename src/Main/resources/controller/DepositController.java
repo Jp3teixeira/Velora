@@ -40,10 +40,13 @@ public class DepositController {
 
             boolean success = repo.deposit(userId, amount);
             if (success) {
-                SessaoAtual.saldoCarteira = SessaoAtual.saldoCarteira.add(amount);
+                // Atualiza saldo na sessão obtendo o valor atual da BD
+                SessaoAtual.saldoCarteira = repo.getSaldo(userId);
                 statusLabel.setText("Depósito efetuado com sucesso!");
 
-                if (mainController != null) mainController.atualizarSaldo();
+                if (mainController != null) {
+                    mainController.atualizarSaldo();
+                }
 
                 fecharJanelaAposDelay();
             } else {

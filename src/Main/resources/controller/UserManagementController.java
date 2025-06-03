@@ -3,15 +3,18 @@ package controller;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.VBox;
 import org.mindrot.jbcrypt.BCrypt;
 import Repository.UserRepository;
 import Repository.WalletRepository;
 import utils.EmailSender;
+import utils.NavigationHelper;
+import utils.Routes;
 import utils.SessaoAtual;
+
 import java.time.LocalDateTime;
 import java.util.Random;
+
 import static utils.NavigationHelper.goTo;
 
 public class UserManagementController {
@@ -28,7 +31,7 @@ public class UserManagementController {
     @FXML private PasswordField registerPasswordField;
     @FXML private PasswordField registerConfirmPasswordField;
 
-    // Verificação
+    // Verificação (registro)
     @FXML private TextField codigoField;
 
     // Recuperação de senha
@@ -44,8 +47,6 @@ public class UserManagementController {
     @FXML private VBox painelReset;
     @FXML private Button btnEnviarCodigo;
 
-
-
     // ================= LOGIN =================
     @FXML
     private void handleLogin() {
@@ -53,66 +54,69 @@ public class UserManagementController {
         String password = loginPasswordField.getText();
 
         if (input.isEmpty() || password.isEmpty()) {
-            showAlert("Por favor, preencha todos os campos.", AlertType.ERROR);
+            showAlert("Por favor, preencha todos os campos.", Alert.AlertType.ERROR);
             return;
         }
 
         var userOpt = userRepository.findUserByEmailOrUsername(input);
         if (userOpt.isEmpty()) {
-            showAlert("Utilizador não encontrado.", AlertType.ERROR);
+            showAlert("Utilizador não encontrado.", Alert.AlertType.ERROR);
             return;
         }
 
         var user = userOpt.get();
-        int id = Integer.parseInt(user.get("id"));
-        String hashed = user.get("senha");
+        int id = Integer.parseInt(user.get("id_utilizador"));
+        String hashed = user.get("password");
 
         if (!userRepository.isContaVerificada(id)) {
-            showAlert("A conta ainda não foi verificada.", AlertType.WARNING);
+            showAlert("A conta ainda não foi verificada.", Alert.AlertType.WARNING);
             return;
         }
 
         if (!BCrypt.checkpw(password, hashed)) {
-            showAlert("Password incorreta.", AlertType.ERROR);
+            showAlert("Password incorreta.", Alert.AlertType.ERROR);
             return;
         }
 
-        SessaoAtual.utilizadorId = id;
-        SessaoAtual.nome = user.get("nome");
-        SessaoAtual.email = user.get("email");
-        SessaoAtual.tipo = user.get("tipo");
-        SessaoAtual.saldoCarteira = WalletRepository.getInstance().getSaldo(id);
+        // Atualiza SessaoAtual
+        SessaoAtual.utilizadorId    = id;
+        SessaoAtual.nome            = user.get("nome");
+        SessaoAtual.email           = user.get("email");
+        SessaoAtual.tipo            = user.get("tipoPerfil");
+        SessaoAtual.saldoCarteira   = WalletRepository.getInstance().getSaldo(id);
 
-
-        goTo("/view/homepage.fxml", true);
+        // Redireciona para homepage sem setConnection
+        NavigationHelper.goTo(Routes.HOMEPAGE, false);
     }
-
-
 
     // ================= REGISTO =================
     @FXML
     private void handleRegister(ActionEvent event) {
         String username = registerUsernameField.getText().trim();
-        String email = registerEmailField.getText().trim();
-        String password = registerPasswordField.getText();
-        String confirmPassword = registerConfirmPasswordField.getText();
+        String email    = registerEmailField.getText().trim();
+        String pwd      = registerPasswordField.getText();
+        String pwd2     = registerConfirmPasswordField.getText();
 
-        if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+        if (username.isEmpty() || email.isEmpty() || pwd.isEmpty() || pwd2.isEmpty()) {
             showAlert("Todos os campos são obrigatórios.");
             return;
         }
-
-        if (!password.equals(confirmPassword)) {
+        if (!pwd.equals(pwd2)) {
             showAlert("As passwords não coincidem.");
             return;
         }
-
-        if (!isPasswordStrong(password)) {
-            showAlert("A password deve ter pelo menos:\n- 10 caracteres\n- 1 maiúscula\n- 1 número\n- 1 especial.");
+        if (!isPasswordStrong(pwd)) {
+            showAlert("""
+                A password deve ter pelo menos:
+                - 10 caracteres
+                - 1 maiúscula
+                - 1 número
+                - 1 especial.
+                """);
             return;
         }
 
-        String hashed = BCrypt.hashpw(password, BCrypt.gensalt());
+        String hashed = BCrypt.hashpw(pwd, BCrypt.gensalt());
         var userIdOpt = userRepository.registarNovoUtilizador(username, email, hashed);
         if (userIdOpt.isEmpty()) {
             showAlert("Erro ao criar conta.");
@@ -127,9 +131,16 @@ public class UserManagementController {
             return;
         }
 
+        // Gera e insere código de verificação para registro
         String codigo = String.format("%06d", new Random().nextInt(999999));
-        if (userRepository.inserirCodigoVerificacao(userId, codigo, LocalDateTime.now().plusDays(1), "REGISTO")
-                && EmailSender.sendVerificationCode(email, codigo)) {
+        boolean ok = userRepository.inserirCodigoVerificacao(
+                userId,
+                codigo,
+                LocalDateTime.now().plusDays(1),
+                "REGISTO"
+        ) && EmailSender.sendVerificationCode(email, codigo);
+
+        if (ok) {
             showAlert("Verifique o seu email.");
             goTo("/view/verification.fxml", false);
         } else {
@@ -141,30 +152,34 @@ public class UserManagementController {
     private void handleVerify(ActionEvent event) {
         String codigo = codigoField.getText().trim();
         if (codigo.isEmpty()) {
-            showAlert("Insira o código.");
+            showAlert("Insira o código.", Alert.AlertType.ERROR);
             return;
         }
 
-        if (userRepository.validarCodigo(SessaoAtual.utilizadorId, "REGISTO", codigo)) {
-            goTo("/view/homepage.fxml", true);
+        boolean valid = userRepository.validarCodigo(
+                SessaoAtual.utilizadorId,
+                "REGISTO",
+                codigo
+        );
+        if (valid) {
+            goTo(Routes.HOMEPAGE, true);
         } else {
-            showAlert("Código incorreto ou expirado.");
+            showAlert("Código incorreto ou expirado.", Alert.AlertType.ERROR);
         }
     }
 
     // ================= RECUPERAÇÃO DE SENHA =================
     @FXML
-
     private void handleEnviarLink() {
         String email = forgotEmailField.getText().trim();
         if (email.isEmpty()) {
-            showAlert("Insira o e-mail.", AlertType.WARNING);
+            showAlert("Insira o e-mail.", Alert.AlertType.WARNING);
             return;
         }
 
         var userIdOpt = userRepository.getUserIdByEmail(email);
         if (userIdOpt.isEmpty()) {
-            showAlert("E-mail não encontrado.", AlertType.ERROR);
+            showAlert("E-mail não encontrado.", Alert.AlertType.ERROR);
             return;
         }
 
@@ -172,8 +187,14 @@ public class UserManagementController {
         SessaoAtual.emailRecuperacao = email;
 
         String codigo = String.format("%06d", new Random().nextInt(999999));
-        if (userRepository.inserirCodigoVerificacao(userId, codigo, LocalDateTime.now().plusHours(1), "RECUPERACAO_SENHA")
-                && EmailSender.sendRecoveryCode(email, codigo)) {
+        boolean ok = userRepository.inserirCodigoVerificacao(
+                userId,
+                codigo,
+                LocalDateTime.now().plusHours(1),
+                "RECUPERACAO_SENHA"
+        ) && EmailSender.sendRecoveryCode(email, codigo);
+
+        if (ok) {
             statusLabel.setText("Código enviado para: " + email);
             statusLabel.setStyle("-fx-text-fill: green;");
             mostrarPainel(painelCodigo);
@@ -181,7 +202,6 @@ public class UserManagementController {
             showAlert("Erro ao enviar código.");
         }
     }
-
 
     @FXML
     private void handleValidarCodigoRecuperacao() {
@@ -199,7 +219,12 @@ public class UserManagementController {
         }
 
         int userId = userIdOpt.get();
-        if (userRepository.validarCodigo(userId, "RECUPERACAO_SENHA", codigo)) {
+        boolean valid = userRepository.validarCodigo(
+                userId,
+                "RECUPERACAO_SENHA",
+                codigo
+        );
+        if (valid) {
             SessaoAtual.utilizadorRecuperacao = userId;
             mostrarPainel(painelReset);
         } else {
@@ -208,29 +233,30 @@ public class UserManagementController {
         }
     }
 
-
     @FXML
     private void handleRedefinirSenha() {
-        String nova = newPasswordField.getText();
+        String nova    = newPasswordField.getText();
         String confirm = confirmPasswordField.getText();
 
         if (nova.isEmpty() || confirm.isEmpty()) {
             resetStatusLabel.setText("Preencha os campos.");
             return;
         }
-
         if (!nova.equals(confirm)) {
             resetStatusLabel.setText("Senhas não coincidem.");
             return;
         }
-
         if (!isPasswordStrong(nova)) {
             resetStatusLabel.setText("Senha fraca.");
             return;
         }
 
         String hashed = BCrypt.hashpw(nova, BCrypt.gensalt());
-        if (userRepository.atualizarSenha(SessaoAtual.utilizadorRecuperacao, hashed)) {
+        boolean ok = userRepository.atualizarSenha(
+                SessaoAtual.utilizadorRecuperacao,
+                hashed
+        );
+        if (ok) {
             showAlert("Senha redefinida com sucesso!");
             SessaoAtual.utilizadorRecuperacao = 0;
             SessaoAtual.emailRecuperacao = null;
@@ -239,14 +265,12 @@ public class UserManagementController {
             resetStatusLabel.setText("Erro ao atualizar senha.");
         }
     }
+
     @FXML
     private void handleEmailDigitado() {
         String email = forgotEmailField.getText().trim();
-
         btnEnviarCodigo.setDisable(!email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$"));
     }
-
-
 
     // ================= UTILS =================
     private boolean isPasswordStrong(String password) {
@@ -257,17 +281,15 @@ public class UserManagementController {
     }
 
     private void showAlert(String msg) {
-        showAlert(msg, AlertType.INFORMATION);
+        showAlert(msg, Alert.AlertType.INFORMATION);
     }
-
-    private void showAlert(String msg, AlertType type) {
+    private void showAlert(String msg, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setTitle("Aviso");
         alert.setHeaderText(null);
         alert.setContentText(msg);
         alert.showAndWait();
     }
-
 
     @FXML
     private void GoToRegister() {
@@ -278,18 +300,21 @@ public class UserManagementController {
     private void GoToRecuperacao() {
         goTo("/view/recover_account.fxml", false);
     }
+
     @FXML
     private void GoToLogin() {
         goTo("/view/login.fxml", false);
     }
 
     private void mostrarPainel(VBox ativo) {
-        painelEmail.setVisible(false); painelEmail.setManaged(false);
-        painelCodigo.setVisible(false); painelCodigo.setManaged(false);
-        painelReset.setVisible(false); painelReset.setManaged(false);
+        painelEmail.setVisible(false);
+        painelEmail.setManaged(false);
+        painelCodigo.setVisible(false);
+        painelCodigo.setManaged(false);
+        painelReset.setVisible(false);
+        painelReset.setManaged(false);
 
         ativo.setVisible(true);
         ativo.setManaged(true);
     }
-
 }

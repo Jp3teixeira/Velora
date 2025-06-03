@@ -1,6 +1,5 @@
 package controller;
 
-
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.chart.LineChart;
@@ -10,6 +9,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import model.Moeda;
 import Repository.MarketRepository;
+
 import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -28,7 +28,7 @@ public class MoedaController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-
+        // nada a inicializar aqui
     }
 
     public void carregarDetalhesMoeda(Moeda moeda) {
@@ -36,9 +36,10 @@ public class MoedaController implements Initializable {
 
         nomeMoeda.setText(moeda.getNome());
         simboloMoeda.setText("(" + moeda.getSimbolo() + ")");
-        valorAtual.setText(String.format("$%.2f", moeda.getValorAtual()));
+        // Ajustado para mostrar em euros
+        valorAtual.setText(String.format("€ %.2f", moeda.getValorAtual()));
         variacao24h.setText(String.format("%.2f%%", moeda.getVariacao24h()));
-        volumeMercado.setText(String.format("$%,.2f", moeda.getVolumeMercado()));
+        volumeMercado.setText(String.format("€ %,.2f", moeda.getVolumeMercado()));
 
         try {
             String path = "/icons/" + moeda.getSimbolo().toLowerCase() + ".png";
@@ -52,7 +53,9 @@ public class MoedaController implements Initializable {
     }
 
     private void carregarHistorico(int idMoeda) {
-        List<XYChart.Data<String, Number>> historico = MarketRepository.getHistoricoPorMoedaFiltrado(idMoeda, "MAX");
+        // "MAX" não gera intervalo específico; MarketRepository busca tudo
+        List<XYChart.Data<String, Number>> historico =
+                MarketRepository.getHistoricoPorMoedaFiltrado(idMoeda, "MAX");
         XYChart.Series<String, Number> serie = new XYChart.Series<>();
         serie.setName("Histórico de Preço");
 
@@ -63,5 +66,4 @@ public class MoedaController implements Initializable {
         historicoChart.getData().clear();
         historicoChart.getData().add(serie);
     }
-
 }

@@ -6,19 +6,16 @@ import java.sql.SQLException;
 
 public class DBConnection {
 
-    private static final String URL = "jdbc:mysql://sql7.freesqldatabase.com:3306/sql7781596";
-    private static final String USER = "sql7781596";
-    private static final String PASSWORD = "D8GRzJkduq";
+    private static final String URL = "jdbc:sqlserver://ctespbd.dei.isep.ipp.pt;databaseName=2025_LP2_G5_ERM;encrypt=true;trustServerCertificate=true;";
+    private static final String USER = "2025_LP2_G5_ERM";
+    private static final String PASSWORD = "LP2Grupo5";
 
     public static Connection getConnection() throws SQLException {
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-
-            Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
-            System.out.println("Conexão bem-sucedida!");
-            return conn;
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            return DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (ClassNotFoundException e) {
-            throw new SQLException("Driver JDBC não encontrado", e);
+            throw new SQLException("Driver JDBC do SQL Server não encontrado", e);
         }
     }
 }
