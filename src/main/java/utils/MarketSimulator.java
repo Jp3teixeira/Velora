@@ -28,7 +28,7 @@ public class MarketSimulator {
         scheduler.scheduleAtFixedRate(() -> {
             simularValoresEmMemoria();
             verificarGravacaoBD();
-        }, 0, 1, TimeUnit.SECONDS);
+        }, 0, 1, TimeUnit.MINUTES);
 
         System.out.println("🚀 Simulador de mercado iniciado (atualização por segundo).");
     }
