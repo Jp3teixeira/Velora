@@ -3,6 +3,7 @@ package utils;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -58,8 +59,24 @@ public class NavigationHelper {
                     .getScene()
                     .getWindow();
 
-            stage.setScene(new Scene(root));
-            if (fullscreen) stage.setFullScreen(true);
+            if (stage.getScene() == null) {
+
+                Scene scene = new Scene(root);
+                stage.setScene(scene);
+            } else {
+
+                stage.getScene().setRoot(root);
+            }
+
+            if (fullscreen) {
+
+                stage.setFullScreenExitHint("");
+                stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+                stage.setFullScreen(true);
+            } else {
+                stage.setFullScreen(false);
+            }
+
             stage.show();
         } catch (Exception e) {
             System.err.println("Erro ao mostrar a nova cena.");

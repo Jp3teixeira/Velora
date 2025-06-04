@@ -21,10 +21,11 @@ public class TradeService {
 
     public TradeService(Connection connection) {
         this.ordemRepo     = new OrdemRepository(connection);
-        this.transacaoRepo = new TransacaoRepository(connection);
+        this.transacaoRepo = new TransacaoRepository();
         this.portfolioRepo = new PortfolioRepository();
         this.walletRepo    = WalletRepository.getInstance();
     }
+
 
     /**
      * “Market buy”: tenta consumir toda a fila de vendas FIFO.
@@ -53,7 +54,7 @@ public class TradeService {
             transacaoRepo.inserirTransacao(
                     novaCompra.getUtilizador().getIdUtilizador(),
                     novaCompra.getMoeda().getIdMoeda(),
-                    "compra",                       // em minúsculo para satisfazer o CHECK da tabela
+                    "compra",
                     matchQtde.setScale(8, RoundingMode.HALF_UP),
                     precoExecucao
             );
@@ -61,7 +62,7 @@ public class TradeService {
             transacaoRepo.inserirTransacao(
                     venda.getUtilizador().getIdUtilizador(),
                     venda.getMoeda().getIdMoeda(),
-                    "venda",                        // em minúsculo
+                    "venda",
                     matchQtde.setScale(8, RoundingMode.HALF_UP),
                     precoExecucao
             );
@@ -116,7 +117,7 @@ public class TradeService {
     public void processarOrdemVenda(Ordem novaVenda) throws SQLException {
         BigDecimal restante = novaVenda.getQuantidade();
 
-        // 1) Busca todas as ordens de COMPRA ativas, por data de criação (FIFO)
+        // 1) Procura todas as ordens de COMPRA ativas, por data de criação (FIFO)
         List<Ordem> ordensCompra = ordemRepo.obterOrdensPendentes(
                 novaVenda.getMoeda().getIdMoeda(),
                 "compra"

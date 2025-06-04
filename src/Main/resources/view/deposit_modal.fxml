@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="controller.ModalTransacaoController"
+            prefWidth="1000" prefHeight="1000"
+            style="-fx-background-color: rgba(26,26,26, 0.95);  /* fundo quase opaco */
+                   -fx-border-radius: 12;
+                   -fx-background-radius: 12;
+                   -fx-padding: 25;">
+
+    <fx:define>
+        <ToggleGroup fx:id="metodoGroup"/>
+    </fx:define>
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Button text="← Voltar"
+                    onAction="#fecharJanela"
+                    style="-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14;"/>
+            <Label text="DEPOSITAR FUNDOS"
+                   style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="20" alignment="CENTER_LEFT" style="-fx-padding: 30 0 0 0;">
+            <Label text="Método de Depósito"
+                   style="-fx-text-fill: #b892ff; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+            <HBox spacing="15">
+                <ToggleButton text="💳 Cartão" toggleGroup="${metodoGroup}" styleClass="hover-glow"/>
+                <ToggleButton text="🅿️ PayPal" toggleGroup="${metodoGroup}" styleClass="hover-glow"/>
+                <ToggleButton text="💜 Skrill" toggleGroup="${metodoGroup}" styleClass="hover-glow"/>
+                <ToggleButton text="💚 Neteller" toggleGroup="${metodoGroup}" styleClass="hover-glow"/>
+            </HBox>
+
+            <Label text="Montante (€)"
+                   style="-fx-text-fill: #b892ff; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+            <TextField fx:id="depositAmountField"
+                       promptText="Ex: 100.00"
+                       style="-fx-background-color: #2e2e2e; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 10;"/>
+
+            <Button text="CONFIRMAR DEPÓSITO"
+                    onAction="#confirmarDeposito"
+                    styleClass="action-button deposit"/>
+
+            <Label fx:id="depositStatusLabel"
+                   style="-fx-text-fill: #7bd88f; -fx-font-size: 13px;"/>
+        </VBox>
+    </center>
+</BorderPane>

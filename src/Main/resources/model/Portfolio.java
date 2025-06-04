@@ -3,39 +3,26 @@ package model;
 import java.math.BigDecimal;
 
 public class Portfolio {
-    private Integer idPortfolio;
+
+    private int idPortfolio;
     private Utilizador utilizador;
-    private Moeda moeda;             // (apenas cryptos serão usadas aqui)
+    private Moeda moeda;
     private BigDecimal quantidade;
+    private BigDecimal precoMedioCompra;  // novo campo
 
-    // ====== Construtores, getters e setters ======
-    public Portfolio() { }
+    // getters e setters
+    public int getIdPortfolio() { return idPortfolio; }
+    public void setIdPortfolio(int idPortfolio) { this.idPortfolio = idPortfolio; }
 
-    public Integer getIdPortfolio() {
-        return idPortfolio;
-    }
-    public void setIdPortfolio(Integer idPortfolio) {
-        this.idPortfolio = idPortfolio;
-    }
+    public Utilizador getUtilizador() { return utilizador; }
+    public void setUtilizador(Utilizador utilizador) { this.utilizador = utilizador; }
 
-    public Utilizador getUtilizador() {
-        return utilizador;
-    }
-    public void setUtilizador(Utilizador utilizador) {
-        this.utilizador = utilizador;
-    }
+    public Moeda getMoeda() { return moeda; }
+    public void setMoeda(Moeda moeda) { this.moeda = moeda; }
 
-    public Moeda getMoeda() {
-        return moeda;
-    }
-    public void setMoeda(Moeda moeda) {
-        this.moeda = moeda;
-    }
+    public BigDecimal getQuantidade() { return quantidade; }
+    public void setQuantidade(BigDecimal quantidade) { this.quantidade = quantidade; }
 
-    public BigDecimal getQuantidade() {
-        return quantidade;
-    }
-    public void setQuantidade(BigDecimal quantidade) {
-        this.quantidade = quantidade;
-    }
+    public BigDecimal getPrecoMedioCompra() { return precoMedioCompra; }
+    public void setPrecoMedioCompra(BigDecimal precoMedioCompra) { this.precoMedioCompra = precoMedioCompra; }
 }

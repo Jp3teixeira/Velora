@@ -6,6 +6,7 @@ import model.Moeda;
 import model.Utilizador;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,12 +17,12 @@ import java.util.List;
 public class PortfolioRepository {
 
     /**
-     * Retorna todos os itens do portfólio do utilizador (com Moeda embutida).
+     * Retorna todos os itens do portfólio do utilizador (com Moeda embutida e preço médio).
      */
     public List<Portfolio> listarPorUtilizador(int userId) {
         List<Portfolio> lista = new ArrayList<>();
 
-        // Subconsulta que pega o PRECO MAIS RECENTE (timestamp_hora máximo) para cada moeda
+        // Subconsulta que vai a procura do PRECO MAIS RECENTE (timestamp_hora máximo) para cada moeda
         String sql = """
         SELECT
           p.id_portfolio,
@@ -46,6 +47,7 @@ public class PortfolioRepository {
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, userId);
             ResultSet rs = stmt.executeQuery();
 
@@ -62,20 +64,27 @@ public class PortfolioRepository {
                 m.setNome(rs.getString("nome"));
                 m.setSimbolo(rs.getString("simbolo"));
 
-                // Aqui atribuímos o valorAtual que veio na subconsulta:
+                // Valor atual (último preço registrado):
                 BigDecimal valorAtual = rs.getBigDecimal("valor_atual");
                 if (valorAtual == null) {
-                    // Caso não haja preço registrado ainda, coloca zero
                     m.setValorAtual(BigDecimal.ZERO);
                 } else {
                     m.setValorAtual(valorAtual);
                 }
-
                 p.setMoeda(m);
 
-                p.setQuantidade(rs.getBigDecimal("quantidade"));
+                // Quantidade que o usuário possui:
+                BigDecimal quantidade = rs.getBigDecimal("quantidade");
+                p.setQuantidade(quantidade);
+
+                // Agora, calcula o preço médio de compra dessa moeda para este usuário:
+                BigDecimal precoMedio = this.calcularPrecoMedioCompra(userId, m.getIdMoeda());
+                p.setPrecoMedioCompra(precoMedio);
+
                 lista.add(p);
             }
+            rs.close();
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -148,11 +157,13 @@ public class PortfolioRepository {
                     }
                 }
             }
+            rs.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
     }
+
     /**
      * Retorna a quantidade atual de uma moeda específica no portfólio do utilizador.
      * Se não existir nenhuma linha, devolve BigDecimal.ZERO.
@@ -169,8 +180,46 @@ public class PortfolioRepository {
             stmt.setInt(2, idMoeda);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                return rs.getBigDecimal("quantidade");
+                BigDecimal q = rs.getBigDecimal("quantidade");
+                rs.close();
+                return q;
             }
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return BigDecimal.ZERO;
+    }
+
+    /**
+     * Retorna o preço médio de compra de uma certa moeda para um usuário.
+     * Baseia-se em todas as transações de compra (tipo='compra') daquele usuário/daquela moeda.
+     */
+    public BigDecimal calcularPrecoMedioCompra(int userId, int idMoeda) {
+        String sql = """
+            SELECT 
+                SUM(quantidade * preco_unitario_eur) AS soma_total_eur,
+                SUM(quantidade) AS soma_quantidade
+              FROM Transacao
+             WHERE id_utilizador = ?
+               AND id_moeda = ?
+               AND tipo = 'compra'
+            """;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.setInt(2, idMoeda);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                BigDecimal somaTotal = rs.getBigDecimal("soma_total_eur");
+                BigDecimal somaQtd   = rs.getBigDecimal("soma_quantidade");
+                if (somaTotal != null && somaQtd != null && somaQtd.compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal media = somaTotal.divide(somaQtd, 8, RoundingMode.HALF_UP);
+                    rs.close();
+                    return media;
+                }
+            }
+            rs.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }

@@ -1,38 +1,147 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 <?import javafx.geometry.Pos?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
-<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="controller.OrdemController"
-            style="-fx-background-color: #1e1e1e; -fx-padding: 20;">
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="controller.OrdemController"
+            prefWidth="1000" prefHeight="1000"
+            style="-fx-background-color: rgba(30,30,30,0.95);
+                   -fx-background-radius: 12;
+                   -fx-border-radius: 12;
+                   -fx-padding: 20;">
 
+    <!-- ===================================== TOPO ===================================== -->
     <top>
-        <Label fx:id="labelTitulo" text="Confirmação de Ordem"
-               style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
+        <VBox alignment="CENTER" spacing="5">
+            <Label fx:id="labelTitulo" text="COMPRA – Bitcoin"
+                   style="-fx-text-fill: white;
+                          -fx-font-size: 24px;
+                          -fx-font-weight: bold;"/>
+            <Label fx:id="labelPrecoAtual" text="Preço atual: € 15,75"
+                   style="-fx-text-fill: #aaaaaa;
+                          -fx-font-size: 16px;"/>
+        </VBox>
     </top>
 
+    <!-- ==================================== CENTRO ==================================== -->
     <center>
-        <VBox spacing="16" alignment="CENTER" BorderPane.alignment="CENTER">
-            <Label fx:id="labelPrecoAtual" text="Preço atual: $0.00"
-                   style="-fx-text-fill: #aaaaaa; -fx-font-size: 14px;"/>
+        <!-- Container horizontal com dois blocos: formulário (esquerda) e ordem/estimativas (direita) -->
+        <HBox spacing="50" alignment="TOP_CENTER" style="-fx-padding: 20 0 0 0;">
+            <!-- ========== LADO DIREITO (order book + estimativas) ========== -->
+            <VBox spacing="30" alignment="TOP_CENTER" prefWidth="450">
+                <!-- Order Book: cabeçalhos e duas listas (Asks / Bids) -->
+                <GridPane hgap="30" vgap="10" alignment="CENTER">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="50"/>
+                        <ColumnConstraints percentWidth="50"/>
+                    </columnConstraints>
 
-            <HBox spacing="10" alignment="CENTER">
-                <Label text="Quantidade:" style="-fx-text-fill: white;"/>
-                <TextField fx:id="txtQuantidade" promptText="Ex: 1.5"
-                           style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-border-color: #b892ff; -fx-border-radius: 4; -fx-background-radius: 4;"/>
-            </HBox>
-        </VBox>
+                    <!-- Títulos das colunas -->
+                    <Label text="📈 Asks (Vendas)" GridPane.columnIndex="0" GridPane.rowIndex="0"
+                           style="-fx-text-fill: #ff5555; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                    <Label text="📉 Bids (Compras)" GridPane.columnIndex="1" GridPane.rowIndex="0"
+                           style="-fx-text-fill: #55ff55; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+                    <!-- VBoxes que receberão os níveis do order book -->
+                    <VBox fx:id="vboxAsks" spacing="6" GridPane.columnIndex="0" GridPane.rowIndex="1"
+                          style="-fx-padding: 8 0 0 0;"/>
+                    <VBox fx:id="vboxBids" spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="1"
+                          style="-fx-padding: 8 0 0 0;"/>
+                </GridPane>
+
+                <!-- Estimativas de Execução -->
+                <VBox spacing="8" alignment="CENTER_LEFT" style="-fx-padding: 20 0 0 0;">
+                    <Label text="▶ Estimativa de Execução:"
+                           style="-fx-text-fill: white;
+                                  -fx-font-size: 16px;
+                                  -fx-underline: true;"/>
+                    <Label fx:id="labelEstimativaQuantidade"
+                           text="Quantidade executável: 0"
+                           style="-fx-text-fill: #dddddd; -fx-font-size: 14px;"/>
+                    <Label fx:id="labelEstimativaPrecoMedio"
+                           text="Preço médio estimado: €0,00"
+                           style="-fx-text-fill: #dddddd; -fx-font-size: 14px;"/>
+                    <Label fx:id="labelEstimativaCustoTotal"
+                           text="Custo total estimado: €0,00"
+                           style="-fx-text-fill: #dddddd; -fx-font-size: 14px;"/>
+                </VBox>
+            </VBox>
+
+            <!-- ========== LADO ESQUERDO (formulário de ordem) ========== -->
+            <VBox spacing="30" alignment="TOP_CENTER" prefWidth="450">
+                <!-- Define aqui o ToggleGroup para Market vs Limit -->
+                <fx:define>
+                    <ToggleGroup fx:id="toggleTipoOrdem"/>
+                </fx:define>
+
+                <!-- RadioButtons Market / Limit -->
+                <HBox spacing="40" alignment="CENTER">
+                    <RadioButton fx:id="rbMarket" text="Valor de Mercado"
+                                 toggleGroup="${toggleTipoOrdem}"
+                                 style="-fx-text-fill: white; -fx-font-size: 16px;"/>
+                    <RadioButton fx:id="rbLimit" text="Valor Determinado"
+                                 toggleGroup="${toggleTipoOrdem}"
+                                 style="-fx-text-fill: white; -fx-font-size: 16px;"/>
+                </HBox>
+
+                <!-- Quantidade -->
+                <!-- Note o onKeyReleased para habilitar o botão quando for numérico e > 0 -->
+                <VBox spacing="5" alignment="CENTER_LEFT">
+                    <Label text="Quantidade:" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
+                    <TextField fx:id="txtQuantidade"
+                               promptText="Ex: 1.5"
+                               prefWidth="200"
+                               onKeyReleased="#onQuantidadeTyped"
+                               style="-fx-background-color: #2a2a2a;
+                                      -fx-text-fill: white;
+                                      -fx-border-color: #b892ff;
+                                      -fx-border-radius: 4;
+                                      -fx-background-radius: 4;
+                                      -fx-padding: 6 10;"/>
+                </VBox>
+
+                <!-- Preço Limite (visível apenas se Limit estiver selecionado) -->
+                <VBox spacing="5" alignment="CENTER_LEFT"
+                      fx:id="boxPrecoLimite" visible="false" managed="false">
+                    <Label text="Preço Limite:" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
+                    <TextField fx:id="txtPrecoLimite"
+                               promptText="Ex: 30.00"
+                               prefWidth="200"
+                               style="-fx-background-color: #2a2a2a;
+                                      -fx-text-fill: white;
+                                      -fx-border-color: #b892ff;
+                                      -fx-border-radius: 4;
+                                      -fx-background-radius: 4;
+                                      -fx-padding: 6 10;"/>
+                </VBox>
+
+                <!-- Botão Confirmar: agora sem disable="true", pois será habilitado via listener -->
+                <Button fx:id="btnConfirmar"
+                        text="Confirmar"
+                        onAction="#confirmarOrdem"
+                        prefWidth="180" prefHeight="40"
+                        style="-fx-background-color: #b892ff;
+                               -fx-text-fill: white;
+                               -fx-font-size: 16px;
+                               -fx-font-weight: bold;
+                               -fx-background-radius: 8;"/>
+            </VBox>
+        </HBox>
     </center>
 
+    <!-- ==================================== RODAPÉ ==================================== -->
     <bottom>
-        <HBox spacing="10" alignment="CENTER_RIGHT">
-            <Button text="Cancelar" onAction="#fecharJanela"
-                    style="-fx-background-color: transparent; -fx-text-fill: #bbbbbb; -fx-font-weight: bold;"/>
-            <Button fx:id="btnConfirmar" text="Confirmar" onAction="#confirmarOrdem"
-                    style="-fx-background-color: #b892ff; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;"/>
+        <HBox alignment="CENTER_RIGHT" style="-fx-padding: 20 40 20 0;">
+            <Button text="Cancelar"
+                    onAction="#fecharJanela"
+                    prefWidth="120" prefHeight="36"
+                    style="-fx-background-color: transparent;
+                           -fx-text-fill: #bbbbbb;
+                           -fx-font-size: 14px;
+                           -fx-font-weight: bold;"/>
         </HBox>
     </bottom>
-
 </BorderPane>

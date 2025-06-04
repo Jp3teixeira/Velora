@@ -86,7 +86,7 @@ public class UserManagementController {
         SessaoAtual.saldoCarteira   = WalletRepository.getInstance().getSaldo(id);
 
         // Redireciona para homepage sem setConnection
-        NavigationHelper.goTo(Routes.HOMEPAGE, false);
+        NavigationHelper.goTo(Routes.HOMEPAGE, true);
     }
 
     // ================= REGISTO =================

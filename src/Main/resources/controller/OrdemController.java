@@ -1,18 +1,21 @@
 package controller;
 
+import Database.DBConnection;
+import Repository.OrdemRepository;
+import Repository.PortfolioRepository;
+import Repository.WalletRepository;
+import model.Moeda;
+import model.Ordem;
+import model.Utilizador;
+import utils.TradeService;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-import model.Moeda;
-import model.Ordem;
-import model.Utilizador;
-import Repository.OrdemRepository;
-import Repository.PortfolioRepository;
-import Repository.WalletRepository;
-import utils.TradeService;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -32,7 +35,7 @@ public class OrdemController {
     private Connection connection;  // para TradeService
 
     // Repositórios auxiliares
-    private final WalletRepository walletRepo = WalletRepository.getInstance();
+    private final WalletRepository    walletRepo    = WalletRepository.getInstance();
     private final PortfolioRepository portfolioRepo = new PortfolioRepository();
 
     /**
@@ -53,31 +56,55 @@ public class OrdemController {
 
         labelTitulo.setText(tipoOrdem + " – " + moeda.getNome());
         labelPrecoAtual.setText("Preço atual: € " + moeda.getValorAtual());
+
+
+        btnConfirmar.setDisable(true);
+
+
+    }
+
+    /**
+     * Chamado sempre que o usuário digita algo no campo "Quantidade".
+     * Habilita o botão "Confirmar" se for número > 0, senão mantém desabilitado.
+     */
+    @FXML
+    private void onQuantidadeTyped() {
+        String texto = txtQuantidade.getText().trim();
+        try {
+            BigDecimal qtd = new BigDecimal(texto);
+            // Só habilita se for > 0
+            btnConfirmar.setDisable(qtd.compareTo(BigDecimal.ZERO) <= 0);
+        } catch (Exception e) {
+            // Se não for número válido, mantém desabilitado
+            btnConfirmar.setDisable(true);
+        }
     }
 
     @FXML
     private void confirmarOrdem() {
-
+        // 1) Garante conexão válida
         if (connection == null) {
             try {
-                connection = Database.DBConnection.getConnection();
+                connection = DBConnection.getConnection();
             } catch (SQLException sqlEx) {
                 mostrarErro("Não foi possível conectar ao banco de dados.");
                 sqlEx.printStackTrace();
                 return;
             }
         }
+
         try {
-            // 1) Ler e validar quantidade digitada
+            // 2) Ler e validar quantidade escrita
             String texto = txtQuantidade.getText().trim();
             BigDecimal quantidade = new BigDecimal(texto);
             if (quantidade.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new NumberFormatException();
             }
 
+
             BigDecimal precoAtual = moedaSelecionada.getValorAtual();
 
-            // 2) Dependendo do tipo de ordem, validar e “bloquear” saldo ou cripto:
+            // 3) Dependendo do tipo de ordem, validar e “bloquear” saldo ou cripto:
             if ("COMPRA".equalsIgnoreCase(tipoOrdem)) {
                 BigDecimal custoTotal = precoAtual.multiply(quantidade);
                 BigDecimal meuSaldo   = walletRepo.getSaldo(userId);
@@ -98,7 +125,7 @@ public class OrdemController {
                     mostrarErro("Quantidade insuficiente na carteira de cripto.");
                     return;
                 }
-                // Bloquear (decrementar) a quantidade de cripto do portfólio
+                // Bloquear (levantar) a quantidade de cripto do portfólio
                 boolean decremented = portfolioRepo.decrementarQuantidade(
                         userId,
                         moedaSelecionada.getIdMoeda(),
@@ -110,12 +137,11 @@ public class OrdemController {
                 }
             }
 
-            // 3) Montar o objeto Ordem
+            // 4) Montar o objeto Ordem (será inserido no banco)
             Ordem ordem = new Ordem();
             Utilizador u = new Utilizador();
             u.setIdUtilizador(userId);
             ordem.setUtilizador(u);
-
             ordem.setMoeda(moedaSelecionada);
             ordem.setTipo(tipoOrdem.toLowerCase());    // "compra" ou "venda"
             ordem.setQuantidade(quantidade);
@@ -124,26 +150,22 @@ public class OrdemController {
             ordem.setDataExpiracao(LocalDateTime.now().plusHours(24));
             ordem.setStatus("ativa");
 
-            // 4) Inserir a ordem na tabela 'Ordem'
+            // 5) Inserir a ordem na tabela 'Ordem'
             OrdemRepository ordemRepo = new OrdemRepository(connection);
             ordemRepo.inserirOrdem(ordem);
 
-            // 5) Processar o matching de ordens
+            // 6) Processar o matching de ordens
             TradeService tradeService = new TradeService(connection);
             if ("COMPRA".equalsIgnoreCase(tipoOrdem)) {
                 tradeService.processarOrdemCompra(ordem);
-                System.out.println("Ordem comprada com sucesso.");
-            }
-            else {
+            } else {
                 tradeService.processarOrdemVenda(ordem);
-                System.out.println("Ordem venda com sucesso.");
             }
 
-            // 6) Notificar usuário e fechar janela
+            // 7) Notificar usuário e fechar janela
             new Alert(Alert.AlertType.INFORMATION,
                     tipoOrdem + " executada com sucesso!")
                     .show();
-
             fecharJanela();
         }
         catch (NumberFormatException e) {

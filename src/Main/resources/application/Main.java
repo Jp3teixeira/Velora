@@ -16,8 +16,8 @@ public class Main extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
         Parent root = loader.load();
 
-
-        Scene scene = new Scene(root, 400, 500);
+        // antes: Scene scene = new Scene(root, 400, 500);
+        Scene scene = new Scene(root, 1000, 1000);
 
         try {
             primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/moedas.png")));

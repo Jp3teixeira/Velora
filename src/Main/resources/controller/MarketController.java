@@ -8,6 +8,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
@@ -20,6 +21,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import model.Moeda;
 import Repository.MarketRepository;
@@ -245,25 +247,37 @@ public class MarketController implements Initializable {
 
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/BuySell.fxml"));
-            Scene scene = new Scene(loader.load());
+            Parent root = loader.load();
 
+            // 1) Passa os dados ao controller
             OrdemController controller = loader.getController();
             controller.configurar(
                     tipo,
-                    moedaAtualSelecionada,             // usa moedaAtualSelecionada
+                    moedaAtualSelecionada,
                     SessaoAtual.utilizadorId,
-                    this.connection                    // usa campo connection
+                    this.connection
             );
 
-            Stage stage = new Stage();
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setTitle(tipo + " de " + moedaAtualSelecionada.getNome());
-            stage.setScene(scene);
-            stage.show();
+            // 2) Cria um Stage TRANSPARENTE
+            Stage modal = new Stage();
+            modal.initOwner(btn1D.getScene().getWindow());          // (ou qualquer Node do MarketController)
+            modal.initModality(Modality.APPLICATION_MODAL);
+            modal.initStyle(StageStyle.TRANSPARENT);
+
+            // 3) Prepara a Scene também transparente
+            Scene scene = new Scene(root);
+            scene.setFill(Color.TRANSPARENT);
+
+            modal.setScene(scene);
+            modal.setTitle(tipo + " de " + moedaAtualSelecionada.getNome());
+            modal.setResizable(false);
+            modal.showAndWait();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 
     // Setter que será chamado pelo NavigationHelper.goToWithController
     public void setConnection(Connection connection) {

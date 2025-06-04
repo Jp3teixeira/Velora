@@ -7,10 +7,10 @@
 <AnchorPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="controller.UserManagementController"
-            prefWidth="400" prefHeight="500"
+            prefWidth="1000" prefHeight="1000"
             style="-fx-background-color: transparent;">
 
-    <Rectangle width="400" height="500"
+    <Rectangle width="1000" height="1000"
                fill="linear-gradient(to bottom right, #4B3F72, #232323)"/>
 
     <StackPane AnchorPane.topAnchor="50" AnchorPane.bottomAnchor="50"
