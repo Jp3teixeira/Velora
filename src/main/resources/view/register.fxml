@@ -8,7 +8,7 @@
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="controller.UserManagementController"
             style="-fx-background-color: transparent;"
-            prefHeight="1000" prefWidth="1000.0">
+            prefHeight="1000" prefWidth="1000">
 
     <Rectangle width="1000" height="1000"
                fill="linear-gradient(to bottom right, #4B3F72, #232323)"

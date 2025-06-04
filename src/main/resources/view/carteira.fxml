@@ -74,15 +74,7 @@
                             fx:id="withdrawButton"
                             onAction="#abrirTelaRetirada"
                             styleClass="action-button withdraw">
-                        <!-- Se tiver ícone, descomente e ajuste o caminho: -->
-                        <!--
-                        <graphic>
-                            <ImageView fitWidth="16" fitHeight="16"
-                                       pickOnBounds="true"
-                                       preserveRatio="true"
-                                       image="@/icons/minus.png"/>
-                        </graphic>
-                        -->
+
                     </Button>
                 </HBox>
             </VBox>

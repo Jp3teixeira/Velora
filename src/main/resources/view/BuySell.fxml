@@ -7,7 +7,7 @@
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="controller.OrdemController"
-            prefWidth="1000" prefHeight="1000"
+            prefWidth="800" prefHeight="800"
             style="-fx-background-color: rgba(30,30,30,0.95);
                    -fx-background-radius: 12;
                    -fx-border-radius: 12;
@@ -28,11 +28,11 @@
 
     <!-- ==================================== CENTRO ==================================== -->
     <center>
-        <!-- Container horizontal com dois blocos: formulário (esquerda) e ordem/estimativas (direita) -->
+        <!-- Container  -->
         <HBox spacing="50" alignment="TOP_CENTER" style="-fx-padding: 20 0 0 0;">
             <!-- ========== LADO DIREITO (order book + estimativas) ========== -->
             <VBox spacing="30" alignment="TOP_CENTER" prefWidth="450">
-                <!-- Order Book: cabeçalhos e duas listas (Asks / Bids) -->
+                <!-- Order Book -->
                 <GridPane hgap="30" vgap="10" alignment="CENTER">
                     <columnConstraints>
                         <ColumnConstraints percentWidth="50"/>
@@ -45,7 +45,7 @@
                     <Label text="📉 Bids (Compras)" GridPane.columnIndex="1" GridPane.rowIndex="0"
                            style="-fx-text-fill: #55ff55; -fx-font-size: 16px; -fx-font-weight: bold;"/>
 
-                    <!-- VBoxes que receberão os níveis do order book -->
+                    <!-- VBoxes -->
                     <VBox fx:id="vboxAsks" spacing="6" GridPane.columnIndex="0" GridPane.rowIndex="1"
                           style="-fx-padding: 8 0 0 0;"/>
                     <VBox fx:id="vboxBids" spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="1"
@@ -70,9 +70,9 @@
                 </VBox>
             </VBox>
 
-            <!-- ========== LADO ESQUERDO (formulário de ordem) ========== -->
+            <!-- ========== LADO ESQUERDO  ========== -->
             <VBox spacing="30" alignment="TOP_CENTER" prefWidth="450">
-                <!-- Define aqui o ToggleGroup para Market vs Limit -->
+
                 <fx:define>
                     <ToggleGroup fx:id="toggleTipoOrdem"/>
                 </fx:define>
@@ -88,7 +88,7 @@
                 </HBox>
 
                 <!-- Quantidade -->
-                <!-- Note o onKeyReleased para habilitar o botão quando for numérico e > 0 -->
+
                 <VBox spacing="5" alignment="CENTER_LEFT">
                     <Label text="Quantidade:" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
                     <TextField fx:id="txtQuantidade"
@@ -103,7 +103,7 @@
                                       -fx-padding: 6 10;"/>
                 </VBox>
 
-                <!-- Preço Limite (visível apenas se Limit estiver selecionado) -->
+                <!-- Preço Limite  -->
                 <VBox spacing="5" alignment="CENTER_LEFT"
                       fx:id="boxPrecoLimite" visible="false" managed="false">
                     <Label text="Preço Limite:" style="-fx-text-fill: white; -fx-font-size: 16px;"/>

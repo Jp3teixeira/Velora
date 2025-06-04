@@ -1,3 +1,4 @@
+// UserRepository.java
 package Repository;
 
 import Database.DBConnection;
@@ -42,6 +43,40 @@ public class UserRepository {
     }
 
     /**
+     * Verifica se já existe um utilizador com este email.
+     */
+    public boolean existsByEmail(String email) {
+        String sql = "SELECT 1 FROM Utilizador WHERE email = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, email);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Verifica se já existe um utilizador com este nome de utilizador.
+     */
+    public boolean existsByUsername(String username) {
+        String sql = "SELECT 1 FROM Utilizador WHERE nome = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, username);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
      * Verifica se a conta do utilizador (por ID) está validada em VerificacaoEmail.
      */
     public boolean isContaVerificada(int utilizadorId) {
@@ -66,16 +101,17 @@ public class UserRepository {
 
     /**
      * Regista um novo utilizador na tabela Utilizador.
-     * Retorna Optional contendo o id_utilizador gerado, ou Optional.empty() em caso de falha.
+     * Retorna Optional contendo o id_utilizador gerado, ou Optional.empty() em caso de falha (incluindo duplicado).
      */
     public Optional<Integer> registarNovoUtilizador(String nome, String email, String senhaHashed) {
         String insertUser = """
-            INSERT INTO Utilizador (nome, email, password, tipoPerfil)
-                 VALUES (?, ?, ?, 'user')
-            """;
+        INSERT INTO Utilizador (nome, email, password, tipoPerfil)
+             VALUES (?, ?, ?, 'user')
+        """;
 
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(insertUser, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement stmt = conn.prepareStatement(
+                     insertUser, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setString(1, nome);
             stmt.setString(2, email);
@@ -88,6 +124,10 @@ public class UserRepository {
                 }
             }
         } catch (SQLException e) {
+
+            if (e.getErrorCode() == 2627) {
+                return Optional.empty();
+            }
             e.printStackTrace();
         }
         return Optional.empty();
@@ -121,14 +161,12 @@ public class UserRepository {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            // WHEN MATCHED: fonte.id_utilizador=?, fonte.tipo=?, UPDATE usa ?, ?
             stmt.setInt(1, utilizadorId);
             stmt.setString(2, tipo);
 
             stmt.setString(3, codigo);
             stmt.setTimestamp(4, Timestamp.valueOf(expira));
 
-            // WHEN NOT MATCHED: INSERT values (?, ?, ?, ?, ?)
             stmt.setInt(5, utilizadorId);
             stmt.setString(6, codigo);
             stmt.setTimestamp(7, Timestamp.valueOf(expira));
@@ -177,13 +215,12 @@ public class UserRepository {
             Timestamp expira  = rs.getTimestamp("expira_em");
 
             if (expira != null && LocalDateTime.now().isAfter(expira.toLocalDateTime())) {
-                return false; // expirou
+                return false;
             }
             if (!codigo.equals(codigoBD)) {
-                return false; // código incorreto
+                return false;
             }
 
-            // marca como verificado
             try (PreparedStatement stmtUpd = conn.prepareStatement(sqlUpdate)) {
                 stmtUpd.setInt(1, utilizadorId);
                 stmtUpd.setString(2, tipo);

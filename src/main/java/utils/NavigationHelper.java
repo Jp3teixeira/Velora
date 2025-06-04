@@ -18,6 +18,7 @@ public class NavigationHelper {
      *
      */
     public static void goTo(String fxmlPath, boolean fullscreen) {
+        System.out.println("Path carregado: " + NavigationHelper.class.getResource(fxmlPath));
         try {
             FXMLLoader loader = new FXMLLoader(NavigationHelper.class.getResource(fxmlPath));
             Parent root = loader.load();

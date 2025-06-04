@@ -13,11 +13,11 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws Exception {
         MarketSimulator.startSimulador();
 
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
+        FXMLLoader loader = new FXMLLoader(Main.class.getResource("/view/login.fxml"));
         Parent root = loader.load();
 
-        // antes: Scene scene = new Scene(root, 400, 500);
-        Scene scene = new Scene(root, 1000, 1000);
+
+        Scene scene = new Scene(root, 800, 800);
 
         try {
             primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/moedas.png")));

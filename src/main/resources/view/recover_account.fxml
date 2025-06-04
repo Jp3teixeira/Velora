@@ -6,7 +6,7 @@
 <AnchorPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="controller.UserManagementController"
-            prefHeight="500.0" prefWidth="700.0"
+            prefHeight="1000" prefWidth="1000"
             style="-fx-background-color: linear-gradient(to bottom, #4B3F72, #232323);">
 
     <StackPane prefWidth="1000" prefHeight="1000" alignment="CENTER">

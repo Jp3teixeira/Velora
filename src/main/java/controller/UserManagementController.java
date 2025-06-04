@@ -1,3 +1,4 @@
+// UserManagementController.java
 package controller;
 
 import javafx.event.ActionEvent;
@@ -13,6 +14,7 @@ import utils.Routes;
 import utils.SessaoAtual;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.Random;
 
 import static utils.NavigationHelper.goTo;
@@ -78,14 +80,12 @@ public class UserManagementController {
             return;
         }
 
-        // Atualiza SessaoAtual
         SessaoAtual.utilizadorId    = id;
         SessaoAtual.nome            = user.get("nome");
         SessaoAtual.email           = user.get("email");
         SessaoAtual.tipo            = user.get("tipoPerfil");
         SessaoAtual.saldoCarteira   = WalletRepository.getInstance().getSaldo(id);
 
-        // Redireciona para homepage sem setConnection
         NavigationHelper.goTo(Routes.HOMEPAGE, true);
     }
 
@@ -97,12 +97,13 @@ public class UserManagementController {
         String pwd      = registerPasswordField.getText();
         String pwd2     = registerConfirmPasswordField.getText();
 
+        // 1) Validação básica de campos
         if (username.isEmpty() || email.isEmpty() || pwd.isEmpty() || pwd2.isEmpty()) {
-            showAlert("Todos os campos são obrigatórios.");
+            showAlert("Todos os campos são obrigatórios.", Alert.AlertType.ERROR);
             return;
         }
         if (!pwd.equals(pwd2)) {
-            showAlert("As passwords não coincidem.");
+            showAlert("As passwords não coincidem.", Alert.AlertType.ERROR);
             return;
         }
         if (!isPasswordStrong(pwd)) {
@@ -112,27 +113,42 @@ public class UserManagementController {
                 - 1 maiúscula
                 - 1 número
                 - 1 especial.
-                """);
+                """, Alert.AlertType.ERROR);
             return;
         }
 
+
+        // 2) Verificar duplicados antes de inserir
+        if (userRepository.existsByEmail(email)) {
+            showAlert("Esse e-mail já foi registado.", Alert.AlertType.ERROR);
+            return;
+        }
+        if (userRepository.existsByUsername(username)) {
+            showAlert("Esse nome de utilizador já foi registado.", Alert.AlertType.ERROR);
+            return;
+        }
+
+        // 3) Efetuar o INSERT
         String hashed = BCrypt.hashpw(pwd, BCrypt.gensalt());
-        var userIdOpt = userRepository.registarNovoUtilizador(username, email, hashed);
+        Optional<Integer> userIdOpt = userRepository.registarNovoUtilizador(username, email, hashed);
+
         if (userIdOpt.isEmpty()) {
-            showAlert("Erro ao criar conta.");
+            // Se retornou Optional.empty(), pode ter sido duplicado detectado no INSERT
+            showAlert("Erro ao criar conta: e-mail ou username já registado.", Alert.AlertType.ERROR);
             return;
         }
 
         int userId = userIdOpt.get();
         SessaoAtual.utilizadorId = userId;
 
+        // 4) Criar carteira para o utilizador
         if (!WalletRepository.getInstance().createWalletForUser(userId)) {
-            showAlert("Conta criada, mas erro ao criar carteira.");
+            showAlert("Conta criada, mas erro ao criar carteira.", Alert.AlertType.ERROR);
             return;
         }
 
-        // Gera e insere código de verificação para registro
-        String codigo = String.format("%06d", new Random().nextInt(999999));
+        // 5) Enviar código de verificação
+        String codigo = String.format("%06d", new Random().nextInt(999_999));
         boolean ok = userRepository.inserirCodigoVerificacao(
                 userId,
                 codigo,
@@ -141,10 +157,10 @@ public class UserManagementController {
         ) && EmailSender.sendVerificationCode(email, codigo);
 
         if (ok) {
-            showAlert("Verifique o seu email.");
+            showAlert("Verifique o seu e-mail para ativar a conta.", Alert.AlertType.INFORMATION);
             goTo("/view/verification.fxml", false);
         } else {
-            showAlert("Erro ao enviar código.");
+            showAlert("Erro ao enviar código.", Alert.AlertType.ERROR);
         }
     }
 
@@ -186,7 +202,7 @@ public class UserManagementController {
         int userId = userIdOpt.get();
         SessaoAtual.emailRecuperacao = email;
 
-        String codigo = String.format("%06d", new Random().nextInt(999999));
+        String codigo = String.format("%06d", new Random().nextInt(999_999));
         boolean ok = userRepository.inserirCodigoVerificacao(
                 userId,
                 codigo,
@@ -199,7 +215,7 @@ public class UserManagementController {
             statusLabel.setStyle("-fx-text-fill: green;");
             mostrarPainel(painelCodigo);
         } else {
-            showAlert("Erro ao enviar código.");
+            showAlert("Erro ao enviar código.", Alert.AlertType.ERROR);
         }
     }
 
@@ -257,10 +273,10 @@ public class UserManagementController {
                 hashed
         );
         if (ok) {
-            showAlert("Senha redefinida com sucesso!");
+            showAlert("Senha redefinida com sucesso!", Alert.AlertType.INFORMATION);
             SessaoAtual.utilizadorRecuperacao = 0;
             SessaoAtual.emailRecuperacao = null;
-            GoToLogin();
+            goTo("/view/login.fxml", false);
         } else {
             resetStatusLabel.setText("Erro ao atualizar senha.");
         }
@@ -280,9 +296,6 @@ public class UserManagementController {
                 && password.matches(".*[!@#$%^&*()_+=\\-{}\\[\\]:;\"'<>,.?/\\\\|].*");
     }
 
-    private void showAlert(String msg) {
-        showAlert(msg, Alert.AlertType.INFORMATION);
-    }
     private void showAlert(String msg, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setTitle("Aviso");
