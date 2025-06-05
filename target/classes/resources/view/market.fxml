@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import java.net.URL?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="controller.MarketController"
+            style="-fx-background-color: #121212;">
+    <stylesheets>
+        <URL value="@/view/css/geral.css"/>
+    </stylesheets>
+
+    <!-- Navbar centralizada -->
+    <top>
+        <fx:include source="navbar.fxml"/>
+    </top>
+
+    <!-- Sidebar -->
+    <left>
+        <VBox spacing="12" style="-fx-padding: 20;" prefWidth="250">
+            <Label text="Mercados" styleClass="title-mercado"/>
+            <ListView fx:id="watchlistView" styleClass="watchlist" VBox.vgrow="ALWAYS"/>
+        </VBox>
+    </left>
+
+    <!-- Centro -->
+    <center>
+        <VBox spacing="25" alignment="TOP_CENTER" style="-fx-padding: 30;" VBox.vgrow="ALWAYS">
+
+            <!-- Título -->
+            <HBox spacing="15" alignment="CENTER">
+                <ImageView fx:id="iconMoeda" fitWidth="32" fitHeight="32" preserveRatio="true"/>
+                <Label fx:id="marketTitle" text="Seleciona uma moeda"
+                       style="-fx-text-fill: white; -fx-font-size: 26; -fx-font-weight: bold;"/>
+            </HBox>
+
+            <!-- Gráfico -->
+            <StackPane maxWidth="Infinity" style="-fx-background-color: #1e1e1e;">
+                <LineChart fx:id="marketChart"
+                           title="Market Chart"
+                           prefHeight="500"
+                           prefWidth="1200"
+                           styleClass="chart-style">
+                    <xAxis>
+                        <CategoryAxis label="Hora"/>
+                    </xAxis>
+                    <yAxis>
+                        <NumberAxis fx:id="yAxis" label="Valor (EUR)"/>
+                    </yAxis>
+                </LineChart>
+            </StackPane>
+
+            <!-- Dados -->
+            <HBox spacing="40" alignment="CENTER" style="-fx-padding: 10 0 20 0;">
+                <VBox alignment="CENTER">
+                    <Label text="Valor Atual" style="-fx-text-fill: gray; -fx-font-size: 13;"/>
+                    <Label fx:id="labelValorAtual" text="-" styleClass="label-valor"/>
+                </VBox>
+                <VBox alignment="CENTER">
+                    <Label text="Variação 24h" style="-fx-text-fill: gray; -fx-font-size: 13;"/>
+                    <Label fx:id="labelVariacao" text="-" styleClass="label-variacao-positiva"/>
+                </VBox>
+                <VBox alignment="CENTER">
+                    <Label text="Volume Mercado" style="-fx-text-fill: gray; -fx-font-size: 13;"/>
+                    <Label fx:id="labelVolume" text="-" styleClass="label-volume"/>
+                </VBox>
+            </HBox>
+
+            <!-- Filtros -->
+            <HBox spacing="8" alignment="CENTER">
+                <ToggleButton text="Últimas 24h" fx:id="btn1D" styleClass="toggle-button filtro-toggle"/>
+                <ToggleButton text="Últimos 7 dias" fx:id="btn1W" styleClass="toggle-button filtro-toggle"/>
+                <ToggleButton text="Último mês" fx:id="btn1M" styleClass="toggle-button filtro-toggle"/>
+                <ToggleButton text="Últimos 3 meses" fx:id="btn3M" styleClass="toggle-button filtro-toggle"/>
+                <ToggleButton text="Último ano" fx:id="btn1Y" styleClass="toggle-button filtro-toggle"/>
+                <ToggleButton text="Todos os dados" fx:id="btnMAX" styleClass="toggle-button filtro-toggle"/>
+            </HBox>
+
+            <!-- Compra e Venda -->
+            <HBox spacing="10" alignment="CENTER" style="-fx-padding: 20 0 0 0;">
+                <Label text="Quantidade:"
+                       style="-fx-text-fill: white; -fx-font-size: 14px;"/>
+                <TextField fx:id="txtQuantidade" promptText="Ex: 2.5"
+                           style="-fx-background-color: #1f1f1f; -fx-text-fill: white; -fx-border-color: #B892FF; -fx-border-radius: 6; -fx-background-radius: 6;"
+                           maxWidth="100"/>
+                <Button text="Comprar" onAction="#abrirModalCompra"
+                        style="-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;"/>
+                <Button text="Vender" onAction="#abrirModalVenda"
+                        style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;"/>
+
+            </HBox>
+
+        </VBox>
+    </center>
+</BorderPane>

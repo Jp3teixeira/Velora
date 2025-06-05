@@ -34,7 +34,7 @@ public class NavigationController {
             "transferButton",   Routes.TRANSFER,
             "reportsButton",    Routes.REPORTS,
             "coinsButton",      Routes.MOEDAS,
-            "accountButton",    Routes.ACCOUNT,
+            "accountButton",    Routes.USER_PROFILE,
             "adminButton",      Routes.ADMIN_DASHBOARD
     );
 

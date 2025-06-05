@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.chart.*?>
+<?import java.net.URL?>
+
+<BorderPane fx:id="homePane" xmlns:fx="http://javafx.com/fxml" fx:controller="controller.HomeController"
+            style="-fx-background-color: #121212;">
+
+    <stylesheets>
+        <URL value="@/view/css/navbar.css"/>
+    </stylesheets>
+
+    <!-- NAVBAR -->
+    <top>
+        <fx:include source="/view/navbar.fxml" />
+    </top>
+
+    <!-- MERCADO (ESQUERDA) -->
+    <left>
+        <VBox spacing="8" style="-fx-padding: 10; -fx-background-color: #1F1F1F;">
+            <Label text="🪙Janela de Mercado" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
+            <ListView fx:id="cryptoList" prefWidth="220"
+                      style="-fx-background-color: #2B2B2B; -fx-control-inner-background: #2B2B2B; -fx-text-fill: white;" />
+        </VBox>
+    </left>
+
+    <!-- ANÁLISE E GRÁFICOS (CENTRO) -->
+    <center>
+        <VBox spacing="12" style="-fx-padding: 15;">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Graficos" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
+                <!-- Aqui poderás adicionar dropdowns para período de tempo ou tipo de gráfico -->
+            </HBox>
+            <LineChart fx:id="priceChart" createSymbols="false" animated="true" title=""
+                       style="-fx-background-color: transparent;">
+                <xAxis>
+                    <NumberAxis fx:id="xAxis" label="Tempo" />
+                </xAxis>
+                <yAxis>
+                    <NumberAxis fx:id="yAxis" label="Preço (€)" />
+                </yAxis>
+            </LineChart>
+        </VBox>
+    </center>
+
+    <!-- Portfolio -->
+    <right>
+        <VBox spacing="10" style="-fx-padding: 15; -fx-background-color: #1F1F1F;">
+            <Label text="💼 Portfólio" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
+            <Label fx:id="balanceLabel" text="Saldo Disponível: 0.00 €"
+                   style="-fx-text-fill: #00FF9C; -fx-font-size: 16px; -fx-font-weight: bold;" />
+            <HBox spacing="10">
+            </HBox>
+            <TableView fx:id="portfolioTable" prefWidth="350" prefHeight="280"
+                       style="-fx-background-color: #2B2B2B; -fx-control-inner-background: #2B2B2B; -fx-text-fill: white;">
+                <columns>
+                    <TableColumn fx:id="moedaColumn" text="Moeda" prefWidth="90" />
+                    <TableColumn fx:id="quantidadeColumn" text="Qtd" prefWidth="60" />
+                    <TableColumn fx:id="valorAtualColumn" text="Atual (€)" prefWidth="80" />
+                    <TableColumn fx:id="totalColumn" text="Total (€)" prefWidth="90" />
+                </columns>
+            </TableView>
+        </VBox>
+    </right>
+
+    <!-- RODAPÉ  -->
+    <bottom>
+        <HBox spacing="0" alignment="CENTER_LEFT" style="-fx-background-color: #1A1A1A;">
+            <!-- BOTÃO VISUAL DE DEPÓSITO -->
+            <Button  text="DEPOSITAR FUNDOS"
+                    style="-fx-background-color: linear-gradient(to right, #f7971e, #ffd200);
+                       -fx-text-fill: black; -fx-font-weight: bold; -fx-font-size: 12px;
+                       -fx-padding: 10 20; -fx-border-radius: 0;"
+                    maxHeight="40" />
+
+            <!-- LINHA DE ESTATÍSTICAS -->
+            <HBox spacing="30" alignment="CENTER_LEFT" style="-fx-padding: 0 20;">
+
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="Valor da conta" style="-fx-text-fill: white; -fx-font-size: 12px;" />
+                    <Label fx:id="totalBalanceLabel" text="110.67" style="-fx-text-fill: #00FF9C; -fx-font-size: 12px;" />
+                </HBox>
+
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="Margem" style="-fx-text-fill: white; -fx-font-size: 12px;" />
+                    <Label fx:id="marginLabel" text="0.00" style="-fx-text-fill: #00FF9C; -fx-font-size: 12px;" />
+                </HBox>
+
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="Fundos livres" style="-fx-text-fill: white; -fx-font-size: 12px;" />
+                    <Label fx:id="freeFundsLabel" text="0.00" style="-fx-text-fill: #00FF9C; -fx-font-size: 12px;" />
+                </HBox>
+
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="Nível de Margem" style="-fx-text-fill: white; -fx-font-size: 12px;" />
+                    <Label fx:id="marginLevelLabel" text="0.00%" style="-fx-text-fill: #00FF9C; -fx-font-size: 12px;" />
+                </HBox>
+
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="Lucro" style="-fx-text-fill: white; -fx-font-size: 12px;" />
+                    <Label fx:id="profitLabel" text="0.24 EUR" style="-fx-text-fill: #00FF9C; -fx-font-size: 12px;" />
+                </HBox>
+
+            </HBox>
+
+
+            <Pane style="-fx-background-color: transparent;" HBox.hgrow="ALWAYS" />
+            <Label text="?" style="-fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 0 10;" />
+            <Button fx:id="logoutButton" text="LOGOUT"
+                    onAction="#handleLogOut"
+                    style="-fx-background-color: #FF3B3B; -fx-text-fill: white; -fx-font-weight: bold;
+               -fx-padding: 6 12; -fx-font-size: 11px; -fx-background-radius: 3;" />
+        </HBox>
+
+    </bottom>
+
+</BorderPane>

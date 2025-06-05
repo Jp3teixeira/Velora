@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="controller.ModalTransacaoController"
+            prefWidth="1000" prefHeight="1000"
+            style="-fx-background-color: rgba(26,26,26, 0.95);
+                   -fx-border-radius: 12;
+                   -fx-background-radius: 12;
+                   -fx-padding: 25;">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Button text="← Voltar"
+                    onAction="#fecharJanela"
+                    style="-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14;"/>
+            <Label text="LEVANTAR FUNDOS"
+                   style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="20" alignment="CENTER_LEFT" style="-fx-padding: 30 0 0 0;">
+            <Label text="Conta de Destino"
+                   style="-fx-text-fill: #b892ff; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+            <ComboBox fx:id="contaDestinoCombo"
+                      style="-fx-background-color: #2e2e2e; -fx-text-fill: white; -fx-background-radius: 8;"/>
+
+            <Label text="Montante (€)"
+                   style="-fx-text-fill: #b892ff; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+            <TextField fx:id="withdrawAmountField"
+                       promptText="Ex: 50.00"
+                       style="-fx-background-color: #2e2e2e; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 10;"/>
+
+            <Button text="CONFIRMAR LEVANTAMENTO"
+                    onAction="#confirmarLevantamento"
+                    styleClass="action-button withdraw"/>
+
+            <Label fx:id="withdrawStatusLabel"
+                   style="-fx-text-fill: #ff5c8a; -fx-font-size: 13px;"/>
+        </VBox>
+    </center>
+</BorderPane>
