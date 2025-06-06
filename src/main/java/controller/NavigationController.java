@@ -98,4 +98,15 @@ public class NavigationController {
         // Debug (pode remover depois)
         System.out.println("Admin button visible: " + shouldShowAdminButton);
     }
+    @FXML
+    private void handleLogout() {
+        SessaoAtual.utilizadorId = -1;
+        SessaoAtual.nome = null;
+        SessaoAtual.email = null;
+        SessaoAtual.tipo = null;
+        SessaoAtual.saldoCarteira = null;
+
+        NavigationHelper.goTo("/view/login.fxml", false);
+    }
+
 }

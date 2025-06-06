@@ -11,19 +11,13 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.paint.Color;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import model.Portfolio;
 import model.Transacao;
 import utils.SessaoAtual;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
@@ -33,10 +27,12 @@ public class WalletController {
 
     @FXML private Label balanceLabel;
     @FXML private Label totalLabel;
-    @FXML private Button depositButton;
-    @FXML private Button withdrawButton;
 
-    // “MEUS ATIVOS”
+    @FXML private TextField depositAmountField;
+    @FXML private Label depositStatusLabel;
+    @FXML private TextField withdrawAmountField;
+    @FXML private Label withdrawStatusLabel;
+
     @FXML private JFXTreeTableView<Portfolio> cryptoTable;
     @FXML private JFXTreeTableColumn<Portfolio, String> colAtivo;
     @FXML private JFXTreeTableColumn<Portfolio, String> colTicker;
@@ -44,7 +40,6 @@ public class WalletController {
     @FXML private JFXTreeTableColumn<Portfolio, String> colPrecoMedio;
     @FXML private JFXTreeTableColumn<Portfolio, String> colValor;
 
-    // “HISTÓRICO DE TRANSAÇÕES”
     @FXML private JFXTreeTableView<Transacao> transactionTable;
     @FXML private JFXTreeTableColumn<Transacao, String> colData;
     @FXML private JFXTreeTableColumn<Transacao, String> colTipo;
@@ -52,28 +47,22 @@ public class WalletController {
     @FXML private JFXTreeTableColumn<Transacao, String> colQuantidadeTx;
     @FXML private JFXTreeTableColumn<Transacao, String> colValorTx;
 
-    private final WalletRepository walletRepo = WalletRepository.getInstance();
+    private final WalletRepository walletRepo       = WalletRepository.getInstance();
     private final PortfolioRepository portfolioRepo = new PortfolioRepository();
     private final TransacaoRepository transacaoRepo = new TransacaoRepository();
 
     @FXML
     public void initialize() {
-        atualizarSaldo();
-        atualizarTotalPortfolio();
-        configurarTabelaPortfolio();
-        carregarPortfolio();
-        configurarTabelaTransacoes();
-        carregarHistoricoTransacoes();
+        // 1) Atualiza saldo, total e tabelas
+        atualizarTudo();
 
+        // 2) Garante que, quando a janela aparecer, recarregamos tudo de novo
         if (balanceLabel != null) {
             balanceLabel.sceneProperty().addListener((obs, oldScene, newScene) -> {
                 if (newScene != null) {
                     newScene.windowProperty().addListener((obs2, oldWindow, newWindow) -> {
                         if (newWindow != null && newWindow.isShowing()) {
-                            atualizarSaldo();
-                            atualizarTotalPortfolio();
-                            carregarPortfolio();
-                            carregarHistoricoTransacoes();
+                            atualizarTudo();
                         }
                     });
                 }
@@ -82,29 +71,99 @@ public class WalletController {
     }
 
     private void configurarTabelaPortfolio() {
-        colAtivo.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getValue().getMoeda().getNome()));
-        colTicker.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getValue().getMoeda().getSimbolo()));
-        colQuantidade.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getValue().getQuantidade().setScale(8, RoundingMode.HALF_UP).toPlainString()));
-        colPrecoMedio.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getValue().getPrecoMedioCompra().setScale(2, RoundingMode.HALF_UP).toPlainString()));
+        colAtivo.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue().getValue().getMoeda().getNome())
+        );
+        colTicker.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue().getValue().getMoeda().getSimbolo())
+        );
+        colQuantidade.setCellValueFactory(cell ->
+                new SimpleStringProperty(
+                        cell.getValue().getValue()
+                                .getQuantidade()
+                                .setScale(8, RoundingMode.HALF_UP)
+                                .toPlainString()
+                )
+        );
+        colPrecoMedio.setCellValueFactory(cell ->
+                new SimpleStringProperty(
+                        cell.getValue().getValue()
+                                .getPrecoMedioCompra()
+                                .setScale(2, RoundingMode.HALF_UP)
+                                .toPlainString()
+                )
+        );
         colValor.setCellValueFactory(cell -> {
             Portfolio p = cell.getValue().getValue();
-            BigDecimal total = p.getQuantidade().multiply(p.getMoeda().getValorAtual()).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal total = p.getQuantidade()
+                    .multiply(p.getMoeda().getValorAtual())
+                    .setScale(2, RoundingMode.HALF_UP);
             return new SimpleStringProperty(total.toPlainString());
         });
     }
 
+    private void configurarTabelaTransacoes() {
+        colData.setCellValueFactory(cell ->
+                new SimpleStringProperty(
+                        cell.getValue().getValue()
+                                .getDataHora()
+                                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                )
+        );
+        colTipo.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue().getValue().getTipo().toUpperCase())
+        );
+        colAtivoTx.setCellValueFactory(cell ->
+                new SimpleStringProperty(
+                        cell.getValue().getValue().getMoeda() != null
+                                ? cell.getValue().getValue().getMoeda().getSimbolo()
+                                : "EUR"
+                )
+        );
+        colQuantidadeTx.setCellValueFactory(cell ->
+                new SimpleStringProperty(
+                        cell.getValue().getValue()
+                                .getQuantidade()
+                                .setScale(8, RoundingMode.HALF_UP)
+                                .toPlainString()
+                )
+        );
+        colValorTx.setCellValueFactory(cell ->
+                new SimpleStringProperty(
+                        cell.getValue().getValue()
+                                .getTotalEur()
+                                .setScale(2, RoundingMode.HALF_UP)
+                                .toPlainString()
+                )
+        );
+    }
+
     public void carregarPortfolio() {
-        int userId = SessaoAtual.utilizadorId;
-        List<Portfolio> lista = portfolioRepo.listarPorUtilizador(userId);
-        ObservableList<Portfolio> observableList = FXCollections.observableArrayList(lista);
-        RecursiveTreeItem<Portfolio> root = new RecursiveTreeItem<>(observableList, RecursiveTreeObject::getChildren);
+        List<Portfolio> lista =
+                portfolioRepo.listarPorUtilizador(SessaoAtual.utilizadorId);
+        ObservableList<Portfolio> obsList =
+                FXCollections.observableArrayList(lista);
+        RecursiveTreeItem<Portfolio> root =
+                new RecursiveTreeItem<>(obsList, RecursiveTreeObject::getChildren);
         cryptoTable.setRoot(root);
         cryptoTable.setShowRoot(false);
     }
 
+    public void carregarHistoricoTransacoes() {
+        List<Transacao> lista =
+                transacaoRepo.listarPorUsuario(SessaoAtual.utilizadorId);
+        ObservableList<Transacao> obsList =
+                FXCollections.observableArrayList(lista);
+        RecursiveTreeItem<Transacao> root =
+                new RecursiveTreeItem<>(obsList, RecursiveTreeObject::getChildren);
+        transactionTable.setRoot(root);
+        transactionTable.setShowRoot(false);
+    }
+
     public void atualizarSaldo() {
         try {
-            BigDecimal novoSaldo = walletRepo.getSaldo(SessaoAtual.utilizadorId);
+            BigDecimal novoSaldo =
+                    walletRepo.getSaldo(SessaoAtual.utilizadorId);
             SessaoAtual.saldoCarteira = novoSaldo;
             balanceLabel.setText(String.format("€ %.2f", novoSaldo));
         } catch (Exception e) {
@@ -114,8 +173,8 @@ public class WalletController {
     }
 
     public void atualizarTotalPortfolio() {
-        int userId = SessaoAtual.utilizadorId;
-        List<Portfolio> lista = portfolioRepo.listarPorUtilizador(userId);
+        List<Portfolio> lista =
+                portfolioRepo.listarPorUtilizador(SessaoAtual.utilizadorId);
         BigDecimal total = lista.stream()
                 .map(p -> p.getQuantidade().multiply(p.getMoeda().getValorAtual()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
@@ -123,73 +182,72 @@ public class WalletController {
         totalLabel.setText("Valor Total do Portfólio: € " + total.toPlainString());
     }
 
-    private void configurarTabelaTransacoes() {
-        colData.setCellValueFactory(cell -> new SimpleStringProperty(
-                cell.getValue().getValue().getDataHora().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-        ));
-        colTipo.setCellValueFactory(cell -> new SimpleStringProperty(
-                cell.getValue().getValue().getTipo().toUpperCase()
-        ));
-        colAtivoTx.setCellValueFactory(cell -> new SimpleStringProperty(
-                cell.getValue().getValue().getMoeda() != null
-                        ? cell.getValue().getValue().getMoeda().getSimbolo()
-                        : "EUR"
-        ));
-        colQuantidadeTx.setCellValueFactory(cell -> new SimpleStringProperty(
-                cell.getValue().getValue().getQuantidade().setScale(8, RoundingMode.HALF_UP).toPlainString()
-        ));
-        colValorTx.setCellValueFactory(cell -> new SimpleStringProperty(
-                cell.getValue().getValue().getTotalEur().setScale(2, RoundingMode.HALF_UP).toPlainString()
-        ));
-    }
+    private void atualizarTudo() {
+        atualizarSaldo();
+        atualizarTotalPortfolio();
 
-    public void carregarHistoricoTransacoes() {
-        int userId = SessaoAtual.utilizadorId;
-        List<Transacao> lista = transacaoRepo.listarPorUsuario(userId);
-        ObservableList<Transacao> observableList = FXCollections.observableArrayList(lista);
-        RecursiveTreeItem<Transacao> root = new RecursiveTreeItem<>(observableList, RecursiveTreeObject::getChildren);
-        transactionTable.setRoot(root);
-        transactionTable.setShowRoot(false);
+        configurarTabelaPortfolio();
+        carregarPortfolio();
+
+        configurarTabelaTransacoes();
+        carregarHistoricoTransacoes();
     }
 
     @FXML
-    public void abrirTelaDeposito() {
-        abrirModal("/view/deposit_modal.fxml", "Depositar Fundos", "depositar");
-    }
-
-    @FXML
-    public void abrirTelaRetirada() {
-        abrirModal("/view/withdraw_modal.fxml", "Levantar Fundos", "levantar");
-    }
-
-    private void abrirModal(String fxmlPath, String titulo, String modo) {
+    public void confirmarDeposito() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-            Parent root = loader.load();
-
-            Object controller = loader.getController();
-            if (controller instanceof ModalTransacaoController modalController) {
-                modalController.setModoInicial(modo);
-                modalController.setUserId(SessaoAtual.utilizadorId);
-                modalController.setMainController(this);
+            String input = depositAmountField.getText().trim();
+            BigDecimal amount = new BigDecimal(input);
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                depositStatusLabel.setText("Valor deve ser positivo!");
+                return;
             }
-
-            Stage modal = new Stage();
-            modal.initOwner(depositButton.getScene().getWindow());
-            modal.initModality(Modality.APPLICATION_MODAL);
-            modal.initStyle(StageStyle.TRANSPARENT);
-
-            Scene scene = new Scene(root);
-            scene.setFill(Color.TRANSPARENT);
-
-            modal.setScene(scene);
-            modal.setTitle(titulo);
-            modal.setResizable(false);
-            modal.showAndWait();
-
-        } catch (IOException e) {
+            boolean success = walletRepo.deposit(SessaoAtual.utilizadorId, amount);
+            if (success) {
+                SessaoAtual.saldoCarteira =
+                        walletRepo.getSaldo(SessaoAtual.utilizadorId);
+                depositStatusLabel.setText("Depósito efetuado com sucesso!");
+                atualizarTudo();
+            } else {
+                depositStatusLabel.setText("Erro ao processar depósito.");
+            }
+        } catch (NumberFormatException e) {
+            depositStatusLabel.setText("Valor inválido. Ex: 100.00");
+        } catch (Exception e) {
+            depositStatusLabel.setText("Erro: " + e.getMessage());
             e.printStackTrace();
-            showAlert("Erro ao abrir janela: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+
+    @FXML
+    public void confirmarLevantamento() {
+        try {
+            String input = withdrawAmountField.getText().trim();
+            BigDecimal amount = new BigDecimal(input);
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                withdrawStatusLabel.setText("Valor deve ser positivo!");
+                return;
+            }
+            BigDecimal saldoAtual = walletRepo.getSaldo(SessaoAtual.utilizadorId);
+            if (saldoAtual.compareTo(amount) < 0) {
+                withdrawStatusLabel.setText("Saldo insuficiente!");
+                return;
+            }
+            boolean success =
+                    walletRepo.withdraw(SessaoAtual.utilizadorId, amount);
+            if (success) {
+                SessaoAtual.saldoCarteira =
+                        walletRepo.getSaldo(SessaoAtual.utilizadorId);
+                withdrawStatusLabel.setText("Levantamento efetuado com sucesso!");
+                atualizarTudo();
+            } else {
+                withdrawStatusLabel.setText("Erro ao processar levantamento.");
+            }
+        } catch (NumberFormatException e) {
+            withdrawStatusLabel.setText("Valor inválido. Ex: 50.00");
+        } catch (Exception e) {
+            withdrawStatusLabel.setText("Erro: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
