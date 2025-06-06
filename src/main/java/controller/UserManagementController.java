@@ -86,6 +86,7 @@ public class UserManagementController {
         SessaoAtual.tipo            = user.get("tipoPerfil");
         SessaoAtual.saldoCarteira   = WalletRepository.getInstance().getSaldo(id);
 
+
         NavigationHelper.goTo(Routes.HOMEPAGE, true);
     }
 

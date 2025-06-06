@@ -1,4 +1,55 @@
 /* ===========================
+   NAVBAR
+=========================== */
+
+/* Botões da navbar  */
+.menu-button {
+    -fx-text-fill: #e0e0e0;
+    -fx-background-color: transparent;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-padding: 6 10;
+    -fx-border-color: transparent;
+}
+
+/* Efeito  */
+.menu-button:hover {
+    -fx-text-fill: #b892ff;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* Navbar container  */
+.navbar {
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 12 20;
+}
+
+/* Título  */
+.navbar-title {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 18px;
+}
+/* Botão de Logout */
+.logout-button {
+    -fx-text-fill: white;
+    -fx-background-color: #b892ff;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 14;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(one-pass-box, #00000033, 4, 0, 0, 2);
+    -fx-border-color: transparent;
+}
+
+.logout-button:hover {
+    -fx-background-color: #a679f8;
+    -fx-scale-x: 1.04;
+    -fx-scale-y: 1.04;
+}
+/* ===========================
    BASE
 =========================== */
 .root {

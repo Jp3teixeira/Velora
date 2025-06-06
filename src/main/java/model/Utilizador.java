@@ -10,6 +10,7 @@ public class Utilizador {
     private String password;
     private String tipoPerfil;  //  user ou admin
     private LocalDateTime dataCriacao;
+    private String foto;  // Caminho da foto
 
     // Relacionamentos “1-N”:
     private CarteiraEuro carteiraEuro;       // 1-1 para o saldo em EUR
@@ -55,6 +56,9 @@ public class Utilizador {
     public void setTipoPerfil(String tipoPerfil) {
         this.tipoPerfil = tipoPerfil;
     }
+
+    public String getFoto() {return foto;}
+    public void setFoto(String foto) {this.foto = foto;}
 
     public LocalDateTime getDataCriacao() {
         return dataCriacao;

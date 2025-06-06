@@ -10,7 +10,7 @@
             style="-fx-background-color: #121212;">
 
     <stylesheets>
-        <URL value="/css/navbar.css"/>
+        <URL value="@/view/css/navbar.css"/>
     </stylesheets>
 
     <!-- NAVBAR -->

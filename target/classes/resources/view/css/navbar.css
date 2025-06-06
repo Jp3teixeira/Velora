@@ -31,5 +31,24 @@
     -fx-font-weight: bold;
     -fx-font-size: 18px;
 }
+/* Botão de Logout */
+.logout-button {
+    -fx-text-fill: white;
+    -fx-background-color: #b892ff;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 14;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(one-pass-box, #00000033, 4, 0, 0, 2);
+    -fx-border-color: transparent;
+}
+
+.logout-button:hover {
+    -fx-background-color: #a679f8;
+    -fx-scale-x: 1.04;
+    -fx-scale-y: 1.04;
+}
+
 
 

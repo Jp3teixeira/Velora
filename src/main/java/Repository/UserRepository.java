@@ -14,7 +14,7 @@ public class UserRepository {
      */
     public Optional<Map<String, String>> findUserByEmailOrUsername(String input) {
         String sql = """
-            SELECT id_utilizador, nome, email, password, tipoPerfil
+            SELECT id_utilizador, nome, email, password, tipoPerfil, foto
               FROM Utilizador
              WHERE email = ?
                 OR nome  = ?
@@ -34,6 +34,8 @@ public class UserRepository {
                 user.put("email",           rs.getString("email"));
                 user.put("password",        rs.getString("password"));
                 user.put("tipoPerfil",      rs.getString("tipoPerfil"));
+                user.put("foto",           rs.getString("foto"));
+
                 return Optional.of(user);
             }
         } catch (SQLException e) {
@@ -179,6 +181,10 @@ public class UserRepository {
             return false;
         }
     }
+
+
+
+
 
     /**
      * Valida um código de verificação para um utilizador e tipo específico.
