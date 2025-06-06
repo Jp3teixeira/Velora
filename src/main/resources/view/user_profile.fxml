@@ -13,7 +13,7 @@
 
 
     <stylesheets>
-        <URL value="@/view/css/navbar.css"/>
+        <URL value="/view/css/navbar.css"/>
     </stylesheets>
     <fx:include source="/view/navbar.fxml" AnchorPane.topAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"/>
 

@@ -1,8 +1,9 @@
 package model;
 
+import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
 import java.math.BigDecimal;
 
-public class Portfolio {
+public class Portfolio extends RecursiveTreeObject<Portfolio> {
 
     private int idPortfolio;
     private Utilizador utilizador;

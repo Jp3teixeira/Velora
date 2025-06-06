@@ -1,116 +1,269 @@
 package controller;
 
-import javafx.event.ActionEvent;
+import javafx.animation.FadeTransition;
+import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
-import javafx.scene.chart.XYChart;
 import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
-import javafx.stage.Stage;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import javafx.util.Duration;
+import model.Portfolio;
+import model.Transacao;
 import model.Moeda;
 import Repository.MarketRepository;
-import Repository.WalletRepository;
-import utils.Routes;
+import Repository.PortfolioRepository;
+import Repository.TransacaoRepository;
 import utils.SessaoAtual;
 
-import java.io.InputStream;
+import java.net.URL;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.net.URL;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.ResourceBundle;
 
-import static utils.NavigationHelper.goTo;
-
 public class HomeController implements Initializable {
 
-    @FXML private ListView<String> cryptoList;
-    @FXML private LineChart<Number, Number> priceChart;
-    @FXML private NumberAxis xAxis;
-    @FXML private NumberAxis yAxis;
+    /* -- SEÇÃO GRÁFICO -- */
+    @FXML private VBox chartSection;
 
-    @FXML private Label balanceLabel;
-    @FXML private ListView<String> walletTable;
-    @FXML private Button depositButton;
-    @FXML private Button withdrawButton;
+    /* -- SEÇÃO ORDENS -- */
+    @FXML private ToggleGroup orderTypeGroup;
+    @FXML private ToggleButton marketToggle;
+    @FXML private ToggleButton limitToggle;
+    @FXML private Label assetLabel;
+    @FXML private TextField priceField;
+    @FXML private TextField quantityField;
+    @FXML private Button buyButton;
+    @FXML private Button sellButton;
 
-    private List<Moeda> todasMoedas;
+    /* -- SEÇÃO PORTFÓLIO (TABS) -- */
+    @FXML private TabPane portfolioTabPane;
+    @FXML private TableView<Portfolio> openPositionsTable;
+    @FXML private TableView<?> openOrdersTable; // vamos deixar genérico, pois não há repositorio de Ordens neste exemplo
+    @FXML private TableView<Transacao> historyTable;
+
+    // Repositórios já existentes
+    private final PortfolioRepository portfolioRepo = new PortfolioRepository();
+    private final TransacaoRepository transacaoRepo = new TransacaoRepository();
+
+    // Para exibir gráfico, usaremos o MarketRepository
+    private final MarketRepository marketRepo = new MarketRepository(); // caso seja instanciável; senão, use métodos estáticos
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // 1) Carrega lista de moedas
-        todasMoedas = MarketRepository.getTodasAsMoedas();
-        carregarListaMoedas();
-        atualizarSaldo();
-    }
+        // 1) Configura o comportamento dos ToggleButtons (se “Limit” estiver ativo, habilita priceField)
+        marketToggle.setOnAction(e -> priceField.setDisable(true));
+        limitToggle.setOnAction(e -> priceField.setDisable(false));
 
-    private void carregarListaMoedas() {
-        for (Moeda moeda : todasMoedas) {
-            cryptoList.getItems().add(moeda.getNome());
+        // 2) Monta o gráfico real para **alguma** moeda:
+        //    neste exemplo, usamos a primeira moeda retornada por getTodasAsMoedas()
+        List<Moeda> listaMoedas = marketRepo.getTodasAsMoedas();
+        if (!listaMoedas.isEmpty()) {
+            Moeda primeira = listaMoedas.get(0);
+            assetLabel.setText("Ativo: " + primeira.getNome() + " (" + primeira.getSimbolo() + ")");
+            LineChart<String, Number> chart = criarChartParaMoeda(primeira.getIdMoeda(), "MAX");
+            chartSection.getChildren().add(chart);
+            VBox.setVgrow(chart, Priority.ALWAYS);
         }
 
-        cryptoList.getSelectionModel().selectedItemProperty().addListener((obs, old, novaMoedaNome) -> {
-            if (novaMoedaNome != null) {
-                carregarGrafico(novaMoedaNome);
-            }
+        // 3) Configura as colunas de “Posições Abertas” (Portfolio)
+        configurarTabelaPortfolio();
+        carregarPortfolio();
+
+        // 4) Configura as colunas de “Histórico de Transações”
+        configurarTabelaHistorico();
+        carregarHistorico();
+
+        // 5) Exemplo simples para a aba “Ordens Abertas”—por enquanto sem dados
+        //    Você pode criar um OrderRepository com lógica idêntica, caso já tenha a tabela ORDEM no banco.
+        openOrdersTable.setPlaceholder(new Label("Funcionalidade de Ordens Abertas ainda a implementar"));
+
+        // 6) “Comprar / Vender” (ainda só imprime no console; você pode chamar TransacaoRepository + PortfolioRepository)
+        buyButton.setOnAction(e -> {
+            System.out.println("Botão COMPRAR clicado para " + assetLabel.getText() +
+                    ", quantidade = " + quantityField.getText() +
+                    (limitToggle.isSelected() ? ", preço = " + priceField.getText() : " (Market)"));
+            // Aqui entraria a lógica de criar transação:
+            //   TransacaoRepository.inserirTransacao(...);
+            //   PortfolioRepository.incrementarQuantidade(...);
+            //   recarregar as tabelas / gráfico.
+        });
+        sellButton.setOnAction(e -> {
+            System.out.println("Botão VENDER clicado para " + assetLabel.getText() +
+                    ", quantidade = " + quantityField.getText() +
+                    (limitToggle.isSelected() ? ", preço = " + priceField.getText() : " (Market)"));
+            // Aqui entraria a lógica de criar transação de venda, decrementar portfolio, etc.
         });
     }
 
-    private void carregarGrafico(String nomeMoeda) {
-        priceChart.getData().clear();
-        XYChart.Series<Number, Number> serie = new XYChart.Series<>();
-        serie.setName(nomeMoeda);
+    // =====================  MÉTODOS PARA O GRÁFICO  =====================
 
-        // Encontra o objeto Moeda pelo nome
-        Moeda selecionada = todasMoedas.stream()
-                .filter(m -> m.getNome().equals(nomeMoeda))
-                .findFirst()
-                .orElse(null);
-        if (selecionada == null) return;
+    /**
+     * Cria um LineChart para a moeda com ID = idMoeda, usando intervalo “intervalo”
+     * e aplica fade-in (similar ao que você já faz no MarketController).
+     */
+    private LineChart<String, Number> criarChartParaMoeda(int idMoeda, String intervalo) {
+        CategoryAxis xAxis = new CategoryAxis();
+        NumberAxis yAxis = new NumberAxis();
+        xAxis.setLabel("Data/Hora");
+        yAxis.setLabel("Preço (€)");
 
-        int idMoeda = selecionada.getIdMoeda();
+        LineChart<String, Number> chart = new LineChart<>(xAxis, yAxis);
+        chart.setTitle("Preço da Moeda");
 
-        // Obtém histórico (String→Number) e converte para índice X
-        List<XYChart.Data<String, Number>> historicoString =
-                MarketRepository.getHistoricoPorMoedaFiltrado(idMoeda, "MAX");
+        // Busca dados reais do banco:
+        List<XYChart.Data<String, Number>> historico =
+                MarketRepository.getHistoricoPorMoedaFiltrado(idMoeda, intervalo);
 
-        for (int i = 0; i < historicoString.size(); i++) {
-            Number y = historicoString.get(i).getYValue();
-            serie.getData().add(new XYChart.Data<>(i, y));
-        }
+        XYChart.Series<String, Number> serie = new XYChart.Series<>();
+        serie.setName("Variação");
+        serie.getData().addAll(historico);
 
-        priceChart.getData().add(serie);
+        chart.getData().add(serie);
+        chart.setCreateSymbols(false);     // sem bolinhas em cada ponto
+        chart.setLegendVisible(false);
+        chart.setAnimated(false);
+
+        // Aplica fade-in:
+        FadeTransition ft = new FadeTransition(Duration.millis(800), chart);
+        ft.setFromValue(0);
+        ft.setToValue(1);
+        ft.play();
+
+        return chart;
     }
 
-    private void atualizarSaldo() {
-        int userId = SessaoAtual.utilizadorId;
-        BigDecimal saldo = WalletRepository.getInstance().getSaldo(userId);
-        balanceLabel.setText("Saldo: " + saldo.setScale(2, RoundingMode.HALF_UP) + " €");
-    }
+    // =====================  MÉTODOS PARA A TABELA “Posições Abertas”  =====================
 
-    @FXML
-    private void handleLogOut(ActionEvent event) {
-        Alert alert = new Alert(
-                Alert.AlertType.CONFIRMATION,
-                "Tem certeza que deseja sair?",
-                ButtonType.OK,
-                ButtonType.CANCEL
+    /**
+     * Configura as colunas da tabela openPositionsTable (Portfolio):
+     * - Ativo
+     * - Símbolo
+     * - Quantidade
+     * - Preço Médio (EUR)
+     * - Valor Atual (EUR)
+     * - Valor de Mercado (Quantidade × Preço Atual)
+     */
+    private void configurarTabelaPortfolio() {
+        openPositionsTable.getColumns().clear();
+
+        TableColumn<Portfolio, String> colAtivo = new TableColumn<>("Ativo");
+        colAtivo.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue().getMoeda().getNome()));
+
+        TableColumn<Portfolio, String> colTicker = new TableColumn<>("Ticker");
+        colTicker.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue().getMoeda().getSimbolo()));
+
+        TableColumn<Portfolio, String> colQuantidade = new TableColumn<>("Quantidade");
+        colQuantidade.setCellValueFactory(cell -> {
+            BigDecimal q = cell.getValue().getQuantidade();
+            return new SimpleStringProperty(q.setScale(8, RoundingMode.HALF_UP).toPlainString());
+        });
+
+        TableColumn<Portfolio, String> colPrecoMedio = new TableColumn<>("Preço Médio (€)");
+        colPrecoMedio.setCellValueFactory(cell -> {
+            BigDecimal pm = cell.getValue().getPrecoMedioCompra();
+            return new SimpleStringProperty(pm.setScale(2, RoundingMode.HALF_UP).toPlainString());
+        });
+
+        TableColumn<Portfolio, String> colValorAtual = new TableColumn<>("Preço Atual (€)");
+        colValorAtual.setCellValueFactory(cell -> {
+            BigDecimal pa = cell.getValue().getMoeda().getValorAtual();
+            return new SimpleStringProperty(pa.setScale(2, RoundingMode.HALF_UP).toPlainString());
+        });
+
+        TableColumn<Portfolio, String> colValorMercado = new TableColumn<>("Valor de Mercado (€)");
+        colValorMercado.setCellValueFactory(cell -> {
+            BigDecimal qtd = cell.getValue().getQuantidade();
+            BigDecimal preco = cell.getValue().getMoeda().getValorAtual();
+            BigDecimal total = qtd.multiply(preco).setScale(2, RoundingMode.HALF_UP);
+            return new SimpleStringProperty(total.toPlainString());
+        });
+
+        openPositionsTable.getColumns().addAll(
+                colAtivo, colTicker, colQuantidade, colPrecoMedio, colValorAtual, colValorMercado
         );
-        alert.setTitle("Confirmação de Logout");
+    }
 
-        try (InputStream iconStream = getClass().getResourceAsStream("/icons/moedas.png")) {
-            if (iconStream != null) {
-                ((Stage) alert.getDialogPane().getScene().getWindow())
-                        .getIcons().add(new Image(iconStream));
-            }
-        } catch (Exception ignored) {}
+    /** Carrega dados reais de PortfolioRepository e popula openPositionsTable. */
+    private void carregarPortfolio() {
+        int userId = SessaoAtual.utilizadorId;
+        List<Portfolio> lista = portfolioRepo.listarPorUtilizador(userId);
+        openPositionsTable.setItems(FXCollections.observableArrayList(lista));
+    }
 
-        alert.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                goTo(Routes.LOGIN, false);
+    // =====================  MÉTODOS PARA A TABELA “Histórico de Transações”  =====================
+
+    /**
+     * Configura as colunas da tabela historyTable (Transações):
+     * - Data/Hora
+     * - Tipo (compra / venda)
+     * - Ativo
+     * - Quantidade
+     * - Preço Unitário (€)
+     * - Total (€)
+     */
+    private void configurarTabelaHistorico() {
+        historyTable.getColumns().clear();
+
+        TableColumn<Transacao, String> colData = new TableColumn<>("Data/Hora");
+        colData.setCellValueFactory(cell -> {
+            String dataStr = cell.getValue().getDataHora()
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+            return new SimpleStringProperty(dataStr);
+        });
+
+        TableColumn<Transacao, String> colTipo = new TableColumn<>("Tipo");
+        colTipo.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue().getTipo().toUpperCase()));
+
+        TableColumn<Transacao, String> colAtivoTx = new TableColumn<>("Ativo");
+        colAtivoTx.setCellValueFactory(cell -> {
+            if (cell.getValue().getMoeda() != null) {
+                return new SimpleStringProperty(cell.getValue().getMoeda().getSimbolo());
+            } else {
+                return new SimpleStringProperty("EUR"); // por exemplo, depósito/saque
             }
         });
+
+        TableColumn<Transacao, String> colQuantidadeTx = new TableColumn<>("Quantidade");
+        colQuantidadeTx.setCellValueFactory(cell -> {
+            BigDecimal q = cell.getValue().getQuantidade();
+            return new SimpleStringProperty(q.setScale(8, RoundingMode.HALF_UP).toPlainString());
+        });
+
+        TableColumn<Transacao, String> colPrecoUnitario = new TableColumn<>("Preço Unit. (€)");
+        colPrecoUnitario.setCellValueFactory(cell -> {
+            BigDecimal pu = cell.getValue().getPrecoUnitarioEur();
+            return new SimpleStringProperty(pu.setScale(2, RoundingMode.HALF_UP).toPlainString());
+        });
+
+        TableColumn<Transacao, String> colTotal = new TableColumn<>("Total (€)");
+        colTotal.setCellValueFactory(cell -> {
+            BigDecimal t = cell.getValue().getTotalEur().setScale(2, RoundingMode.HALF_UP);
+            return new SimpleStringProperty(t.toPlainString());
+        });
+
+        historyTable.getColumns().addAll(
+                colData, colTipo, colAtivoTx, colQuantidadeTx, colPrecoUnitario, colTotal
+        );
+    }
+
+    /** Carrega dados reais de TransacaoRepository e popula historyTable. */
+    private void carregarHistorico() {
+        int userId = SessaoAtual.utilizadorId;
+        List<Transacao> lista = transacaoRepo.listarPorUsuario(userId);
+        historyTable.setItems(FXCollections.observableArrayList(lista));
     }
 }

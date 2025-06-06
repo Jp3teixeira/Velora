@@ -1,119 +1,97 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.chart.*?>
-<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+<?import java.lang.String?>
 
-<BorderPane fx:id="homePane" xmlns:fx="http://javafx.com/fxml" fx:controller="controller.HomeController"
-            style="-fx-background-color: #121212;">
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="controller.HomeController"
+      spacing="10"
+      VBox.vgrow="ALWAYS"
+      style="-fx-background-color: #000000;">
 
     <stylesheets>
-        <URL value="@/view/css/navbar.css"/>
+        <String fx:value="/view/css/homepage.css"/>
     </stylesheets>
 
-    <!-- NAVBAR -->
-    <top>
-        <fx:include source="/view/navbar.fxml" />
-    </top>
+    <fx:define>
+        <ToggleGroup fx:id="orderTypeGroup"/>
+    </fx:define>
 
-    <!-- MERCADO (ESQUERDA) -->
-    <left>
-        <VBox spacing="8" style="-fx-padding: 10; -fx-background-color: #1F1F1F;">
-            <Label text="🪙Janela de Mercado" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
-            <ListView fx:id="cryptoList" prefWidth="220"
-                      style="-fx-background-color: #2B2B2B; -fx-control-inner-background: #2B2B2B; -fx-text-fill: white;" />
-        </VBox>
-    </left>
+    <fx:include source="/view/navbar.fxml"/>
 
-    <!-- ANÁLISE E GRÁFICOS (CENTRO) -->
-    <center>
-        <VBox spacing="12" style="-fx-padding: 15;">
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="Graficos" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
-                <!-- Aqui poderás adicionar dropdowns para período de tempo ou tipo de gráfico -->
-            </HBox>
-            <LineChart fx:id="priceChart" createSymbols="false" animated="true" title=""
-                       style="-fx-background-color: transparent;">
-                <xAxis>
-                    <NumberAxis fx:id="xAxis" label="Tempo" />
-                </xAxis>
-                <yAxis>
-                    <NumberAxis fx:id="yAxis" label="Preço (€)" />
-                </yAxis>
-            </LineChart>
-        </VBox>
-    </center>
+    <VBox spacing="20" VBox.vgrow="ALWAYS" style="-fx-padding: 10 20;">
 
-    <!-- Portfolio -->
-    <right>
-        <VBox spacing="10" style="-fx-padding: 15; -fx-background-color: #1F1F1F;">
-            <Label text="💼 Portfólio" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
-            <Label fx:id="balanceLabel" text="Saldo Disponível: 0.00 €"
-                   style="-fx-text-fill: #00FF9C; -fx-font-size: 16px; -fx-font-weight: bold;" />
-            <HBox spacing="10">
-            </HBox>
-            <TableView fx:id="portfolioTable" prefWidth="350" prefHeight="280"
-                       style="-fx-background-color: #2B2B2B; -fx-control-inner-background: #2B2B2B; -fx-text-fill: white;">
-                <columns>
-                    <TableColumn fx:id="moedaColumn" text="Moeda" prefWidth="90" />
-                    <TableColumn fx:id="quantidadeColumn" text="Qtd" prefWidth="60" />
-                    <TableColumn fx:id="valorAtualColumn" text="Atual (€)" prefWidth="80" />
-                    <TableColumn fx:id="totalColumn" text="Total (€)" prefWidth="90" />
-                </columns>
-            </TableView>
-        </VBox>
-    </right>
+        <HBox spacing="20" VBox.vgrow="NEVER" HBox.hgrow="ALWAYS">
 
-    <!-- RODAPÉ  -->
-    <bottom>
-        <HBox spacing="0" alignment="CENTER_LEFT" style="-fx-background-color: #1A1A1A;">
-            <!-- BOTÃO VISUAL DE DEPÓSITO -->
-            <Button  text="DEPOSITAR FUNDOS"
-                    style="-fx-background-color: linear-gradient(to right, #f7971e, #ffd200);
-                       -fx-text-fill: black; -fx-font-weight: bold; -fx-font-size: 12px;
-                       -fx-padding: 10 20; -fx-border-radius: 0;"
-                    maxHeight="40" />
+            <!-- Gráfico -->
+            <VBox fx:id="chartSection"
+                  VBox.vgrow="ALWAYS"
+                  HBox.hgrow="ALWAYS"
+                  prefWidth="800" prefHeight="400" />
 
-            <!-- LINHA DE ESTATÍSTICAS -->
-            <HBox spacing="30" alignment="CENTER_LEFT" style="-fx-padding: 0 20;">
+            <!-- Formulário de Ordem -->
+            <VBox fx:id="orderPane"
+                  spacing="10"
+                  VBox.vgrow="ALWAYS"
+                  HBox.hgrow="ALWAYS"
+                  prefWidth="400" prefHeight="400">
 
-                <HBox spacing="6" alignment="CENTER_LEFT">
-                    <Label text="Valor da conta" style="-fx-text-fill: white; -fx-font-size: 12px;" />
-                    <Label fx:id="totalBalanceLabel" text="110.67" style="-fx-text-fill: #00FF9C; -fx-font-size: 12px;" />
+                <HBox spacing="10">
+                    <ToggleButton fx:id="marketToggle"
+                                  text="Mercado"
+                                  toggleGroup="$orderTypeGroup"
+                                  selected="true"/>
+                    <ToggleButton fx:id="limitToggle"
+                                  text="Limit"
+                                  toggleGroup="$orderTypeGroup"/>
                 </HBox>
 
-                <HBox spacing="6" alignment="CENTER_LEFT">
-                    <Label text="Margem" style="-fx-text-fill: white; -fx-font-size: 12px;" />
-                    <Label fx:id="marginLabel" text="0.00" style="-fx-text-fill: #00FF9C; -fx-font-size: 12px;" />
-                </HBox>
+                <Label fx:id="assetLabel" text="Ativo: —" styleClass="section-title"/>
 
-                <HBox spacing="6" alignment="CENTER_LEFT">
-                    <Label text="Fundos livres" style="-fx-text-fill: white; -fx-font-size: 12px;" />
-                    <Label fx:id="freeFundsLabel" text="0.00" style="-fx-text-fill: #00FF9C; -fx-font-size: 12px;" />
-                </HBox>
+                <TextField fx:id="priceField"
+                           promptText="Preço (só se Limit)"
+                           disable="true"/>
 
-                <HBox spacing="6" alignment="CENTER_LEFT">
-                    <Label text="Nível de Margem" style="-fx-text-fill: white; -fx-font-size: 12px;" />
-                    <Label fx:id="marginLevelLabel" text="0.00%" style="-fx-text-fill: #00FF9C; -fx-font-size: 12px;" />
-                </HBox>
+                <TextField fx:id="quantityField"
+                           promptText="Quantidade"/>
 
-                <HBox spacing="6" alignment="CENTER_LEFT">
-                    <Label text="Lucro" style="-fx-text-fill: white; -fx-font-size: 12px;" />
-                    <Label fx:id="profitLabel" text="0.24 EUR" style="-fx-text-fill: #00FF9C; -fx-font-size: 12px;" />
-                </HBox>
+                <Button fx:id="buyButton" text="Comprar"/>
+                <Button fx:id="sellButton" text="Vender"/>
 
-            </HBox>
-
-
-            <Pane style="-fx-background-color: transparent;" HBox.hgrow="ALWAYS" />
-            <Label text="?" style="-fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 0 10;" />
-            <Button fx:id="logoutButton" text="LOGOUT"
-                    onAction="#handleLogOut"
-                    style="-fx-background-color: #FF3B3B; -fx-text-fill: white; -fx-font-weight: bold;
-               -fx-padding: 6 12; -fx-font-size: 11px; -fx-background-radius: 3;" />
+            </VBox>
         </HBox>
 
-    </bottom>
+        <VBox VBox.vgrow="ALWAYS">
+            <TabPane fx:id="portfolioTabPane" VBox.vgrow="ALWAYS">
 
-</BorderPane>
+                <Tab text="Posições Abertas">
+                    <TableView fx:id="openPositionsTable" VBox.vgrow="ALWAYS">
+                        <placeholder>
+                            <Label text="Sem posições abertas"/>
+                        </placeholder>
+                    </TableView>
+                </Tab>
+
+                <Tab text="Ordens Abertas">
+                    <TableView fx:id="openOrdersTable" VBox.vgrow="ALWAYS">
+                        <placeholder>
+                            <Label text="Sem ordens abertas"/>
+                        </placeholder>
+                    </TableView>
+                </Tab>
+
+                <Tab text="Histórico">
+                    <TableView fx:id="historyTable" VBox.vgrow="ALWAYS">
+                        <placeholder>
+                            <Label text="Sem histórico de transações"/>
+                        </placeholder>
+                    </TableView>
+                </Tab>
+
+            </TabPane>
+        </VBox>
+    </VBox>
+</VBox>

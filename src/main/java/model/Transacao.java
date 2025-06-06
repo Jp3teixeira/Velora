@@ -2,8 +2,8 @@ package model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
-public class Transacao {
+import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
+public class Transacao extends RecursiveTreeObject<Transacao> {
     private Integer idTransacao;
     private Utilizador utilizador;
     private Moeda moeda;
