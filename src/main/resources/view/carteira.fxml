@@ -5,115 +5,172 @@
 <?import javafx.geometry.Insets?>
 <?import java.net.URL?>
 
-<BorderPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="controller.WalletController"
-            style="-fx-background-color: #121212;">
+<BorderPane
+        xmlns="http://javafx.com/javafx"
+        xmlns:fx="http://javafx.com/fxml"
+        fx:controller="controller.WalletController"
+        styleClass="root">
 
     <stylesheets>
-        <URL value="@/view/css/wallet.css" />
+        <URL value="@/view/css/wallet.css"/>
     </stylesheets>
 
-    <!-- TOPO -->
+
+    <!-- ==========================
+         TOPO: Navbar + Título
+         ========================== -->
     <top>
         <VBox spacing="0">
+            <!-- Inclui a navbar (navbar.fxml) -->
             <fx:include source="navbar.fxml"/>
+
+            <!-- Cabeçalho da Carteira -->
             <VBox spacing="18" styleClass="header-container" alignment="CENTER_LEFT">
                 <padding>
                     <Insets top="30" right="30" bottom="20" left="30"/>
                 </padding>
-                <Label text="Carteira" style="-fx-text-fill: white; -fx-font-size: 22px; -fx-font-weight: bold;"/>
-                <Label fx:id="totalLabel"
-                       text="€ 0,00"
-                       style="-fx-text-fill: #b892ff; -fx-font-size: 28px; -fx-font-weight: bold;"/>
+                <Label text="Carteira" styleClass="navbar-title"/>
             </VBox>
         </VBox>
     </top>
 
-    <!-- CENTRO -->
+    <!-- ==========================
+         CORPO (CENTRO)
+         ========================== -->
     <center>
-        <VBox spacing="20" alignment="TOP_CENTER">
-            <padding>
-                <Insets top="20" right="30" bottom="30" left="30"/>
-            </padding>
+        <HBox spacing="30" alignment="TOP_CENTER" styleClass="center-hbox">
+            <!-- LADO ESQUERDO: Tabelas -->
+            <VBox spacing="15"
+                  alignment="TOP_CENTER"
+                  VBox.vgrow="ALWAYS"
+                  HBox.hgrow="ALWAYS"
+                  prefWidth="720">
 
-            <HBox spacing="15" alignment="CENTER">
-                <Button fx:id="depositButton"
-                        text="+ Depositar"
-                        onAction="#abrirTelaDeposito"
-                        styleClass="quick-action convert"
-                        prefWidth="180" />
+                <!-- VALOR TOTAL DO PORTFÓLIO -->
+                <VBox spacing="6">
+                    <Label fx:id="totalLabel"
+                           text="Valor Total do Portfólio: € 0,00"
+                           styleClass="portfolio-display"/>
+                </VBox>
 
-                <Button fx:id="withdrawButton"
-                        text="↓ Levantar"
-                        onAction="#abrirTelaRetirada"
-                        styleClass="quick-action sell"
-                        prefWidth="180" />
-            </HBox>
+                <!-- TABPANE das Tabelas -->
+                <TabPane fx:id="walletTabPane"
+                         VBox.vgrow="ALWAYS"
+                         styleClass="tab-pane"
+                         prefHeight="600">
 
-            <TabPane fx:id="walletTabPane" styleClass="asset-table" VBox.vgrow="ALWAYS">
-                <tabs>
-                    <Tab text="Posições Abertas">
-                        <AnchorPane style="-fx-background-color: transparent;">
-                            <JFXTreeTableView fx:id="cryptoTable"
-                                              showRoot="false"
-                                              AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
-                                              AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
-                                <columns>
-                                    <JFXTreeTableColumn fx:id="colAtivo" text="Ativo" prefWidth="220" />
-                                    <JFXTreeTableColumn fx:id="colTicker" text="Ticker" prefWidth="100" />
-                                    <JFXTreeTableColumn fx:id="colQuantidade" text="Quantidade" prefWidth="160" />
-                                    <JFXTreeTableColumn fx:id="colPrecoMedio" text="Preço Médio (€)" prefWidth="150" />
-                                    <JFXTreeTableColumn fx:id="colValor" text="Valor Atual (€)" prefWidth="150" />
-                                </columns>
-                                <placeholder>
-                                    <Label text="Sem ativos." style="-fx-text-fill: #888888;" />
-                                </placeholder>
-                            </JFXTreeTableView>
-                        </AnchorPane>
-                    </Tab>
+                    <tabs>
+                        <!-- ABA 1: POSIÇÕES ABERTAS -->
+                        <Tab text="Posições Abertas">
+                            <AnchorPane styleClass="table-container">
+                                <JFXTreeTableView fx:id="cryptoTable"
+                                                  showRoot="false"
+                                                  styleClass="jfx-tree-table-view"
+                                                  AnchorPane.topAnchor="0"
+                                                  AnchorPane.bottomAnchor="0"
+                                                  AnchorPane.leftAnchor="0"
+                                                  AnchorPane.rightAnchor="0">
+                                    <columns>
+                                        <JFXTreeTableColumn fx:id="colAtivo"
+                                                            text="Ativo"
+                                                            prefWidth="140"/>
+                                        <JFXTreeTableColumn fx:id="colTicker"
+                                                            text="Ticker"
+                                                            prefWidth="100"/>
+                                        <JFXTreeTableColumn fx:id="colQuantidade"
+                                                            text="Quantidade"
+                                                            prefWidth="140"/>
+                                        <JFXTreeTableColumn fx:id="colPrecoMedio"
+                                                            text="Preço Médio"
+                                                            prefWidth="160"/>
+                                        <JFXTreeTableColumn fx:id="colValor"
+                                                            text="Valor"
+                                                            prefWidth="160"/>
+                                    </columns>
+                                </JFXTreeTableView>
+                            </AnchorPane>
+                        </Tab>
 
-                    <Tab text="Ordens Abertas">
-                        <AnchorPane style="-fx-background-color: transparent;">
-                            <JFXTreeTableView fx:id="ordersTable"
-                                              showRoot="false"
-                                              AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
-                                              AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
-                                <columns>
-                                    <JFXTreeTableColumn text="Tipo" prefWidth="100" />
-                                    <JFXTreeTableColumn text="Ativo" prefWidth="120" />
-                                    <JFXTreeTableColumn text="Quantidade" prefWidth="120" />
-                                    <JFXTreeTableColumn text="Preço" prefWidth="100" />
-                                    <JFXTreeTableColumn text="Estado" prefWidth="100" />
-                                </columns>
-                                <placeholder>
-                                    <Label text="Nenhuma ordem aberta." style="-fx-text-fill: #888888;" />
-                                </placeholder>
-                            </JFXTreeTableView>
-                        </AnchorPane>
-                    </Tab>
+                        <!-- ABA 2: ORDENS ABERTAS -->
+                        <Tab text="Ordens Abertas">
+                            <AnchorPane styleClass="table-container">
+                                <JFXTreeTableView fx:id="ordersTable"
+                                                  showRoot="false"
+                                                  styleClass="jfx-tree-table-view"
+                                                  AnchorPane.topAnchor="0"
+                                                  AnchorPane.bottomAnchor="0"
+                                                  AnchorPane.leftAnchor="0"
+                                                  AnchorPane.rightAnchor="0">
+                                    <!-- Se quiseres colunas específicas, põe aqui -->
+                                </JFXTreeTableView>
+                            </AnchorPane>
+                        </Tab>
 
-                    <Tab text="Histórico">
-                        <AnchorPane style="-fx-background-color: transparent;">
-                            <JFXTreeTableView fx:id="transactionTable"
-                                              showRoot="false"
-                                              AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
-                                              AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
-                                <columns>
-                                    <JFXTreeTableColumn fx:id="colData" text="Data" prefWidth="160" />
-                                    <JFXTreeTableColumn fx:id="colTipo" text="Tipo" prefWidth="100" />
-                                    <JFXTreeTableColumn fx:id="colAtivoTx" text="Ativo" prefWidth="100" />
-                                    <JFXTreeTableColumn fx:id="colQuantidadeTx" text="Quantidade" prefWidth="160" />
-                                    <JFXTreeTableColumn fx:id="colValorTx" text="Total (€)" prefWidth="160" />
-                                </columns>
-                                <placeholder>
-                                    <Label text="Sem histórico de transações." style="-fx-text-fill: #888888;" />
-                                </placeholder>
-                            </JFXTreeTableView>
-                        </AnchorPane>
-                    </Tab>
-                </tabs>
-            </TabPane>
-        </VBox>
+                        <!-- ABA 3: HISTÓRICO -->
+                        <Tab text="Histórico">
+                            <AnchorPane styleClass="table-container">
+                                <JFXTreeTableView fx:id="transactionTable"
+                                                  showRoot="false"
+                                                  styleClass="jfx-tree-table-view"
+                                                  AnchorPane.topAnchor="0"
+                                                  AnchorPane.bottomAnchor="0"
+                                                  AnchorPane.leftAnchor="0"
+                                                  AnchorPane.rightAnchor="0">
+                                    <columns>
+                                        <JFXTreeTableColumn fx:id="colData"
+                                                            text="Data"
+                                                            prefWidth="150"/>
+                                        <JFXTreeTableColumn fx:id="colTipo"
+                                                            text="Tipo"
+                                                            prefWidth="100"/>
+                                        <JFXTreeTableColumn fx:id="colAtivoTx"
+                                                            text="Ativo"
+                                                            prefWidth="120"/>
+                                        <JFXTreeTableColumn fx:id="colQuantidadeTx"
+                                                            text="Quantidade"
+                                                            prefWidth="150"/>
+                                        <JFXTreeTableColumn fx:id="colValorTx"
+                                                            text="Valor (€)"
+                                                            prefWidth="180"/>
+                                    </columns>
+                                </JFXTreeTableView>
+                            </AnchorPane>
+                        </Tab>
+                    </tabs>
+                </TabPane>
+            </VBox>
+
+            <!-- LADO DIREITO: PAINEL DE AÇÕES DE SALDO -->
+            <VBox spacing="15" alignment="TOP_CENTER">
+                <VBox spacing="10" alignment="CENTER" styleClass="wallet-actions-box">
+                    <Label text="Saldo da Carteira" styleClass="wallet-actions-title"/>
+                    <Label fx:id="balanceLabel" text="€ 0,00" styleClass="balance-display"/>
+                </VBox>
+
+                <VBox fx:id="walletActionsBox" styleClass="wallet-actions-box" spacing="10">
+                    <Label text="Operações de Saldo" styleClass="wallet-actions-title"/>
+
+                    <Label text="Depositar" styleClass="wallet-actions-label"/>
+                    <TextField fx:id="depositAmountField"
+                               promptText="Montante (€)"
+                               styleClass="text-field"/>
+                    <Label fx:id="depositStatusLabel"
+                           styleClass="status-label deposit-success"/>
+                    <Button text="Confirmar Depósito"
+                            onAction="#confirmarDeposito"
+                            styleClass="action-button deposit"/>
+
+                    <Label text="Levantar" styleClass="wallet-actions-label"/>
+                    <TextField fx:id="withdrawAmountField"
+                               promptText="Montante (€)"
+                               styleClass="text-field"/>
+                    <Label fx:id="withdrawStatusLabel"
+                           styleClass="status-label withdraw-error"/>
+                    <Button text="Confirmar Levantamento"
+                            onAction="#confirmarLevantamento"
+                            styleClass="action-button withdraw"/>
+                </VBox>
+            </VBox>
+        </HBox>
     </center>
 </BorderPane>
