@@ -1,5 +1,6 @@
 package utils;
 
+import model.Utilizador;
 import java.math.BigDecimal;
 
 public class SessaoAtual {
@@ -10,9 +11,19 @@ public class SessaoAtual {
     public static boolean isSuperAdmin;
     public static BigDecimal saldoCarteira;
 
-    // Para recuperação de senha
     public static String emailRecuperacao;
     public static int utilizadorRecuperacao;
+
+    private static Utilizador utilizador;
+
+    public static void setUtilizador(Utilizador u) {
+        utilizador = u;
+    }
+
+
+    public static Utilizador getUtilizador() {
+        return utilizador;
+    }
 
     public static void limparSessao() {
         utilizadorId = 0;
@@ -21,5 +32,6 @@ public class SessaoAtual {
         tipo = null;
         isSuperAdmin = false;
         saldoCarteira = null;
+        utilizador = null;
     }
 }

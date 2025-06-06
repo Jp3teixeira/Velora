@@ -1,0 +1,160 @@
+/* ============= ROOT ============= */
+.root, .vbox, .anchor-pane, .tab-pane, .tab, .table-view {
+    -fx-background-color: #000000;
+    -fx-font-family: "Inter", "Segoe UI", sans-serif;
+    -fx-text-fill: #b892ff;
+}
+
+/* ============= NAVBAR ============= */
+.navbar {
+    -fx-background-color: #121212;
+    -fx-padding: 12 20;
+}
+.menu-button {
+    -fx-text-fill: #e0e0e0;
+    -fx-background-color: transparent;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-padding: 6 12;
+    -fx-border-color: transparent;
+}
+.menu-button:hover {
+    -fx-text-fill: #b892ff;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* ============= CHART SECTION ============= */
+#chartSection {
+    -fx-background-color: #1A1A1A;
+    -fx-background-radius: 12;
+    -fx-padding: 20;
+    -fx-pref-width: 780;
+    -fx-pref-height: 400;
+}
+
+/* ============= ORDER PANEL ============= */
+#orderPane {
+    -fx-background-color: #1A1A1A;
+    -fx-background-radius: 12;
+    -fx-padding: 24;
+    -fx-spacing: 14;
+    -fx-pref-width: 400;
+}
+#orderPane Label {
+    -fx-text-fill: #b892ff;
+    -fx-font-size: 14px;
+}
+
+.text-field {
+    -fx-background-color: #262626;
+    -fx-background-radius: 6;
+    -fx-text-fill: #F0F0F0;
+    -fx-prompt-text-fill: #777777;
+    -fx-border-color: transparent;
+    -fx-pref-height: 36;
+}
+.text-field:focused {
+    -fx-border-color: #b892ff;
+}
+
+/* ToggleButtons */
+.toggle-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #888888;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+}
+.toggle-button:selected {
+    -fx-text-fill: #b892ff;
+}
+
+/* BUY & SELL BUTTONS */
+#buyButton {
+    -fx-background-color: #b892ff;
+    -fx-background-radius: 8;
+    -fx-text-fill: #121212;
+    -fx-font-weight: bold;
+    -fx-pref-height: 36;
+}
+#buyButton:hover {
+    -fx-background-color: #caa2ff;
+}
+
+#sellButton {
+    -fx-background-color: #ff6b6b;
+    -fx-background-radius: 8;
+    -fx-text-fill: #121212;
+    -fx-font-weight: bold;
+    -fx-pref-height: 36;
+}
+#sellButton:hover {
+    -fx-background-color: #ff8787;
+}
+
+/* ============= TABS & TABLES ============= */
+.tab-header-background {
+    -fx-background-color: #0F0F0F;
+}
+.tab {
+    -fx-background-color: #1A1A1A;
+    -fx-text-fill: #888888;
+}
+.tab:selected {
+    -fx-background-color: #262626;
+    -fx-text-fill: #b892ff;
+}
+
+.table-view {
+    -fx-background-color: transparent;
+    -fx-control-inner-background: #1A1A1A;
+    -fx-table-cell-border-color: transparent;
+    -fx-border-color: transparent;
+}
+.table-view .column-header-background {
+    -fx-background-color: transparent;
+}
+.table-view .column-header, .table-view .column-header .label {
+    -fx-text-fill: #b892ff;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+}
+.table-cell {
+    -fx-text-fill: #f0f0f0;
+    -fx-font-size: 14px;
+    -fx-padding: 10 15;
+}
+.table-row-cell:even {
+    -fx-background-color: #1a1a1a;
+}
+.table-row-cell:odd {
+    -fx-background-color: #232323;
+}
+.table-row-cell:hover {
+    -fx-background-color: #2e2e2e;
+    -fx-cursor: hand;
+}
+.table-row-cell:selected {
+    -fx-background-color: #b892ff;
+    -fx-text-fill: #121212;
+}
+
+/* Placeholder */
+.placeholder {
+    -fx-text-fill: #999999;
+    -fx-font-style: italic;
+}
+
+/* Scroll */
+.scroll-bar .thumb {
+    -fx-background-color: #555;
+    -fx-background-radius: 5;
+}
+
+/* Tooltip */
+.tooltip {
+    -fx-background-color: #262626;
+    -fx-text-fill: #F0F0F0;
+    -fx-border-color: #b892ff;
+    -fx-border-radius: 4;
+}

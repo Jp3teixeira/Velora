@@ -1,41 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.*?>
-<?import javafx.scene.image.*?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.*?>
-
+<?import javafx.geometry.Insets?>
 <?import java.net.URL?>
+
+<?import java.lang.String?>
 <AnchorPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="controller.UserProfileController"
-            style="-fx-background-color: #00758f;">
+            stylesheets="@css/user_profile.css"
+            styleClass="root">
 
-
-    <stylesheets>
-        <URL value="/view/css/navbar.css"/>
-    </stylesheets>
+    <!-- Navbar -->
     <fx:include source="/view/navbar.fxml" AnchorPane.topAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"/>
+    <stylesheets>
+        <String fx:value="/view/css/homepage.css"/>
+    </stylesheets>
+
+    <!-- Conteúdo -->
+    <VBox spacing="20" alignment="TOP_CENTER"
+          AnchorPane.topAnchor="80.0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
 
 
-    <VBox alignment="TOP_CENTER" spacing="20" AnchorPane.topAnchor="40" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+    <!-- Capa -->
+        <StackPane styleClass="cover"/>
 
-        <VBox spacing="15" alignment="TOP_CENTER"
-              style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 30; -fx-max-width: 500;">
+        <!-- Caixa principal -->
+        <VBox spacing="20" alignment="CENTER" styleClass="shadow-box" maxWidth="520">
 
 
-            <!-- Foto de perfil -->
+            <!-- Foto de perfil editável -->
+            <StackPane alignment="BOTTOM_RIGHT" styleClass="foto-wrapper" maxWidth="100" maxHeight="100">
+                <ImageView fx:id="fotoPerfil" fitWidth="100" fitHeight="100" styleClass="profile-img"/>
+                <Button styleClass="botao-add-foto" text="+" onAction="#handleAdicionarFoto"/>
+            </StackPane>
+
+
+            <!-- Perfil e nome -->
             <VBox alignment="CENTER">
-                <ImageView fx:id="fotoPerfil" fitHeight="80" fitWidth="80"
-                           style="-fx-border-radius: 50%; -fx-background-radius: 50%;"/>
-                <Label fx:id="nomeTopoLabel" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-                <Label fx:id="emailTopoLabel" style="-fx-text-fill: #777;"/>
+                <Label fx:id="nomeTopoLabel" styleClass="nome-topo"/>
+                <Label fx:id="emailTopoLabel" styleClass="email-topo"/>
             </VBox>
 
-            <!-- Formulário -->
-            <GridPane hgap="15" vgap="15">
+            <!-- Campos editáveis -->
+            <GridPane hgap="20" vgap="15">
                 <columnConstraints>
-                    <ColumnConstraints halignment="RIGHT" minWidth="150"/>
+                    <ColumnConstraints halignment="RIGHT" minWidth="120"/>
                     <ColumnConstraints prefWidth="250"/>
                 </columnConstraints>
 
@@ -47,9 +59,11 @@
             </GridPane>
 
             <!-- Botões -->
-            <Button text="Guardar Alterações" onAction="#handleGuardar"
-                    style="-fx-background-color: #2e77ff; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 8 16;"/>
-            <Label fx:id="mensagemLabel" style="-fx-text-fill: green;"/>
+            <VBox alignment="CENTER" spacing="10">
+                <Button text="Guardar Alterações" onAction="#handleGuardar" styleClass="botao-guardar"/>
+                <Label fx:id="mensagemLabel" styleClass="mensagem-label"/>
+                <Button text="Terminar Sessão" onAction="#handleLogout" styleClass="botao-logout"/>
+            </VBox>
 
         </VBox>
     </VBox>

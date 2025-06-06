@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
+<?import com.jfoenix.controls.*?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 <?import java.net.URL?>
@@ -9,126 +8,112 @@
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="controller.WalletController"
-            prefWidth="1200" prefHeight="800"
             style="-fx-background-color: #121212;">
 
     <stylesheets>
-        <URL value="@/view/css/wallet.css"/>
+        <URL value="@/view/css/wallet.css" />
     </stylesheets>
 
-    <!-- ====== TOPO ====== -->
+    <!-- TOPO -->
     <top>
         <VBox spacing="0">
-            <!-- Navbar incluída -->
             <fx:include source="navbar.fxml"/>
-
-            <!-- Cabeçalho da Carteira -->
-            <VBox spacing="20" styleClass="header-container" alignment="CENTER_LEFT">
+            <VBox spacing="18" styleClass="header-container" alignment="CENTER_LEFT">
                 <padding>
-                    <Insets top="20" right="20" bottom="20" left="20"/>
+                    <Insets top="30" right="30" bottom="20" left="30"/>
                 </padding>
-
-                <HBox spacing="20" alignment="CENTER_LEFT">
-                    <!-- Ícone da carteira (caso haja) -->
-                    <ImageView fx:id="walletIcon"
-                               fitWidth="40" fitHeight="40"
-                               preserveRatio="true"
-                               styleClass="wallet-icon"
-                               pickOnBounds="true"
-                               visible="false"
-                               managed="false"/>
-                    <VBox spacing="5">
-                        <Label text="CARTEIRA DIGITAL"
-                               style="-fx-text-fill: #94a3b8; -fx-font-size: 14px; -fx-font-weight: medium;"/>
-                        <Label fx:id="balanceLabel"
-                               text="€ 0,00"
-                               styleClass="balance-display">
-                            <tooltip>
-                                <Tooltip text="Saldo atual disponível na sua carteira"/>
-                            </tooltip>
-                        </Label>
-                    </VBox>
-                </HBox>
-
-                <HBox spacing="15" alignment="CENTER_RIGHT">
-                    <Label fx:id="totalLabel"
-                           text="Valor Total do Portfólio: € 0,00"
-                           style="-fx-text-fill: #e2e8f0; -fx-font-size: 16px; -fx-font-weight: bold;"/>
-
-                    <!-- Botões DEPOSITAR e RETIRAR com ícones opcionais -->
-                    <Button text="DEPOSITAR"
-                            fx:id="depositButton"
-                            onAction="#abrirTelaDeposito"
-                            styleClass="action-button deposit">
-                        <!-- Se tiver ícone, descomente e ajuste o caminho: -->
-                        <!--
-                        <graphic>
-                            <ImageView fitWidth="16" fitHeight="16"
-                                       pickOnBounds="true"
-                                       preserveRatio="true"
-                                       image="@/icons/plus.png"/>
-                        </graphic>
-                        -->
-                    </Button>
-                    <Button text="RETIRAR"
-                            fx:id="withdrawButton"
-                            onAction="#abrirTelaRetirada"
-                            styleClass="action-button withdraw">
-
-                    </Button>
-                </HBox>
+                <Label text="Carteira" style="-fx-text-fill: white; -fx-font-size: 22px; -fx-font-weight: bold;"/>
+                <Label fx:id="totalLabel"
+                       text="€ 0,00"
+                       style="-fx-text-fill: #b892ff; -fx-font-size: 28px; -fx-font-weight: bold;"/>
             </VBox>
         </VBox>
     </top>
 
-    <!-- ====== CENTRO ====== -->
+    <!-- CENTRO -->
     <center>
-        <VBox spacing="20" style="-fx-background-color: transparent;" alignment="TOP_CENTER">
+        <VBox spacing="20" alignment="TOP_CENTER">
             <padding>
-                <Insets top="20" right="20" bottom="20" left="20"/>
+                <Insets top="20" right="30" bottom="30" left="30"/>
             </padding>
 
-            <!-- TABELA “MEUS ATIVOS” -->
-            <Label text="MEUS ATIVOS" styleClass="section-title" />
+            <HBox spacing="15" alignment="CENTER">
+                <Button fx:id="depositButton"
+                        text="+ Depositar"
+                        onAction="#abrirTelaDeposito"
+                        styleClass="quick-action convert"
+                        prefWidth="180" />
 
-            <VBox spacing="10" style="-fx-background-color: #1a1a1a; -fx-background-radius: 8; -fx-padding: 15;">
-                <Separator />
-                <TableView fx:id="cryptoTable" styleClass="asset-table" prefHeight="200">
-                    <columns>
-                        <TableColumn fx:id="colAtivo"    text="ATIVO"               prefWidth="200" />
-                        <TableColumn fx:id="colTicker"   text="TICKER"              prefWidth="100" />
-                        <TableColumn fx:id="colQuantidade" text="QUANTIDADE"         prefWidth="150" />
-                        <TableColumn fx:id="colPrecoMedio" text="PREÇO MÉDIO (€)"   prefWidth="150" />
-                        <TableColumn fx:id="colValor"     text="VALOR ATUAL (€)"    prefWidth="150" />
-                    </columns>
-                </TableView>
-            </VBox>
+                <Button fx:id="withdrawButton"
+                        text="↓ Levantar"
+                        onAction="#abrirTelaRetirada"
+                        styleClass="quick-action sell"
+                        prefWidth="180" />
+            </HBox>
 
-            <!-- TABELA “HISTÓRICO DE TRANSAÇÕES” -->
-            <Label text="HISTÓRICO DE TRANSAÇÕES" styleClass="section-title" />
+            <TabPane fx:id="walletTabPane" styleClass="asset-table" VBox.vgrow="ALWAYS">
+                <tabs>
+                    <Tab text="Posições Abertas">
+                        <AnchorPane style="-fx-background-color: transparent;">
+                            <JFXTreeTableView fx:id="cryptoTable"
+                                              showRoot="false"
+                                              AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
+                                              AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+                                <columns>
+                                    <JFXTreeTableColumn fx:id="colAtivo" text="Ativo" prefWidth="220" />
+                                    <JFXTreeTableColumn fx:id="colTicker" text="Ticker" prefWidth="100" />
+                                    <JFXTreeTableColumn fx:id="colQuantidade" text="Quantidade" prefWidth="160" />
+                                    <JFXTreeTableColumn fx:id="colPrecoMedio" text="Preço Médio (€)" prefWidth="150" />
+                                    <JFXTreeTableColumn fx:id="colValor" text="Valor Atual (€)" prefWidth="150" />
+                                </columns>
+                                <placeholder>
+                                    <Label text="Sem ativos." style="-fx-text-fill: #888888;" />
+                                </placeholder>
+                            </JFXTreeTableView>
+                        </AnchorPane>
+                    </Tab>
 
-            <VBox spacing="10" style="-fx-background-color: #1a1a1a; -fx-background-radius: 8; -fx-padding: 15;">
-                <Separator />
-                <TableView fx:id="transactionTable" styleClass="transaction-table" prefHeight="300">
-                    <columns>
-                        <TableColumn fx:id="colData"         text="DATA"          prefWidth="150" />
-                        <TableColumn fx:id="colTipo"         text="TIPO"          prefWidth="100" />
-                        <TableColumn fx:id="colAtivoTx"      text="ATIVO"         prefWidth="100" />
-                        <TableColumn fx:id="colQuantidadeTx" text="QUANTIDADE"    prefWidth="150" />
-                        <TableColumn fx:id="colValorTx"      text="VALOR (€)"     prefWidth="150" />
-                    </columns>
-                </TableView>
-            </VBox>
+                    <Tab text="Ordens Abertas">
+                        <AnchorPane style="-fx-background-color: transparent;">
+                            <JFXTreeTableView fx:id="ordersTable"
+                                              showRoot="false"
+                                              AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
+                                              AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+                                <columns>
+                                    <JFXTreeTableColumn text="Tipo" prefWidth="100" />
+                                    <JFXTreeTableColumn text="Ativo" prefWidth="120" />
+                                    <JFXTreeTableColumn text="Quantidade" prefWidth="120" />
+                                    <JFXTreeTableColumn text="Preço" prefWidth="100" />
+                                    <JFXTreeTableColumn text="Estado" prefWidth="100" />
+                                </columns>
+                                <placeholder>
+                                    <Label text="Nenhuma ordem aberta." style="-fx-text-fill: #888888;" />
+                                </placeholder>
+                            </JFXTreeTableView>
+                        </AnchorPane>
+                    </Tab>
+
+                    <Tab text="Histórico">
+                        <AnchorPane style="-fx-background-color: transparent;">
+                            <JFXTreeTableView fx:id="transactionTable"
+                                              showRoot="false"
+                                              AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
+                                              AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+                                <columns>
+                                    <JFXTreeTableColumn fx:id="colData" text="Data" prefWidth="160" />
+                                    <JFXTreeTableColumn fx:id="colTipo" text="Tipo" prefWidth="100" />
+                                    <JFXTreeTableColumn fx:id="colAtivoTx" text="Ativo" prefWidth="100" />
+                                    <JFXTreeTableColumn fx:id="colQuantidadeTx" text="Quantidade" prefWidth="160" />
+                                    <JFXTreeTableColumn fx:id="colValorTx" text="Total (€)" prefWidth="160" />
+                                </columns>
+                                <placeholder>
+                                    <Label text="Sem histórico de transações." style="-fx-text-fill: #888888;" />
+                                </placeholder>
+                            </JFXTreeTableView>
+                        </AnchorPane>
+                    </Tab>
+                </tabs>
+            </TabPane>
         </VBox>
     </center>
-
-    <!-- ====== RODAPÉ ====== -->
-    <bottom>
-        <HBox spacing="20"
-              alignment="CENTER"
-              styleClass="quick-actions card-shadow"
-              style="-fx-background-color: #1a1a1a; -fx-padding: 20 0;">
-            <!-- Rodapé vazio (pode adicionar ações rápidas aqui, se desejar) -->
-        </HBox>
-    </bottom>
 </BorderPane>
