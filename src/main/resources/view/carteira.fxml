@@ -15,16 +15,13 @@
         <URL value="@/view/css/wallet.css"/>
     </stylesheets>
 
-
     <!-- ==========================
          TOPO: Navbar + Título
          ========================== -->
     <top>
         <VBox spacing="0">
-            <!-- Inclui a navbar (navbar.fxml) -->
             <fx:include source="navbar.fxml"/>
 
-            <!-- Cabeçalho da Carteira -->
             <VBox spacing="18" styleClass="header-container" alignment="CENTER_LEFT">
                 <padding>
                     <Insets top="30" right="30" bottom="20" left="30"/>
@@ -101,7 +98,23 @@
                                                   AnchorPane.bottomAnchor="0"
                                                   AnchorPane.leftAnchor="0"
                                                   AnchorPane.rightAnchor="0">
-                                    <!-- Se quiseres colunas específicas, põe aqui -->
+                                    <columns>
+                                        <JFXTreeTableColumn fx:id="colTipoOrdem"
+                                                            text="Tipo"
+                                                            prefWidth="100"/>
+                                        <JFXTreeTableColumn fx:id="colMoedaOrdem"
+                                                            text="Moeda"
+                                                            prefWidth="100"/>
+                                        <JFXTreeTableColumn fx:id="colQuantidadeOrdem"
+                                                            text="Quantidade"
+                                                            prefWidth="120"/>
+                                        <JFXTreeTableColumn fx:id="colPrecoLimiteOrdem"
+                                                            text="Preço Limite (€)"
+                                                            prefWidth="120"/>
+                                        <JFXTreeTableColumn fx:id="colDataOrdem"
+                                                            text="Data Criação"
+                                                            prefWidth="150"/>
+                                    </columns>
                                 </JFXTreeTableView>
                             </AnchorPane>
                         </Tab>

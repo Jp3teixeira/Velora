@@ -12,7 +12,10 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.math.BigDecimal;
@@ -27,22 +30,21 @@ public class OrdemController {
     @FXML private TextField txtQuantidade;
     @FXML private Button btnConfirmar;
 
+    @FXML private RadioButton rbMarket;
+    @FXML private RadioButton rbLimit;
+    @FXML private TextField txtPrecoLimite;
+    @FXML private VBox boxPrecoLimite;
+
+    @FXML private ToggleGroup toggleTipoOrdem; // injetado pelo FXMLLoader, definido em FXML
+
     private String tipoOrdem;       // "COMPRA" ou "VENDA"
     private Moeda moedaSelecionada;
     private int userId;             // Utilizador.idUtilizador
     private Connection connection;  // para TradeService
 
-    // Repositórios auxiliares
     private final WalletRepository    walletRepo    = WalletRepository.getInstance();
     private final PortfolioRepository portfolioRepo = new PortfolioRepository();
 
-    /**
-     * Deve receber:
-     *   - tipoOrdem: "COMPRA" ou "VENDA"
-     *   - moeda: objeto Moeda com id, nome, valorAtual, etc.
-     *   - userId: id do Utilizador
-     *   - connection: Connection JDBC para TradeService e Repositórios
-     */
     public void configurar(String tipoOrdem,
                            Moeda moeda,
                            int userId,
@@ -55,75 +57,87 @@ public class OrdemController {
         labelTitulo.setText(tipoOrdem + " – " + moeda.getNome());
         labelPrecoAtual.setText("Preço atual: € " + moeda.getValorAtual());
 
+        // ToggleGroup e RadioButtons já definidos em FXML, apenas seleciona default
+        rbMarket.setSelected(true);
+
+        // Esconde o box de preço limite inicialmente
+        boxPrecoLimite.setVisible(false);
+        boxPrecoLimite.setManaged(false);
+
+        // Listener para alternar entre Market e Limit
+        rbMarket.setOnAction(e -> {
+            boxPrecoLimite.setVisible(false);
+            boxPrecoLimite.setManaged(false);
+        });
+        rbLimit.setOnAction(e -> {
+            boxPrecoLimite.setVisible(true);
+            boxPrecoLimite.setManaged(true);
+        });
 
         btnConfirmar.setDisable(true);
-
-
     }
 
-    /**
-     * Chamado sempre que o usuário digita algo no campo "Quantidade".
-     * Habilita o botão "Confirmar" se for número > 0, senão mantém desabilitado.
-     */
     @FXML
     private void onQuantidadeTyped() {
         String texto = txtQuantidade.getText().trim();
         try {
             BigDecimal qtd = new BigDecimal(texto);
-            // Só habilita se for > 0
             btnConfirmar.setDisable(qtd.compareTo(BigDecimal.ZERO) <= 0);
         } catch (Exception e) {
-            // Se não for número válido, mantém desabilitado
             btnConfirmar.setDisable(true);
         }
     }
 
     @FXML
     private void confirmarOrdem() {
-        // 1) Garante conexão válida
         if (connection == null) {
             try {
                 connection = DBConnection.getConnection();
             } catch (SQLException sqlEx) {
                 mostrarErro("Não foi possível conectar ao banco de dados.");
-                sqlEx.printStackTrace();
                 return;
             }
         }
 
         try {
-            // 2) Ler e validar quantidade escrita
-            String texto = txtQuantidade.getText().trim();
-            BigDecimal quantidade = new BigDecimal(texto);
+            BigDecimal quantidade = new BigDecimal(txtQuantidade.getText().trim());
             if (quantidade.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new NumberFormatException();
             }
 
+            String modo;
+            BigDecimal precoUnitario;
+            if (rbMarket.isSelected()) {
+                modo = "market";
+                precoUnitario = moedaSelecionada.getValorAtual();
+            } else {
+                modo = "limit";
+                String textoPreco = txtPrecoLimite.getText().trim();
+                BigDecimal preco = new BigDecimal(textoPreco);
+                if (preco.compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new NumberFormatException();
+                }
+                precoUnitario = preco;
+            }
 
-            BigDecimal precoAtual = moedaSelecionada.getValorAtual();
-
-            // 3) Dependendo do tipo de ordem, validar e “bloquear” saldo ou cripto:
             if ("COMPRA".equalsIgnoreCase(tipoOrdem)) {
-                BigDecimal custoTotal = precoAtual.multiply(quantidade);
-                BigDecimal meuSaldo   = walletRepo.getSaldo(userId);
+                BigDecimal custoTotal = precoUnitario.multiply(quantidade);
+                BigDecimal meuSaldo = walletRepo.getSaldo(userId);
                 if (meuSaldo.compareTo(custoTotal) < 0) {
                     mostrarErro("Saldo insuficiente em Euros.");
                     return;
                 }
-                // Bloquear (debitar) o valor total no saldo em euros
                 boolean debitou = walletRepo.withdraw(userId, custoTotal);
                 if (!debitou) {
                     mostrarErro("Erro ao bloquear saldo em Euros.");
                     return;
                 }
-            }
-            else { // "VENDA"
+            } else {
                 BigDecimal minhaQtd = portfolioRepo.getQuantidade(userId, moedaSelecionada.getIdMoeda());
                 if (minhaQtd.compareTo(quantidade) < 0) {
                     mostrarErro("Quantidade insuficiente na carteira de cripto.");
                     return;
                 }
-                // Bloquear (levantar) a quantidade de cripto do portfólio
                 boolean decremented = portfolioRepo.decrementarQuantidade(
                         userId,
                         moedaSelecionada.getIdMoeda(),
@@ -135,24 +149,22 @@ public class OrdemController {
                 }
             }
 
-            // 4) Montar o objeto Ordem (será inserido no banco)
             Ordem ordem = new Ordem();
             Utilizador u = new Utilizador();
             u.setIdUtilizador(userId);
             ordem.setUtilizador(u);
             ordem.setMoeda(moedaSelecionada);
-            ordem.setTipo(tipoOrdem.toLowerCase());    // "compra" ou "venda"
+            ordem.setTipo(tipoOrdem.toLowerCase());
+            ordem.setModo(modo);
             ordem.setQuantidade(quantidade);
-            ordem.setPrecoUnitarioEur(precoAtual);
+            ordem.setPrecoUnitarioEur(precoUnitario);
             ordem.setDataCriacao(LocalDateTime.now());
             ordem.setDataExpiracao(LocalDateTime.now().plusHours(24));
             ordem.setStatus("ativa");
 
-            // 5) Inserir a ordem na tabela 'Ordem'
             OrdemRepository ordemRepo = new OrdemRepository(connection);
             ordemRepo.inserirOrdem(ordem);
 
-            // 6) Processar o matching de ordens
             TradeService tradeService = new TradeService(connection);
             if ("COMPRA".equalsIgnoreCase(tipoOrdem)) {
                 tradeService.processarOrdemCompra(ordem);
@@ -160,14 +172,13 @@ public class OrdemController {
                 tradeService.processarOrdemVenda(ordem);
             }
 
-            // 7) Notificar usuário e fechar janela
             new Alert(Alert.AlertType.INFORMATION,
                     tipoOrdem + " executada com sucesso!")
                     .show();
             fecharJanela();
         }
         catch (NumberFormatException e) {
-            mostrarErro("Insira uma quantidade válida (ex: 0.5, 10).");
+            mostrarErro("Insira valores válidos (quantidade e, se limit, preço).");
         }
         catch (Exception e) {
             mostrarErro("Erro ao processar a ordem.");
@@ -175,13 +186,13 @@ public class OrdemController {
         }
     }
 
-    private void mostrarErro(String mensagem) {
-        new Alert(Alert.AlertType.ERROR, mensagem).show();
-    }
-
     @FXML
     private void fecharJanela() {
         Stage stage = (Stage) btnConfirmar.getScene().getWindow();
         stage.close();
+    }
+
+    private void mostrarErro(String mensagem) {
+        new Alert(Alert.AlertType.ERROR, mensagem).show();
     }
 }

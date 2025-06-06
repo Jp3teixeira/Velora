@@ -12,6 +12,7 @@ public class Ordem {
     private BigDecimal precoUnitarioEur;
     private LocalDateTime dataCriacao;
     private LocalDateTime dataExpiracao;
+    private String Modo;
     private String status;
 
     // ====== Construtores, getters e setters ======
@@ -79,4 +80,7 @@ public class Ordem {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    public String getModo(){ return Modo; }
+    public void setModo(String modo){ Modo = modo; }
 }

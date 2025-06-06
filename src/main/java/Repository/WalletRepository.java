@@ -7,7 +7,7 @@ import java.sql.*;
 
 /**
  * Repositório para gerir o saldo em euros de cada utilizador,
- *  tabela "Carteira" (colunas: id_carteira_euro, id_utilizador, saldo_eur).
+ * tabela "Carteira" (colunas: id_carteira_euro, id_utilizador, saldo_eur).
  */
 public class WalletRepository {
 
@@ -23,11 +23,22 @@ public class WalletRepository {
         return instance;
     }
 
+    /**
+     * Retorna uma Connection JDBC válida para uso nos repositórios
+     */
+    public Connection getConnection() {
+        try {
+            return DBConnection.getConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao obter conexão: " + e.getMessage(), e);
+        }
+    }
+
     // === CRIAR CARTEIRA (inserir linha da tabela Carteira com saldo_eur = 0) ===
     public boolean createWalletForUser(int userId) {
         String sql = "INSERT INTO Carteira (id_utilizador, saldo_eur) VALUES (?, 0)";
 
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, userId);
@@ -43,7 +54,7 @@ public class WalletRepository {
     public BigDecimal getSaldo(int userId) {
         String sql = "SELECT saldo_eur FROM Carteira WHERE id_utilizador = ?";
 
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, userId);
@@ -64,7 +75,7 @@ public class WalletRepository {
     public boolean deposit(int userId, BigDecimal amount) {
         String sql = "UPDATE Carteira SET saldo_eur = saldo_eur + ? WHERE id_utilizador = ?";
 
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setBigDecimal(1, amount);
@@ -82,7 +93,7 @@ public class WalletRepository {
         String sql = "UPDATE Carteira SET saldo_eur = saldo_eur - ? " +
                 "WHERE id_utilizador = ? AND saldo_eur >= ?";
 
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setBigDecimal(1, amount);
