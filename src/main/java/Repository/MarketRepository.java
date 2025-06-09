@@ -15,7 +15,7 @@ import java.util.Map;
 public class MarketRepository {
 
     /**
-     * Retorna todas as moedas com valor atual, variação 24h e volume 24h.
+     * Retorna todas as moedas com valor atual, variação 24h e volume negociado nas últimas 24h.
      */
     public static List<Moeda> getTodasAsMoedas() {
         List<Moeda> moedas = new ArrayList<>();
@@ -24,35 +24,39 @@ public class MarketRepository {
               m.id_moeda,
               m.nome,
               m.simbolo,
-              pm_pre.preco_em_eur AS valor_atual,
-              pm_old.preco_em_eur AS valor_24h,
-              vm24.volume24h
+              pm_pre.preco_em_eur  AS valor_atual,
+              pm_old.preco_em_eur  AS valor_24h,
+              t24.volume24h
             FROM Moeda m
+            /* preço atual */
             LEFT JOIN (
-                SELECT id_moeda, preco_em_eur
-                  FROM PrecoMoeda
-                 WHERE timestamp_hora = (
-                       SELECT MAX(timestamp_hora)
-                         FROM PrecoMoeda p2
-                        WHERE p2.id_moeda = PrecoMoeda.id_moeda
+                SELECT p1.id_moeda, p1.preco_em_eur
+                  FROM PrecoMoeda p1
+                 WHERE p1.timestamp_hora = (
+                       SELECT MAX(x.timestamp_hora)
+                         FROM PrecoMoeda x
+                        WHERE x.id_moeda = p1.id_moeda
                    )
             ) pm_pre ON pm_pre.id_moeda = m.id_moeda
+            /* preço 24h atrás */
             LEFT JOIN (
-                SELECT id_moeda, preco_em_eur
-                  FROM PrecoMoeda
-                 WHERE timestamp_hora = (
-                       SELECT MAX(timestamp_hora)
-                         FROM PrecoMoeda p2
-                        WHERE p2.id_moeda = PrecoMoeda.id_moeda
-                          AND timestamp_hora <= DATEADD(hour, -24, GETDATE())
+                SELECT p2.id_moeda, p2.preco_em_eur
+                  FROM PrecoMoeda p2
+                 WHERE p2.timestamp_hora = (
+                       SELECT MAX(x.timestamp_hora)
+                         FROM PrecoMoeda x
+                        WHERE x.id_moeda = p2.id_moeda
+                          AND x.timestamp_hora <= DATEADD(hour, -24, GETDATE())
                    )
             ) pm_old ON pm_old.id_moeda = m.id_moeda
+            /* volume negociado nas últimas 24h (sum of quantidade * preco) */
             LEFT JOIN (
-                SELECT id_moeda, SUM(volume) AS volume24h
-                  FROM VolumeMercado
-                 WHERE timestamp_hora >= DATEADD(hour, -24, GETDATE())
+                SELECT id_moeda,
+                       SUM(quantidade * preco_unitario_eur) AS volume24h
+                  FROM Transacao
+                 WHERE data_hora >= DATEADD(hour, -24, GETDATE())
                  GROUP BY id_moeda
-            ) vm24 ON vm24.id_moeda = m.id_moeda;
+            ) t24 ON t24.id_moeda = m.id_moeda
             """;
 
         try (Connection conn = getConnection();
@@ -60,22 +64,22 @@ public class MarketRepository {
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                int id = rs.getInt("id_moeda");
-                String nome = rs.getString("nome");
-                String simbolo = rs.getString("simbolo");
+                int id       = rs.getInt("id_moeda");
+                String nome  = rs.getString("nome");
+                String sim   = rs.getString("simbolo");
 
-                BigDecimal valorAtual = rs.getBigDecimal("valor_atual");
-                if (valorAtual == null) valorAtual = BigDecimal.ZERO;
+                BigDecimal valAtual = rs.getBigDecimal("valor_atual");
+                if (valAtual == null) valAtual = BigDecimal.ZERO;
 
-                BigDecimal valor24h = rs.getBigDecimal("valor_24h");
-                if (valor24h == null) valor24h = BigDecimal.ZERO;
+                BigDecimal val24h = rs.getBigDecimal("valor_24h");
+                if (val24h == null) val24h = BigDecimal.ZERO;
 
-                BigDecimal volume24h = rs.getBigDecimal("volume24h");
-                if (volume24h == null) volume24h = BigDecimal.ZERO.setScale(2);
+                BigDecimal vol24h = rs.getBigDecimal("volume24h");
+                if (vol24h == null) vol24h = BigDecimal.ZERO;
 
-                BigDecimal variacao24h = calcularVariacao(valor24h, valorAtual);
+                BigDecimal variacao = calcularVariacao(val24h, valAtual);
 
-                moedas.add(new Moeda(id, nome, simbolo, valorAtual, variacao24h, volume24h));
+                moedas.add(new Moeda(id, nome, sim, valAtual, variacao, vol24h));
             }
 
         } catch (SQLException e) {
@@ -86,37 +90,27 @@ public class MarketRepository {
     }
 
     /**
-     * Insere novo snapshot (hora a hora) em PrecoMoeda e VolumeMercado.
-     * 'moedas' mapeia idMoeda→Moeda com valores preenchidos em tempo real.
+     * Insere novo snapshot de preços em PrecoMoeda (uso interno, hourly).
+     * Não grava mais volume, apenas preço.
      */
     public static void gravarSnapshot(Map<Integer, Moeda> moedas) {
-        String sqlPreco = "INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora) VALUES (?, ?, ?)";
-        String sqlVolume = "INSERT INTO VolumeMercado (id_moeda, volume, timestamp_hora) VALUES (?, ?, ?)";
+        String sqlPreco = """
+            INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
+            VALUES (?, ?, ?)
+            """;
 
         try (Connection conn = getConnection();
-             PreparedStatement stmtPreco = conn.prepareStatement(sqlPreco);
-             PreparedStatement stmtVolume = conn.prepareStatement(sqlVolume)) {
+             PreparedStatement stmtPreco = conn.prepareStatement(sqlPreco)) {
 
             Timestamp agora = Timestamp.valueOf(LocalDateTime.now());
 
             for (Moeda moeda : moedas.values()) {
-                int idMoeda = moeda.getIdMoeda();
-
-                // Preço
-                stmtPreco.setInt(1, idMoeda);
+                stmtPreco.setInt(1, moeda.getIdMoeda());
                 stmtPreco.setBigDecimal(2, moeda.getValorAtual().setScale(8, RoundingMode.HALF_UP));
                 stmtPreco.setTimestamp(3, agora);
                 stmtPreco.addBatch();
-
-                // Volume
-                stmtVolume.setInt(1, idMoeda);
-                stmtVolume.setBigDecimal(2, moeda.getVolumeMercado().setScale(8, RoundingMode.HALF_UP));
-                stmtVolume.setTimestamp(3, agora);
-                stmtVolume.addBatch();
             }
-
             stmtPreco.executeBatch();
-            stmtVolume.executeBatch();
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -125,50 +119,46 @@ public class MarketRepository {
 
     /**
      * Adiciona nova criptomoeda ao sistema.
-     * Insere em Moeda (nome, simbolo, tipo='crypto'), em PrecoMoeda (valor inicial),
-     * e em VolumeMercado (volume inicial zero).
+     * Insere em Moeda (tipo='crypto') e cria snapshot inicial em PrecoMoeda.
      */
     public static boolean addNewCoin(String nome, String simbolo, String imageName, BigDecimal initialValue) {
-        String insertMoeda = "INSERT INTO Moeda (nome, simbolo, tipo) VALUES (?, ?, 'crypto')";
-        String insertPreco = "INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora) VALUES (?, ?, ?)";
-        String insertVolume = "INSERT INTO VolumeMercado (id_moeda, volume, timestamp_hora) VALUES (?, ?, ?)";
+        String insertMoeda = """
+            INSERT INTO Moeda (nome, simbolo, foto, id_tipo)
+                 VALUES (?, ?, ?, 
+                         (SELECT id_tipo FROM MoedaTipo WHERE tipo = 'crypto'))
+            """;
+        String insertPreco = """
+            INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
+                 VALUES (?, ?, ?)
+            """;
 
         try (Connection conn = getConnection();
              PreparedStatement stmtMoeda = conn.prepareStatement(insertMoeda, Statement.RETURN_GENERATED_KEYS);
-             PreparedStatement stmtPreco = conn.prepareStatement(insertPreco);
-             PreparedStatement stmtVolume = conn.prepareStatement(insertVolume)) {
+             PreparedStatement stmtPreco = conn.prepareStatement(insertPreco)) {
 
             conn.setAutoCommit(false);
 
-            // 1. Insere na tabela Moeda
             stmtMoeda.setString(1, nome);
             stmtMoeda.setString(2, simbolo);
-            int affected = stmtMoeda.executeUpdate();
-            if (affected == 0) {
+            stmtMoeda.setString(3, imageName);
+            if (stmtMoeda.executeUpdate() == 0) {
                 conn.rollback();
                 return false;
             }
 
-            // Obtém o ID gerado
-            ResultSet rs = stmtMoeda.getGeneratedKeys();
-            if (!rs.next()) {
-                conn.rollback();
-                return false;
+            try (ResultSet rs = stmtMoeda.getGeneratedKeys()) {
+                if (!rs.next()) {
+                    conn.rollback();
+                    return false;
+                }
+                int newId = rs.getInt(1);
+
+                Timestamp agora = Timestamp.valueOf(LocalDateTime.now());
+                stmtPreco.setInt(1, newId);
+                stmtPreco.setBigDecimal(2, initialValue.setScale(8, RoundingMode.HALF_UP));
+                stmtPreco.setTimestamp(3, agora);
+                stmtPreco.executeUpdate();
             }
-            int newId = rs.getInt(1);
-
-            // 2. Insere valor inicial em PrecoMoeda
-            Timestamp agora = Timestamp.valueOf(LocalDateTime.now());
-            stmtPreco.setInt(1, newId);
-            stmtPreco.setBigDecimal(2, initialValue);
-            stmtPreco.setTimestamp(3, agora);
-            stmtPreco.executeUpdate();
-
-            // 3. Insere volume inicial zero em VolumeMercado
-            stmtVolume.setInt(1, newId);
-            stmtVolume.setBigDecimal(2, BigDecimal.ZERO);
-            stmtVolume.setTimestamp(3, agora);
-            stmtVolume.executeUpdate();
 
             conn.commit();
             return true;
@@ -179,98 +169,64 @@ public class MarketRepository {
     }
 
     /**
-     * Atualiza dados de uma moeda:
-     * - renomeia 'nome' e 'simbolo' em Moeda.
-     * - insere novo preço em PrecoMoeda para refletir 'valorAtual'.
-     * - insere novo volume em VolumeMercado para refletir 'volumeMercado'.
+     * Atualiza o nome, símbolo e foto da moeda e adiciona um novo preço.
+     * Não grava volume.
      */
     public static void updateMoeda(Moeda moeda) throws SQLException {
-        String updateMoedaSql = "UPDATE Moeda SET nome = ?, simbolo = ? WHERE id_moeda = ?";
-        String insertPrecoSql = "INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora) VALUES (?, ?, ?)";
-        String insertVolumeSql = "INSERT INTO VolumeMercado (id_moeda, volume, timestamp_hora) VALUES (?, ?, ?)";
+        String updateSql = "UPDATE Moeda SET nome = ?, simbolo = ?, foto = ? WHERE id_moeda = ?";
+        String insertPrecoSql = """
+            INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
+                 VALUES (?, ?, ?)
+            """;
 
         try (Connection conn = getConnection();
-             PreparedStatement stmtUpd = conn.prepareStatement(updateMoedaSql);
-             PreparedStatement stmtPreco = conn.prepareStatement(insertPrecoSql);
-             PreparedStatement stmtVolume = conn.prepareStatement(insertVolumeSql)) {
+             PreparedStatement upd = conn.prepareStatement(updateSql);
+             PreparedStatement insPreco = conn.prepareStatement(insertPrecoSql)) {
 
             conn.setAutoCommit(false);
 
-            // Atualiza nome e símbolo
-            stmtUpd.setString(1, moeda.getNome());
-            stmtUpd.setString(2, moeda.getSimbolo());
-            stmtUpd.setInt(3, moeda.getIdMoeda());
-            stmtUpd.executeUpdate();
+            upd.setString(1, moeda.getNome());
+            upd.setString(2, moeda.getSimbolo());
+            upd.setString(3, moeda.getFoto());
+            upd.setInt(4, moeda.getIdMoeda());
+            upd.executeUpdate();
 
-            // Insere novo preço
             Timestamp agora = Timestamp.valueOf(LocalDateTime.now());
-            stmtPreco.setInt(1, moeda.getIdMoeda());
-            stmtPreco.setBigDecimal(2, moeda.getValorAtual());
-            stmtPreco.setTimestamp(3, agora);
-            stmtPreco.executeUpdate();
-
-            // Insere novo volume
-            stmtVolume.setInt(1, moeda.getIdMoeda());
-            stmtVolume.setBigDecimal(2, moeda.getVolumeMercado());
-            stmtVolume.setTimestamp(3, agora);
-            stmtVolume.executeUpdate();
+            insPreco.setInt(1, moeda.getIdMoeda());
+            insPreco.setBigDecimal(2, moeda.getValorAtual());
+            insPreco.setTimestamp(3, agora);
+            insPreco.executeUpdate();
 
             conn.commit();
-        } catch (SQLException e) {
-            throw e;
         }
     }
 
     /**
-     * Exclui uma moeda de todas as tabelas:
-     * - VolumeMercado, PrecoMoeda, Portfolio, Ordem e Transacao (se existirem),
-     *   depois exclui da tabela Moeda.
+     * Exclui uma moeda de todas as tabelas referenciadas antes de deletar de Moeda.
      */
     public static void deleteMoeda(int idMoeda) throws SQLException {
-        String deleteVolume   = "DELETE FROM VolumeMercado WHERE id_moeda = ?";
-        String deletePreco    = "DELETE FROM PrecoMoeda WHERE id_moeda = ?";
-        String deletePortfolio= "DELETE FROM Portfolio WHERE id_moeda = ?";
-        String deleteOrdem    = "DELETE FROM Ordem WHERE id_moeda = ?";
-        String deleteTransacao= "DELETE FROM TransacaoCrypto WHERE id_moeda = ?";
-        String deleteMoedaSql = "DELETE FROM Moeda WHERE id_moeda = ?";
+        String[] deletes = {
+                "DELETE FROM Portfolio    WHERE id_moeda = ?",
+                "DELETE FROM Ordem        WHERE id_moeda = ?",
+                "DELETE FROM Transacao    WHERE id_moeda = ?",
+                "DELETE FROM PrecoMoeda   WHERE id_moeda = ?",
+                "DELETE FROM Moeda        WHERE id_moeda = ?"
+        };
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmtVol = conn.prepareStatement(deleteVolume);
-             PreparedStatement stmtPre = conn.prepareStatement(deletePreco);
-             PreparedStatement stmtPort = conn.prepareStatement(deletePortfolio);
-             PreparedStatement stmtOrd = conn.prepareStatement(deleteOrdem);
-             PreparedStatement stmtTrans = conn.prepareStatement(deleteTransacao);
-             PreparedStatement stmtMd = conn.prepareStatement(deleteMoedaSql)) {
-
+        try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
-
-            stmtVol.setInt(1, idMoeda);
-            stmtVol.executeUpdate();
-
-            stmtPre.setInt(1, idMoeda);
-            stmtPre.executeUpdate();
-
-            stmtPort.setInt(1, idMoeda);
-            stmtPort.executeUpdate();
-
-            stmtOrd.setInt(1, idMoeda);
-            stmtOrd.executeUpdate();
-
-            stmtTrans.setInt(1, idMoeda);
-            stmtTrans.executeUpdate();
-
-            stmtMd.setInt(1, idMoeda);
-            stmtMd.executeUpdate();
-
+            for (String d : deletes) {
+                try (PreparedStatement stmt = conn.prepareStatement(d)) {
+                    stmt.setInt(1, idMoeda);
+                    stmt.executeUpdate();
+                }
+            }
             conn.commit();
-        } catch (SQLException e) {
-            throw e;
         }
     }
 
     /**
-     * Retorna dados formatados para gráfico de linha de preços de uma moeda,
-     * filtrados por intervalo: "1D", "1W", "1M", "3M", "1Y", ou "MAX".
+     * Retorna dados para gráfico de linha de preços (filtrado).
      */
     public static List<javafx.scene.chart.XYChart.Data<String, Number>>
     getHistoricoPorMoedaFiltrado(int idMoeda, String intervalo) {
@@ -296,22 +252,21 @@ public class MarketRepository {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, idMoeda);
-            ResultSet rs = stmt.executeQuery();
+            try (ResultSet rs = stmt.executeQuery()) {
+                DateTimeFormatter horaFmt = DateTimeFormatter.ofPattern("HH:mm");
+                DateTimeFormatter dataFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-            DateTimeFormatter horaFmt = DateTimeFormatter.ofPattern("HH:mm");
-            DateTimeFormatter dataFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                while (rs.next()) {
+                    LocalDateTime dt = rs.getTimestamp("timestamp_hora").toLocalDateTime();
+                    BigDecimal preco = rs.getBigDecimal("preco_em_eur");
 
-            while (rs.next()) {
-                LocalDateTime dt = rs.getTimestamp("timestamp_hora").toLocalDateTime();
-                BigDecimal preco = rs.getBigDecimal("preco_em_eur");
-
-                String xValue = switch (intervalo) {
-                    case "1D" -> dt.toLocalTime().format(horaFmt);
-                    default -> dt.toLocalDate().format(dataFmt);
-                };
-                dados.add(new javafx.scene.chart.XYChart.Data<>(xValue, preco));
+                    String xValue = switch (intervalo) {
+                        case "1D" -> dt.toLocalTime().format(horaFmt);
+                        default  -> dt.toLocalDate().format(dataFmt);
+                    };
+                    dados.add(new javafx.scene.chart.XYChart.Data<>(xValue, preco));
+                }
             }
-            rs.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }

@@ -95,7 +95,7 @@ public class PortfolioRepository {
      * Incrementa (ou insere) quantidade de uma moeda para o utilizador.
      * Se não existir, insere nova linha; se existir, soma à quantidade atual.
      */
-    public void incrementarQuantidade(int userId, int idMoeda, BigDecimal quantidade) {
+    public void aumentarQuantidade(int userId, int idMoeda, BigDecimal quantidade) {
         String sqlUp = """
             UPDATE Portfolio
                SET quantidade = quantidade + ?
@@ -128,7 +128,7 @@ public class PortfolioRepository {
      * Decrementa (bloqueia) quantidade de uma moeda no portfólio do utilizador.
      * Retorna true se conseguiu, false caso quantidade insuficiente.
      */
-    public boolean decrementarQuantidade(int userId, int idMoeda, BigDecimal quantidade) {
+    public boolean diminuirQuantidade(int userId, int idMoeda, BigDecimal quantidade) {
         String sqlCheck = """
             SELECT quantidade 
               FROM Portfolio 
@@ -190,33 +190,34 @@ public class PortfolioRepository {
         }
         return BigDecimal.ZERO;
     }
-
     /**
-     * Retorna o preço médio de compra de uma certa moeda para um usuário.
-     * Baseia-se em todas as transações de compra (tipo='compra') daquele usuário/daquela moeda.
+     * Retorna o preço médio de compra de uma certa moeda para um utilizador.
      */
     public BigDecimal calcularPrecoMedioCompra(int userId, int idMoeda) {
         String sql = """
-            SELECT 
-                SUM(quantidade * preco_unitario_eur) AS soma_total_eur,
-                SUM(quantidade) AS soma_quantidade
-              FROM Transacao
-             WHERE id_utilizador = ?
-               AND id_moeda = ?
-               AND tipo = 'compra'
-            """;
+        SELECT 
+            SUM(t.quantidade * t.preco_unitario_eur) AS soma_total_eur,
+            SUM(t.quantidade)                      AS soma_quantidade
+        FROM Transacao t
+        JOIN OrdemTipo ot
+          ON t.id_tipo_ordem = ot.id_tipo_ordem
+        WHERE t.id_utilizador = ?
+          AND t.id_moeda      = ?
+          AND ot.tipo_ordem   = 'compra'
+        """;
+
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, userId);
             stmt.setInt(2, idMoeda);
             ResultSet rs = stmt.executeQuery();
+
             if (rs.next()) {
                 BigDecimal somaTotal = rs.getBigDecimal("soma_total_eur");
                 BigDecimal somaQtd   = rs.getBigDecimal("soma_quantidade");
                 if (somaTotal != null && somaQtd != null && somaQtd.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal media = somaTotal.divide(somaQtd, 8, RoundingMode.HALF_UP);
-                    rs.close();
-                    return media;
+                    return somaTotal.divide(somaQtd, 8, RoundingMode.HALF_UP);
                 }
             }
             rs.close();

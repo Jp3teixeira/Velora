@@ -53,10 +53,8 @@ public class WalletController {
 
     @FXML
     public void initialize() {
-        // 1) Atualiza saldo, total e tabelas
         atualizarTudo();
-
-        // 2) Garante que, quando a janela aparecer, recarregamos tudo de novo
+        // recarrega sempre que a janela aparece
         if (balanceLabel != null) {
             balanceLabel.sceneProperty().addListener((obs, oldScene, newScene) -> {
                 if (newScene != null) {
@@ -110,6 +108,7 @@ public class WalletController {
                                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
                 )
         );
+        // aqui alterámos getTipo() para getTipoOrdem()
         colTipo.setCellValueFactory(cell ->
                 new SimpleStringProperty(cell.getValue().getValue().getTipo().toUpperCase())
         );
@@ -139,31 +138,22 @@ public class WalletController {
     }
 
     public void carregarPortfolio() {
-        List<Portfolio> lista =
-                portfolioRepo.listarPorUtilizador(SessaoAtual.utilizadorId);
-        ObservableList<Portfolio> obsList =
-                FXCollections.observableArrayList(lista);
-        RecursiveTreeItem<Portfolio> root =
-                new RecursiveTreeItem<>(obsList, RecursiveTreeObject::getChildren);
-        cryptoTable.setRoot(root);
+        List<Portfolio> lista = portfolioRepo.listarPorUtilizador(SessaoAtual.utilizadorId);
+        ObservableList<Portfolio> obsList = FXCollections.observableArrayList(lista);
+        cryptoTable.setRoot(new RecursiveTreeItem<>(obsList, RecursiveTreeObject::getChildren));
         cryptoTable.setShowRoot(false);
     }
 
     public void carregarHistoricoTransacoes() {
-        List<Transacao> lista =
-                transacaoRepo.listarPorUsuario(SessaoAtual.utilizadorId);
-        ObservableList<Transacao> obsList =
-                FXCollections.observableArrayList(lista);
-        RecursiveTreeItem<Transacao> root =
-                new RecursiveTreeItem<>(obsList, RecursiveTreeObject::getChildren);
-        transactionTable.setRoot(root);
+        List<Transacao> lista = transacaoRepo.listarPorUsuario(SessaoAtual.utilizadorId);
+        ObservableList<Transacao> obsList = FXCollections.observableArrayList(lista);
+        transactionTable.setRoot(new RecursiveTreeItem<>(obsList, RecursiveTreeObject::getChildren));
         transactionTable.setShowRoot(false);
     }
 
     public void atualizarSaldo() {
         try {
-            BigDecimal novoSaldo =
-                    walletRepo.getSaldo(SessaoAtual.utilizadorId);
+            BigDecimal novoSaldo = walletRepo.getSaldo(SessaoAtual.utilizadorId);
             SessaoAtual.saldoCarteira = novoSaldo;
             balanceLabel.setText(String.format("€ %.2f", novoSaldo));
         } catch (Exception e) {
@@ -173,8 +163,7 @@ public class WalletController {
     }
 
     public void atualizarTotalPortfolio() {
-        List<Portfolio> lista =
-                portfolioRepo.listarPorUtilizador(SessaoAtual.utilizadorId);
+        List<Portfolio> lista = portfolioRepo.listarPorUtilizador(SessaoAtual.utilizadorId);
         BigDecimal total = lista.stream()
                 .map(p -> p.getQuantidade().multiply(p.getMoeda().getValorAtual()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
@@ -185,10 +174,8 @@ public class WalletController {
     private void atualizarTudo() {
         atualizarSaldo();
         atualizarTotalPortfolio();
-
         configurarTabelaPortfolio();
         carregarPortfolio();
-
         configurarTabelaTransacoes();
         carregarHistoricoTransacoes();
     }
@@ -196,16 +183,13 @@ public class WalletController {
     @FXML
     public void confirmarDeposito() {
         try {
-            String input = depositAmountField.getText().trim();
-            BigDecimal amount = new BigDecimal(input);
+            BigDecimal amount = new BigDecimal(depositAmountField.getText().trim());
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
                 depositStatusLabel.setText("Valor deve ser positivo!");
                 return;
             }
-            boolean success = walletRepo.deposit(SessaoAtual.utilizadorId, amount);
-            if (success) {
-                SessaoAtual.saldoCarteira =
-                        walletRepo.getSaldo(SessaoAtual.utilizadorId);
+            if (walletRepo.deposit(SessaoAtual.utilizadorId, amount)) {
+                SessaoAtual.saldoCarteira = walletRepo.getSaldo(SessaoAtual.utilizadorId);
                 depositStatusLabel.setText("Depósito efetuado com sucesso!");
                 atualizarTudo();
             } else {
@@ -222,8 +206,7 @@ public class WalletController {
     @FXML
     public void confirmarLevantamento() {
         try {
-            String input = withdrawAmountField.getText().trim();
-            BigDecimal amount = new BigDecimal(input);
+            BigDecimal amount = new BigDecimal(withdrawAmountField.getText().trim());
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
                 withdrawStatusLabel.setText("Valor deve ser positivo!");
                 return;
@@ -233,11 +216,8 @@ public class WalletController {
                 withdrawStatusLabel.setText("Saldo insuficiente!");
                 return;
             }
-            boolean success =
-                    walletRepo.withdraw(SessaoAtual.utilizadorId, amount);
-            if (success) {
-                SessaoAtual.saldoCarteira =
-                        walletRepo.getSaldo(SessaoAtual.utilizadorId);
+            if (walletRepo.withdraw(SessaoAtual.utilizadorId, amount)) {
+                SessaoAtual.saldoCarteira = walletRepo.getSaldo(SessaoAtual.utilizadorId);
                 withdrawStatusLabel.setText("Levantamento efetuado com sucesso!");
                 atualizarTudo();
             } else {

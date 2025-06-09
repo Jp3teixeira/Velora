@@ -9,34 +9,14 @@ public class PrecoMoeda {
     private BigDecimal precoEmEur;
     private LocalDateTime timestampHora;
 
-    // ====== Construtores, getters e setters ======
-    public PrecoMoeda() { }
-
-    public Integer getIdPreco() {
-        return idPreco;
-    }
-    public void setIdPreco(Integer idPreco) {
-        this.idPreco = idPreco;
-    }
-
-    public Moeda getMoeda() {
-        return moeda;
-    }
-    public void setMoeda(Moeda moeda) {
-        this.moeda = moeda;
-    }
-
-    public BigDecimal getPrecoEmEur() {
-        return precoEmEur;
-    }
-    public void setPrecoEmEur(BigDecimal precoEmEur) {
-        this.precoEmEur = precoEmEur;
-    }
-
-    public LocalDateTime getTimestampHora() {
-        return timestampHora;
-    }
-    public void setTimestampHora(LocalDateTime timestampHora) {
-        this.timestampHora = timestampHora;
-    }
+    public PrecoMoeda() {}
+    // getters & setters...
+    public Integer getIdPreco() { return idPreco; }
+    public void setIdPreco(Integer i) { this.idPreco = i; }
+    public Moeda getMoeda() { return moeda; }
+    public void setMoeda(Moeda m) { this.moeda = m; }
+    public BigDecimal getPrecoEmEur() { return precoEmEur; }
+    public void setPrecoEmEur(BigDecimal p) { this.precoEmEur = p; }
+    public LocalDateTime getTimestampHora() { return timestampHora; }
+    public void setTimestampHora(LocalDateTime t) { this.timestampHora = t; }
 }

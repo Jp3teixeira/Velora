@@ -46,7 +46,7 @@ public class HomeController implements Initializable {
     /* -- SEÇÃO PORTFÓLIO (TABS) -- */
     @FXML private TabPane portfolioTabPane;
     @FXML private TableView<Portfolio> openPositionsTable;
-    @FXML private TableView<?> openOrdersTable; // vamos deixar genérico, pois não há repositorio de Ordens neste exemplo
+    @FXML private TableView<?> openOrdersTable;
     @FXML private TableView<Transacao> historyTable;
 
     // Repositórios já existentes
@@ -54,7 +54,7 @@ public class HomeController implements Initializable {
     private final TransacaoRepository transacaoRepo = new TransacaoRepository();
 
     // Para exibir gráfico, usaremos o MarketRepository
-    private final MarketRepository marketRepo = new MarketRepository(); // caso seja instanciável; senão, use métodos estáticos
+    private final MarketRepository marketRepo = new MarketRepository();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -63,7 +63,7 @@ public class HomeController implements Initializable {
         limitToggle.setOnAction(e -> priceField.setDisable(false));
 
         // 2) Monta o gráfico real para **alguma** moeda:
-        //    neste exemplo, usamos a primeira moeda retornada por getTodasAsMoedas()
+
         List<Moeda> listaMoedas = marketRepo.getTodasAsMoedas();
         if (!listaMoedas.isEmpty()) {
             Moeda primeira = listaMoedas.get(0);
@@ -82,7 +82,7 @@ public class HomeController implements Initializable {
         carregarHistorico();
 
         // 5) Exemplo simples para a aba “Ordens Abertas”—por enquanto sem dados
-        //    Você pode criar um OrderRepository com lógica idêntica, caso já tenha a tabela ORDEM no banco.
+
         openOrdersTable.setPlaceholder(new Label("Funcionalidade de Ordens Abertas ainda a implementar"));
 
         // 6) “Comprar / Vender” (ainda só imprime no console; você pode chamar TransacaoRepository + PortfolioRepository)
@@ -90,16 +90,13 @@ public class HomeController implements Initializable {
             System.out.println("Botão COMPRAR clicado para " + assetLabel.getText() +
                     ", quantidade = " + quantityField.getText() +
                     (limitToggle.isSelected() ? ", preço = " + priceField.getText() : " (Market)"));
-            // Aqui entraria a lógica de criar transação:
-            //   TransacaoRepository.inserirTransacao(...);
-            //   PortfolioRepository.incrementarQuantidade(...);
-            //   recarregar as tabelas / gráfico.
+
         });
         sellButton.setOnAction(e -> {
             System.out.println("Botão VENDER clicado para " + assetLabel.getText() +
                     ", quantidade = " + quantityField.getText() +
                     (limitToggle.isSelected() ? ", preço = " + priceField.getText() : " (Market)"));
-            // Aqui entraria a lógica de criar transação de venda, decrementar portfolio, etc.
+
         });
     }
 
@@ -127,7 +124,7 @@ public class HomeController implements Initializable {
         serie.getData().addAll(historico);
 
         chart.getData().add(serie);
-        chart.setCreateSymbols(false);     // sem bolinhas em cada ponto
+        chart.setCreateSymbols(false);
         chart.setLegendVisible(false);
         chart.setAnimated(false);
 

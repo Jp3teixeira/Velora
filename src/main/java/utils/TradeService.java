@@ -27,14 +27,14 @@ public class TradeService {
     }
 
     /**
-     * Processa uma ordem de compra, seja market ou limit.
+     * Processa uma ordem de compra (market ou limit).
      */
     public void processarOrdemCompra(Ordem novaCompra) throws SQLException {
-        BigDecimal restante = novaCompra.getQuantidade();
-        String modo = novaCompra.getModo();                  // "market" ou "limit"
+        BigDecimal restante    = novaCompra.getQuantidade();
+        String    modo         = novaCompra.getModo();
         BigDecimal precoLimite = novaCompra.getPrecoUnitarioEur();
 
-        // 1) Busca ordens de venda que atendam ao modo e preço-limite
+        // 1) busca ordens de venda compatíveis
         List<Ordem> ordensVenda = ordemRepo.obterOrdensPendentes(
                 novaCompra.getMoeda().getIdMoeda(),
                 "venda",
@@ -42,65 +42,60 @@ public class TradeService {
                 precoLimite
         );
 
-        // 2) Executa matching enquanto houver quantidade e ordens compatíveis
+        // 2) faz matching
         for (Ordem venda : ordensVenda) {
-            if (restante.compareTo(BigDecimal.ZERO) <= 0) {
-                break;
-            }
+            if (restante.compareTo(BigDecimal.ZERO) <= 0) break;
 
             BigDecimal disponivelVenda = venda.getQuantidade();
-            BigDecimal matchQtde = restante.min(disponivelVenda);
+            BigDecimal matchQtde       = restante.min(disponivelVenda);
+            BigDecimal precoExecucao   = venda.getPrecoUnitarioEur()
+                    .setScale(8, RoundingMode.HALF_UP);
 
-            // Preço de execução = preço que a ordem de venda declarou
-            BigDecimal precoExecucao = venda.getPrecoUnitarioEur().setScale(8, RoundingMode.HALF_UP);
-
-            // Insere transação “compra” e “venda”
+            // insere as duas transações (compra e venda)
             transacaoRepo.inserirTransacao(
                     novaCompra.getUtilizador().getIdUtilizador(),
                     novaCompra.getMoeda().getIdMoeda(),
-                    "compra",
-                    matchQtde.setScale(8, RoundingMode.HALF_UP),
+                    matchQtde,
                     precoExecucao
             );
             transacaoRepo.inserirTransacao(
                     venda.getUtilizador().getIdUtilizador(),
                     venda.getMoeda().getIdMoeda(),
-                    "venda",
-                    matchQtde.setScale(8, RoundingMode.HALF_UP),
+                    matchQtde,
                     precoExecucao
             );
 
-            // Atualiza ordem de venda (quantidade e status)
-            BigDecimal novaVendaRestante = disponivelVenda.subtract(matchQtde);
-            venda.setQuantidade(novaVendaRestante);
+            // actualiza ordem de venda
+            BigDecimal novaVendaRest = disponivelVenda.subtract(matchQtde);
+            venda.setQuantidade(novaVendaRest);
             venda.setStatus(
-                    novaVendaRestante.compareTo(BigDecimal.ZERO) == 0 ?
-                            "executada" : "ativa"
+                    novaVendaRest.compareTo(BigDecimal.ZERO) == 0
+                            ? "executada"
+                            : "ativa"
             );
             ordemRepo.atualizarOrdem(venda);
 
-            // Credita cripto ao comprador e euros ao vendedor
-            portfolioRepo.incrementarQuantidade(
+            // credita cripto ao comprador e EUR ao vendedor
+            portfolioRepo.aumentarQuantidade(
                     novaCompra.getUtilizador().getIdUtilizador(),
                     novaCompra.getMoeda().getIdMoeda(),
                     matchQtde
             );
-            BigDecimal valorParaVendedor = matchQtde.multiply(precoExecucao);
+            BigDecimal valorVendedor = matchQtde.multiply(precoExecucao);
             walletRepo.deposit(
                     venda.getUtilizador().getIdUtilizador(),
-                    valorParaVendedor
+                    valorVendedor
             );
 
             restante = restante.subtract(matchQtde);
         }
 
-        // 3) Atualiza a própria ordem de compra
+        // 3) actualiza a própria ordem de compra
         novaCompra.setQuantidade(restante);
-        // Se for limit e não casa nada, fica "ativa". Se casas tudo, "executada".
         if (restante.compareTo(BigDecimal.ZERO) == 0) {
             novaCompra.setStatus("executada");
         } else if ("market".equalsIgnoreCase(modo)) {
-            // Para market, devolve o não usado e marca como executada
+            // devolve o EUR não gasto e marca como executada
             novaCompra.setStatus("executada");
             BigDecimal devolve = restante.multiply(precoLimite)
                     .setScale(8, RoundingMode.HALF_UP);
@@ -110,21 +105,21 @@ public class TradeService {
             );
             restante = BigDecimal.ZERO;
         } else {
-            // Limit que não casou totalmente continua "ativa"
+            // limit que não casou totalmente continua ativa
             novaCompra.setStatus("ativa");
         }
         ordemRepo.atualizarOrdem(novaCompra);
     }
 
     /**
-     * Processa uma ordem de venda, seja market ou limit.
+     * Processa uma ordem de venda (market ou limit).
      */
     public void processarOrdemVenda(Ordem novaVenda) throws SQLException {
-        BigDecimal restante = novaVenda.getQuantidade();
-        String modo = novaVenda.getModo();                  // "market" ou "limit"
+        BigDecimal restante    = novaVenda.getQuantidade();
+        String    modo         = novaVenda.getModo();
         BigDecimal precoLimite = novaVenda.getPrecoUnitarioEur();
 
-        // 1) Busca ordens de compra que atendam ao modo e preço-limite
+        // 1) busca ordens de compra compatíveis
         List<Ordem> ordensCompra = ordemRepo.obterOrdensPendentes(
                 novaVenda.getMoeda().getIdMoeda(),
                 "compra",
@@ -132,50 +127,46 @@ public class TradeService {
                 precoLimite
         );
 
-        // 2) Executa matching enquanto houver quantidade e ordens compatíveis
+        // 2) faz matching
         for (Ordem compra : ordensCompra) {
-            if (restante.compareTo(BigDecimal.ZERO) <= 0) {
-                break;
-            }
+            if (restante.compareTo(BigDecimal.ZERO) <= 0) break;
 
             BigDecimal disponivelCompra = compra.getQuantidade();
-            BigDecimal matchQtde = restante.min(disponivelCompra);
+            BigDecimal matchQtde        = restante.min(disponivelCompra);
+            BigDecimal precoExecucao    = compra.getPrecoUnitarioEur()
+                    .setScale(8, RoundingMode.HALF_UP);
 
-            // Preço de execução = preço que a ordem de compra declarou
-            BigDecimal precoExecucao = compra.getPrecoUnitarioEur().setScale(8, RoundingMode.HALF_UP);
-
-            // Insere transação “venda” e “compra”
+            // insere as transações (venda e compra)
             transacaoRepo.inserirTransacao(
                     novaVenda.getUtilizador().getIdUtilizador(),
                     novaVenda.getMoeda().getIdMoeda(),
-                    "venda",
-                    matchQtde.setScale(8, RoundingMode.HALF_UP),
+                    matchQtde,
                     precoExecucao
             );
             transacaoRepo.inserirTransacao(
                     compra.getUtilizador().getIdUtilizador(),
                     compra.getMoeda().getIdMoeda(),
-                    "compra",
-                    matchQtde.setScale(8, RoundingMode.HALF_UP),
+                    matchQtde,
                     precoExecucao
             );
 
-            // Atualiza ordem de compra (quantidade e status)
-            BigDecimal novaCompraRestante = disponivelCompra.subtract(matchQtde);
-            compra.setQuantidade(novaCompraRestante);
+            // actualiza ordem de compra
+            BigDecimal novaCompraRest = disponivelCompra.subtract(matchQtde);
+            compra.setQuantidade(novaCompraRest);
             compra.setStatus(
-                    novaCompraRestante.compareTo(BigDecimal.ZERO) == 0 ?
-                            "executada" : "ativa"
+                    novaCompraRest.compareTo(BigDecimal.ZERO) == 0
+                            ? "executada"
+                            : "ativa"
             );
             ordemRepo.atualizarOrdem(compra);
 
-            // Credita euros ao vendedor e cripto ao comprador
-            BigDecimal valorParaVendedor = matchQtde.multiply(precoExecucao);
+            // credita EUR ao vendedor e cripto ao comprador
+            BigDecimal valorVendedor = matchQtde.multiply(precoExecucao);
             walletRepo.deposit(
-                    novaVenda.getUtilizador().getIdUtilizador(),
-                    valorParaVendedor
+                    compra.getUtilizador().getIdUtilizador(),
+                    valorVendedor
             );
-            portfolioRepo.incrementarQuantidade(
+            portfolioRepo.aumentarQuantidade(
                     compra.getUtilizador().getIdUtilizador(),
                     compra.getMoeda().getIdMoeda(),
                     matchQtde
@@ -184,21 +175,21 @@ public class TradeService {
             restante = restante.subtract(matchQtde);
         }
 
-        // 3) Atualiza a própria ordem de venda
+        // 3) actualiza a própria ordem de venda
         novaVenda.setQuantidade(restante);
         if (restante.compareTo(BigDecimal.ZERO) == 0) {
             novaVenda.setStatus("executada");
         } else if ("market".equalsIgnoreCase(modo)) {
-            // Para market, devolve cripto não vendido e marca como executada
+            // devolve cripto não vendido e marca como executada
             novaVenda.setStatus("executada");
-            portfolioRepo.incrementarQuantidade(
+            portfolioRepo.aumentarQuantidade(
                     novaVenda.getUtilizador().getIdUtilizador(),
                     novaVenda.getMoeda().getIdMoeda(),
                     restante
             );
             restante = BigDecimal.ZERO;
         } else {
-            // Limit que não casou totalmente continua "ativa"
+            // limit que não casou totalmente continua ativa
             novaVenda.setStatus("ativa");
         }
         ordemRepo.atualizarOrdem(novaVenda);

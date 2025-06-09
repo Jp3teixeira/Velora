@@ -83,7 +83,7 @@ public class UserManagementController {
         SessaoAtual.utilizadorId    = id;
         SessaoAtual.nome            = user.get("nome");
         SessaoAtual.email           = user.get("email");
-        SessaoAtual.tipo            = user.get("tipoPerfil");
+        SessaoAtual.tipo = user.get("tipoPerfil");  // "user" ou "admin"
         SessaoAtual.saldoCarteira   = WalletRepository.getInstance().getSaldo(id);
 
 

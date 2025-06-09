@@ -1,7 +1,7 @@
-// UserRepository.java
 package Repository;
 
 import Database.DBConnection;
+
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -9,24 +9,48 @@ import java.util.*;
 public class UserRepository {
 
     /**
-     * Procura um utilizador por e-mail OU por nome de utilizador (username).
+     * Obtém o id_perfil a partir do texto ("user" ou "admin").
+     */
+    public Optional<Integer> getPerfilId(String perfilNome) {
+        String sql = "SELECT id_perfil FROM Perfil WHERE perfil = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, perfilNome);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return Optional.of(rs.getInt("id_perfil"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Procura um utilizador por e-mail ou por nome de utilizador (username).
      * Retorna Optional.empty() se não encontrar.
      */
     public Optional<Map<String, String>> findUserByEmailOrUsername(String input) {
         String sql = """
-            SELECT id_utilizador, nome, email, password, tipoPerfil, foto
-              FROM Utilizador
-             WHERE email = ?
-                OR nome  = ?
+            SELECT 
+              u.id_utilizador,
+              u.nome,
+              u.email,
+              u.password,
+              u.foto,
+              p.perfil AS tipoPerfil
+            FROM Utilizador u
+            JOIN Perfil p ON u.id_perfil = p.id_perfil
+            WHERE u.email = ?
+               OR u.nome  = ?
             """;
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setString(1, input);
             stmt.setString(2, input);
-            ResultSet rs = stmt.executeQuery();
 
+            ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 Map<String, String> user = new HashMap<>();
                 user.put("id_utilizador",  String.valueOf(rs.getInt("id_utilizador")));
@@ -34,8 +58,7 @@ public class UserRepository {
                 user.put("email",           rs.getString("email"));
                 user.put("password",        rs.getString("password"));
                 user.put("tipoPerfil",      rs.getString("tipoPerfil"));
-                user.put("foto",           rs.getString("foto"));
-
+                user.put("foto",            rs.getString("foto"));
                 return Optional.of(user);
             }
         } catch (SQLException e) {
@@ -43,6 +66,7 @@ public class UserRepository {
         }
         return Optional.empty();
     }
+
 
     /**
      * Verifica se já existe um utilizador com este email.
@@ -103,12 +127,15 @@ public class UserRepository {
 
     /**
      * Regista um novo utilizador na tabela Utilizador.
-     * Retorna Optional contendo o id_utilizador gerado, ou Optional.empty() em caso de falha (incluindo duplicado).
+     * Retorna Optional contendo o id_utilizador gerado, ou Optional.empty() em caso de falha.
      */
     public Optional<Integer> registarNovoUtilizador(String nome, String email, String senhaHashed) {
         String insertUser = """
-        INSERT INTO Utilizador (nome, email, password, tipoPerfil)
-             VALUES (?, ?, ?, 'user')
+            INSERT INTO Utilizador (nome, email, password, id_perfil)
+            VALUES (
+               ?, ?, ?,
+               (SELECT id_perfil FROM Perfil WHERE perfil = 'user')
+            )
         """;
 
         try (Connection conn = DBConnection.getConnection();
@@ -118,6 +145,7 @@ public class UserRepository {
             stmt.setString(1, nome);
             stmt.setString(2, email);
             stmt.setString(3, senhaHashed);
+
             int linhas = stmt.executeUpdate();
             if (linhas > 0) {
                 ResultSet rs = stmt.getGeneratedKeys();
@@ -126,7 +154,7 @@ public class UserRepository {
                 }
             }
         } catch (SQLException e) {
-
+            // 2627 = PK/unique violation
             if (e.getErrorCode() == 2627) {
                 return Optional.empty();
             }
@@ -134,6 +162,7 @@ public class UserRepository {
         }
         return Optional.empty();
     }
+
 
     /**
      * Insere (ou atualiza) um código de verificação em VerificacaoEmail.
@@ -328,4 +357,39 @@ public class UserRepository {
             return false;
         }
     }
+    /**
+     * Actualiza nome, email e perfil de um utilizador.
+     */
+    public static boolean atualizarUtilizador(int id, String nome, String email, int idPerfil) {
+        String sql = "UPDATE Utilizador SET nome = ?, email = ?, id_perfil = ? WHERE id_utilizador = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, nome);
+            stmt.setString(2, email);
+            stmt.setInt   (3, idPerfil);
+            stmt.setInt   (4, id);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Atualiza apenas o caminho da foto de perfil.
+     */
+    public static boolean atualizarFoto(int id, String fotoPath) {
+        String sql = "UPDATE Utilizador SET foto = ? WHERE id_utilizador = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, fotoPath);
+            stmt.setInt   (2, id);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
+
+

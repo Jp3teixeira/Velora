@@ -1,10 +1,11 @@
 package Repository;
 
+import Database.DBConnection;
 import model.Ordem;
 import model.Utilizador;
 import model.Moeda;
-
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.math.BigDecimal;
@@ -22,133 +23,130 @@ public class OrdemRepository {
 
     /**
      * Insere uma nova ordem na tabela 'Ordem' e preenche o ID gerado em ordem.setIdOrdem(...)
+     *
+     * @param ordem Objeto Ordem contendo:
+     *              - idUtilizador
+     *              - idMoeda
+     *              - idTipoOrdem    (FK para OrdemTipo)
+     *              - idStatus       (FK para OrdemStatus)
+     *              - idModo         (FK para OrdemModo)
+     *              - quantidade
+     *              - precoUnitarioEur
+     *              - dataCriacao
+     *              - dataExpiracao
      */
     public void inserirOrdem(Ordem ordem) throws SQLException {
         String sql = """
-            INSERT INTO Ordem 
-              (id_utilizador, id_moeda, tipo, modo, quantidade, preco_unitario_eur, data_criacao, data_expiracao, status)
+            INSERT INTO Ordem
+              (id_utilizador, id_moeda, id_tipo_ordem, id_status, id_modo,
+               quantidade, preco_unitario_eur, data_criacao, data_expiracao)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
-        PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-        stmt.setInt(1, ordem.getUtilizador().getIdUtilizador());
-        stmt.setInt(2, ordem.getMoeda().getIdMoeda());
-        stmt.setString(3, ordem.getTipo());                              // "compra" ou "venda"
-        stmt.setString(4, ordem.getModo());                               // "market" ou "limit"
-        stmt.setBigDecimal(5, ordem.getQuantidade());                      // DECIMAL(32,16)
-        stmt.setBigDecimal(6, ordem.getPrecoUnitarioEur());                // DECIMAL(18,8)
-        stmt.setTimestamp(7, Timestamp.valueOf(ordem.getDataCriacao()));   // DATETIME
-        stmt.setTimestamp(8, Timestamp.valueOf(ordem.getDataExpiracao())); // DATETIME
-        stmt.setString(9, ordem.getStatus());                              // "ativa", "executada" ou "expirada"
+        try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(   1, ordem.getUtilizador().getIdUtilizador());
+            stmt.setInt(   2, ordem.getMoeda().getIdMoeda());
+            stmt.setInt(   3, ordem.getIdTipoOrdem());
+            stmt.setInt(   4, ordem.getIdStatus());
+            stmt.setInt(   5, ordem.getIdModo());
+            stmt.setBigDecimal(6, ordem.getQuantidade());
+            stmt.setBigDecimal(7, ordem.getPrecoUnitarioEur());
+            stmt.setTimestamp( 8, Timestamp.valueOf(ordem.getDataCriacao()));
+            stmt.setTimestamp( 9, Timestamp.valueOf(ordem.getDataExpiracao()));
 
-        stmt.executeUpdate();
-        ResultSet rs = stmt.getGeneratedKeys();
-        if (rs.next()) {
-            ordem.setIdOrdem(rs.getInt(1));
+            stmt.executeUpdate();
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    ordem.setIdOrdem(rs.getInt(1));
+                }
+            }
         }
-        rs.close();
-        stmt.close();
     }
 
     /**
-     * Obter ordens pendentes (status = 'ativa', dentro do critério de preço para limit orders).
-     *
-     * @param idMoeda       ID da moeda em questão
-     * @param tipoContrario "venda" se estou buscando ordens de venda (para um buy), ou "compra" se buscando ordens de compra (para um sell)
-     * @param modoOrigem    modo da ordem que está pedindo este book ("market" ou "limit")
-     * @param precoLimite   preço limite declarado pela ordem (usado apenas se modoOrigem="limit"); se modoOrigem="market", pode ser null
-     * @return lista de Ordens ativas que satisfazem modo+preço, ordenadas por prioridade (preço e FIFO)
+     * Obter ordens pendentes (status = 'ativa'):
+     * Filtra por moeda, tipoContrario, modoOrigem e precoLimite, usando FK idTipoOrdem, idStatus, idModo.
      */
     public List<Ordem> obterOrdensPendentes(int idMoeda,
-                                            String tipoContrario,
-                                            String modoOrigem,
+                                            String tipoContrario,   // "compra" ou "venda"
+                                            String modoOrigem,      // "market" ou "limit"
                                             BigDecimal precoLimite) throws SQLException {
         List<Ordem> ordens = new ArrayList<>();
-
         String sql;
-        if ("venda".equalsIgnoreCase(tipoContrario)) {
-            // Buscando ordens de venda ativas
+
+        boolean isVenda = "venda".equalsIgnoreCase(tipoContrario);
+        // preparámos parâmetros em ordem: moeda, [preço]
+        if (isVenda) {
+            // buscando vendas para compra
             if ("limit".equalsIgnoreCase(modoOrigem)) {
-                // Compra limit: só ordens de venda cujo preço <= precoLimite
                 sql = """
-                    SELECT *
-                      FROM Ordem
-                     WHERE id_moeda = ?
-                       AND tipo = 'venda'
-                       AND modo = 'limit'
-                       AND status = 'ativa'
-                       AND preco_unitario_eur <= ?
-                     ORDER BY preco_unitario_eur ASC, data_criacao ASC
+                    SELECT t.*, ot.tipo_ordem, os.status, om.modo
+                      FROM Ordem t
+                      JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
+                      JOIN OrdemStatus os ON t.id_status     = os.id_status
+                      JOIN OrdemModo om   ON t.id_modo       = om.id_modo
+                     WHERE t.id_moeda = ?
+                       AND t.id_tipo_ordem = (SELECT id_tipo_ordem FROM OrdemTipo WHERE tipo_ordem='venda')
+                       AND t.id_modo = (SELECT id_modo FROM OrdemModo WHERE modo='limit')
+                       AND t.id_status = (SELECT id_status FROM OrdemStatus WHERE status='ativa')
+                       AND t.preco_unitario_eur <= ?
+                     ORDER BY t.preco_unitario_eur ASC, t.data_criacao ASC
                     """;
             } else {
-                // Compra market: aceita qualquer venda ativa (market ou limit), FIFO por data
                 sql = """
-                    SELECT *
-                      FROM Ordem
-                     WHERE id_moeda = ?
-                       AND tipo = 'venda'
-                       AND status = 'ativa'
-                     ORDER BY data_criacao ASC
+                    SELECT t.*, ot.tipo_ordem, os.status, om.modo
+                      FROM Ordem t
+                      JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
+                      JOIN OrdemStatus os ON t.id_status     = os.id_status
+                      JOIN OrdemModo om   ON t.id_modo       = om.id_modo
+                     WHERE t.id_moeda = ?
+                       AND t.id_tipo_ordem = (SELECT id_tipo_ordem FROM OrdemTipo WHERE tipo_ordem='venda')
+                       AND t.id_status = (SELECT id_status FROM OrdemStatus WHERE status='ativa')
+                     ORDER BY t.data_criacao ASC
                     """;
             }
         } else {
-            // Buscando ordens de compra ativas
+            // buscando compras para venda
             if ("limit".equalsIgnoreCase(modoOrigem)) {
-                // Venda limit: só ordens de compra cujo preço >= precoLimite
                 sql = """
-                    SELECT *
-                      FROM Ordem
-                     WHERE id_moeda = ?
-                       AND tipo = 'compra'
-                       AND modo = 'limit'
-                       AND status = 'ativa'
-                       AND preco_unitario_eur >= ?
-                     ORDER BY preco_unitario_eur DESC, data_criacao ASC
+                    SELECT t.*, ot.tipo_ordem, os.status, om.modo
+                      FROM Ordem t
+                      JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
+                      JOIN OrdemStatus os ON t.id_status     = os.id_status
+                      JOIN OrdemModo om   ON t.id_modo       = om.id_modo
+                     WHERE t.id_moeda = ?
+                       AND t.id_tipo_ordem = (SELECT id_tipo_ordem FROM OrdemTipo WHERE tipo_ordem='compra')
+                       AND t.id_modo = (SELECT id_modo FROM OrdemModo WHERE modo='limit')
+                       AND t.id_status = (SELECT id_status FROM OrdemStatus WHERE status='ativa')
+                       AND t.preco_unitario_eur >= ?
+                     ORDER BY t.preco_unitario_eur DESC, t.data_criacao ASC
                     """;
             } else {
-                // Venda market: aceita qualquer compra ativa, FIFO por data
                 sql = """
-                    SELECT *
-                      FROM Ordem
-                     WHERE id_moeda = ?
-                       AND tipo = 'compra'
-                       AND status = 'ativa'
-                     ORDER BY data_criacao ASC
+                    SELECT t.*, ot.tipo_ordem, os.status, om.modo
+                      FROM Ordem t
+                      JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
+                      JOIN OrdemStatus os ON t.id_status     = os.id_status
+                      JOIN OrdemModo om   ON t.id_modo       = om.id_modo
+                     WHERE t.id_moeda = ?
+                       AND t.id_tipo_ordem = (SELECT id_tipo_ordem FROM OrdemTipo WHERE tipo_ordem='compra')
+                       AND t.id_status = (SELECT id_status FROM OrdemStatus WHERE status='ativa')
+                     ORDER BY t.data_criacao ASC
                     """;
             }
         }
 
-        PreparedStatement stmt = connection.prepareStatement(sql);
-        stmt.setInt(1, idMoeda);
-        if ("limit".equalsIgnoreCase(modoOrigem)) {
-            stmt.setBigDecimal(2, precoLimite);
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, idMoeda);
+            if ("limit".equalsIgnoreCase(modoOrigem)) {
+                stmt.setBigDecimal(2, precoLimite);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    ordens.add(mapearOrdem(rs));
+                }
+            }
         }
-
-        ResultSet rs = stmt.executeQuery();
-        while (rs.next()) {
-            Ordem ordem = new Ordem();
-            ordem.setIdOrdem(rs.getInt("id_ordem"));
-
-            Utilizador u = new Utilizador();
-            u.setIdUtilizador(rs.getInt("id_utilizador"));
-            ordem.setUtilizador(u);
-
-            Moeda m = new Moeda();
-            m.setIdMoeda(rs.getInt("id_moeda"));
-            ordem.setMoeda(m);
-
-            ordem.setTipo(rs.getString("tipo"));
-            ordem.setModo(rs.getString("modo"));
-            ordem.setQuantidade(rs.getBigDecimal("quantidade"));
-            ordem.setPrecoUnitarioEur(rs.getBigDecimal("preco_unitario_eur"));
-            ordem.setDataCriacao(rs.getTimestamp("data_criacao").toLocalDateTime());
-            ordem.setDataExpiracao(rs.getTimestamp("data_expiracao").toLocalDateTime());
-            ordem.setStatus(rs.getString("status"));
-
-            ordens.add(ordem);
-        }
-        rs.close();
-        stmt.close();
         return ordens;
     }
 
@@ -156,95 +154,92 @@ public class OrdemRepository {
      * Atualiza apenas a quantidade remanescente e o status de uma ordem já existente.
      */
     public void atualizarOrdem(Ordem ordem) throws SQLException {
-        String sql = "UPDATE Ordem SET quantidade = ?, status = ? WHERE id_ordem = ?";
-        PreparedStatement stmt = connection.prepareStatement(sql);
-        stmt.setBigDecimal(1, ordem.getQuantidade());
-        stmt.setString(2, ordem.getStatus());
-        stmt.setInt(3, ordem.getIdOrdem());
-        stmt.executeUpdate();
-        stmt.close();
+        String sql = "UPDATE Ordem SET quantidade = ?, id_status = ? WHERE id_ordem = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setBigDecimal(1, ordem.getQuantidade());
+            stmt.setInt(2, ordem.getIdStatus());
+            stmt.setInt(3, ordem.getIdOrdem());
+            stmt.executeUpdate();
+        }
     }
 
     /**
-     * Retorna uma ordem pelo seu ID (pode ser útil em outros fluxos).
+     * Retorna uma ordem pelo seu ID.
      */
     public Ordem obterOrdemPorId(int id) throws SQLException {
-        String sql = "SELECT * FROM Ordem WHERE id_ordem = ?";
-        PreparedStatement stmt = connection.prepareStatement(sql);
-        stmt.setInt(1, id);
-        ResultSet rs = stmt.executeQuery();
-
-        if (rs.next()) {
-            Ordem ordem = new Ordem();
-            ordem.setIdOrdem(rs.getInt("id_ordem"));
-
-            Utilizador u = new Utilizador();
-            u.setIdUtilizador(rs.getInt("id_utilizador"));
-            ordem.setUtilizador(u);
-
-            Moeda m = new Moeda();
-            m.setIdMoeda(rs.getInt("id_moeda"));
-            ordem.setMoeda(m);
-
-            ordem.setTipo(rs.getString("tipo"));
-            ordem.setModo(rs.getString("modo"));
-            ordem.setQuantidade(rs.getBigDecimal("quantidade"));
-            ordem.setPrecoUnitarioEur(rs.getBigDecimal("preco_unitario_eur"));
-            ordem.setDataCriacao(rs.getTimestamp("data_criacao").toLocalDateTime());
-            ordem.setDataExpiracao(rs.getTimestamp("data_expiracao").toLocalDateTime());
-            ordem.setStatus(rs.getString("status"));
-            rs.close();
-            stmt.close();
-            return ordem;
+        String sql = """
+            SELECT t.*, ot.tipo_ordem, os.status, om.modo
+              FROM Ordem t
+              JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
+              JOIN OrdemStatus os ON t.id_status     = os.id_status
+              JOIN OrdemModo om   ON t.id_modo       = om.id_modo
+             WHERE t.id_ordem = ?
+            """;
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapearOrdem(rs);
+                }
+            }
         }
-        rs.close();
-        stmt.close();
         return null;
     }
 
     /**
-     * Lista todas as ordens com status 'ativa' e modo 'limit' de um usuário,
-     * ordenadas por data de criação decrescente.
+     * Lista todas as ordens abertas (status = 'ativa' e modo = 'limit') de um usuário.
      */
     public List<Ordem> listarOrdensAbertasPorUsuario(int idUtilizador) throws SQLException {
         List<Ordem> ordens = new ArrayList<>();
         String sql = """
-            SELECT *
-              FROM Ordem
-             WHERE id_utilizador = ?
-               AND status = 'ativa'
-               AND modo = 'limit'
-             ORDER BY data_criacao DESC
+            SELECT t.*, ot.tipo_ordem, os.status, om.modo
+              FROM Ordem t
+              JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
+              JOIN OrdemStatus os ON t.id_status     = os.id_status
+              JOIN OrdemModo om   ON t.id_modo       = om.id_modo
+             WHERE t.id_utilizador = ?
+               AND t.id_status = (SELECT id_status FROM OrdemStatus WHERE status='ativa')
+               AND t.id_modo   = (SELECT id_modo   FROM OrdemModo   WHERE modo='limit')
+             ORDER BY t.data_criacao DESC
             """;
-
-        PreparedStatement stmt = connection.prepareStatement(sql);
-        stmt.setInt(1, idUtilizador);
-        ResultSet rs = stmt.executeQuery();
-
-        while (rs.next()) {
-            Ordem o = new Ordem();
-            o.setIdOrdem(rs.getInt("id_ordem"));
-
-            Utilizador u = new Utilizador();
-            u.setIdUtilizador(rs.getInt("id_utilizador"));
-            o.setUtilizador(u);
-
-            Moeda m = new Moeda();
-            m.setIdMoeda(rs.getInt("id_moeda"));
-            o.setMoeda(m);
-
-            o.setTipo(rs.getString("tipo"));
-            o.setModo(rs.getString("modo"));
-            o.setQuantidade(rs.getBigDecimal("quantidade"));
-            o.setPrecoUnitarioEur(rs.getBigDecimal("preco_unitario_eur"));
-            o.setDataCriacao(rs.getTimestamp("data_criacao").toLocalDateTime());
-            o.setDataExpiracao(rs.getTimestamp("data_expiracao").toLocalDateTime());
-            o.setStatus(rs.getString("status"));
-
-            ordens.add(o);
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, idUtilizador);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    ordens.add(mapearOrdem(rs));
+                }
+            }
         }
-        rs.close();
-        stmt.close();
         return ordens;
+    }
+
+    // --- método auxiliar para evitar duplicação de código ---
+    private Ordem mapearOrdem(ResultSet rs) throws SQLException {
+        Ordem ordem = new Ordem();
+        ordem.setIdOrdem(   rs.getInt("id_ordem"));
+
+        Utilizador u = new Utilizador();
+        u.setIdUtilizador(rs.getInt("id_utilizador"));
+        ordem.setUtilizador(u);
+
+        Moeda m = new Moeda();
+        m.setIdMoeda(rs.getInt("id_moeda"));
+        ordem.setMoeda(m);
+
+        ordem.setIdTipoOrdem( rs.getInt("id_tipo_ordem"));
+        ordem.setTipoOrdem(   rs.getString("tipo_ordem"));
+
+        ordem.setIdStatus(    rs.getInt("id_status"));
+        ordem.setStatus(      rs.getString("status"));
+
+        ordem.setIdModo(      rs.getInt("id_modo"));
+        ordem.setModo(        rs.getString("modo"));
+
+        ordem.setQuantidade(       rs.getBigDecimal("quantidade"));
+        ordem.setPrecoUnitarioEur( rs.getBigDecimal("preco_unitario_eur"));
+        ordem.setDataCriacao(      rs.getTimestamp("data_criacao").toLocalDateTime());
+        ordem.setDataExpiracao(    rs.getTimestamp("data_expiracao").toLocalDateTime());
+
+        return ordem;
     }
 }

@@ -8,97 +8,43 @@ public class Utilizador {
     private String email;
     private String nome;
     private String password;
-    private String tipoPerfil;  //  user ou admin
+    private Integer idPerfil;      // FK → Perfil
+    private String perfil;         // texto de Perfil (user/admin)
     private LocalDateTime dataCriacao;
-    private String foto;  // Caminho da foto
+    private String foto;
 
-    // Relacionamentos “1-N”:
-    private CarteiraEuro carteiraEuro;       // 1-1 para o saldo em EUR
-    private List<Portfolio> portfolio;       // 1-N para ativos
-    private List<Ordem> ordens;              // 1-N para Ordens de compra/venda
-    private List<Transacao> transacoes; // 1-N para Transacoes de cripto
-    private List<Historico_movimentos> historicoEur; // 1-N para depósitos/levantamentos
+    // relacionamentos
+    private CarteiraEuro carteiraEuro;
+    private List<Portfolio> portfolio;
+    private List<Ordem> ordens;
+    private List<Transacao> transacoes;
 
-    // ====== Construtores, getters e setters ======
-    public Utilizador() { }
+    public Utilizador() {}
 
-    public Integer getIdUtilizador() {
-        return idUtilizador;
-    }
-    public void setIdUtilizador(Integer idUtilizador) {
-        this.idUtilizador = idUtilizador;
-    }
+    // getters & setters...
+    public Integer getIdUtilizador() { return idUtilizador; }
+    public void setIdUtilizador(Integer idUtilizador) { this.idUtilizador = idUtilizador; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+    public Integer getIdPerfil() { return idPerfil; }
+    public void setIdPerfil(Integer idPerfil) { this.idPerfil = idPerfil; }
+    public String getPerfil() { return perfil; }
+    public void setPerfil(String perfil) { this.perfil = perfil; }
+    public LocalDateTime getDataCriacao() { return dataCriacao; }
+    public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
+    public String getFoto() { return foto; }
+    public void setFoto(String foto) { this.foto = foto; }
 
-    public String getEmail() {
-        return email;
-    }
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-    public void setPassword(String passwordHash) {
-        this.password = passwordHash;
-    }
-
-    public String getTipoPerfil() {
-        return tipoPerfil;
-    }
-    public void setTipoPerfil(String tipoPerfil) {
-        this.tipoPerfil = tipoPerfil;
-    }
-
-    public String getFoto() {return foto;}
-    public void setFoto(String foto) {this.foto = foto;}
-
-    public LocalDateTime getDataCriacao() {
-        return dataCriacao;
-    }
-    public void setDataCriacao(LocalDateTime dataCriacao) {
-        this.dataCriacao = dataCriacao;
-    }
-
-    public CarteiraEuro getCarteiraEuro() {
-        return carteiraEuro;
-    }
-    public void setCarteiraEuro(CarteiraEuro carteiraEuro) {
-        this.carteiraEuro = carteiraEuro;
-    }
-
-    public List<Portfolio> getPortfolio() {
-        return portfolio;
-    }
-    public void setPortfolio(List<Portfolio> portfolio) {
-        this.portfolio = portfolio;
-    }
-
-    public List<Ordem> getOrdens() {
-        return ordens;
-    }
-    public void setOrdens(List<Ordem> ordens) {
-        this.ordens = ordens;
-    }
-
-    public List<Transacao> getTransacoes() {
-        return transacoes;
-    }
-    public void setTransacoes(List<Transacao> transacoes) {
-        this.transacoes = transacoes;
-    }
-
-    public List<Historico_movimentos> getHistoricoEur() {
-        return historicoEur;
-    }
-    public void setHistoricoEur(List<Historico_movimentos> historicoEur) {
-        this.historicoEur = historicoEur;
-    }
+    public CarteiraEuro getCarteiraEuro() { return carteiraEuro; }
+    public void setCarteiraEuro(CarteiraEuro carteiraEuro) { this.carteiraEuro = carteiraEuro; }
+    public List<Portfolio> getPortfolio() { return portfolio; }
+    public void setPortfolio(List<Portfolio> portfolio) { this.portfolio = portfolio; }
+    public List<Ordem> getOrdens() { return ordens; }
+    public void setOrdens(List<Ordem> ordens) { this.ordens = ordens; }
+    public List<Transacao> getTransacoes() { return transacoes; }
+    public void setTransacoes(List<Transacao> transacoes) { this.transacoes = transacoes; }
 }

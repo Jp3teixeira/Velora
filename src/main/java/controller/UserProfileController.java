@@ -1,5 +1,6 @@
 package controller;
 
+import Repository.UserRepository;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -7,7 +8,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import Repository.UtilizadorRepository;
 import javafx.scene.shape.Circle;
 import javafx.stage.FileChooser;
 import model.Utilizador;
@@ -16,14 +16,6 @@ import utils.Routes;
 import utils.SessaoAtual;
 
 import java.io.File;
-import java.net.URL;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.ResourceBundle;
-
-import static utils.SessaoAtual.utilizadorId;
 
 public class UserProfileController {
 
@@ -32,109 +24,79 @@ public class UserProfileController {
     @FXML private Label emailTopoLabel;
     @FXML private TextField nomeField;
     @FXML private TextField emailField;
-    @FXML private TextField telemovelField;
-    @FXML private TextField localizacaoField;
-
+    @FXML private TextField perfilField; // se deixares o user escolher admin/user
     @FXML private Label mensagemLabel;
 
+    private Utilizador u = SessaoAtual.getUtilizador();
+
     @FXML
-    public void initialize(URL location, ResourceBundle resources) {
-        Utilizador utilizador = SessaoAtual.getUtilizador();
-
-        if (utilizador != null) {
-            nomeTopoLabel.setText(utilizador.getNome());
-            emailTopoLabel.setText(utilizador.getEmail());
-
-            nomeField.setText(utilizador.getNome());
-            emailField.setText(utilizador.getEmail());
-
-            if (utilizador.getFoto() != null && !utilizador.getFoto().isEmpty()) {
-                fotoPerfil.setImage(new Image(utilizador.getFoto()));
-            } else {
-                System.out.println("Foto de perfil não encontrada.");
+    public void initialize() {
+        if (u != null) {
+            nomeTopoLabel.setText(u.getNome());
+            emailTopoLabel.setText(u.getEmail());
+            nomeField.setText(u.getNome());
+            emailField.setText(u.getEmail());
+            perfilField.setText(u.getIdPerfil().toString());
+            if (u.getFoto() != null) {
+                fotoPerfil.setImage(new Image(u.getFoto()));
             }
-        } else {
-            System.out.println("Utilizador não encontrado na sessão.");
         }
     }
 
-
-
     @FXML
     private void handleGuardar() {
-        try {
-            boolean sucesso = UtilizadorRepository.atualizarUtilizador(
-                    utilizadorId,
-                    nomeField.getText(),
-                    emailField.getText()
-            );
+        int novoPerfil = Integer.parseInt(perfilField.getText().trim());
+        boolean ok = UserRepository.atualizarUtilizador(
+                SessaoAtual.utilizadorId,
+                nomeField.getText(),
+                emailField.getText(),
+                novoPerfil
+        );
+        if (ok) {
+            u.setNome(nomeField.getText());
+            u.setEmail(emailField.getText());
+            u.setIdPerfil(novoPerfil);
+            SessaoAtual.setUtilizador(u);
+            nomeTopoLabel.setText(u.getNome());
+            emailTopoLabel.setText(u.getEmail());
+            mensagemLabel.setText("Dados actualizados com sucesso.");
+        } else {
+            mensagemLabel.setText("Erro ao guardar alterações.");
+        }
+    }
 
-            if (sucesso) {
-                SessaoAtual.nome = nomeField.getText();
-                SessaoAtual.email = emailField.getText();
+    @FXML
+    private void handleAdicionarFoto() {
+        FileChooser fc = new FileChooser();
+        fc.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Imagens", "*.png","*.jpg","*.jpeg")
+        );
+        File f = fc.showOpenDialog(null);
+        if (f == null) return;
 
+        String uri = f.toURI().toString();
+        Circle clip = new Circle(50,50,50);
+        fotoPerfil.setClip(clip);
+        fotoPerfil.setImage(new Image(uri));
 
-                nomeTopoLabel.setText(SessaoAtual.nome);
-                emailTopoLabel.setText(SessaoAtual.email);
-
-                mensagemLabel.setText("Alterações guardadas com sucesso.");
-            } else {
-                mensagemLabel.setText("Erro ao guardar alterações.");
-            }
-        } catch (Exception e) {
-            mensagemLabel.setText("Erro nos dados.");
+        if (UserRepository.atualizarFoto(SessaoAtual.utilizadorId, uri)) {
+            u.setFoto(uri);
+            SessaoAtual.setUtilizador(u);
+            mensagemLabel.setText("Foto actualizada!");
+        } else {
+            mensagemLabel.setText("Falha ao guardar a foto.");
         }
     }
 
     @FXML
     private void handleLogout() {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Deseja terminar a sessão?", ButtonType.YES, ButtonType.NO);
-        alert.setTitle("Terminar Sessão");
-
-        alert.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.YES) {
+        Alert a = new Alert(Alert.AlertType.CONFIRMATION,
+                "Deseja terminar a sessão?", ButtonType.YES, ButtonType.NO);
+        a.showAndWait().ifPresent(bt -> {
+            if (bt == ButtonType.YES) {
                 SessaoAtual.limparSessao();
                 NavigationHelper.goTo(Routes.LOGIN, false);
             }
         });
-    }
-
-    private String caminhoFotoSelecionada = null;
-
-    @FXML
-    private void handleAdicionarFoto() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Selecionar foto de perfil");
-        fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Imagens", "*.png", "*.jpg", "*.jpeg", "*.gif")
-        );
-
-        File ficheiro = fileChooser.showOpenDialog(null);
-
-        Circle clip = new Circle(50, 50, 50); // raio = metade da largura/altura
-        fotoPerfil.setClip(clip);
-
-        if (ficheiro != null) {
-            caminhoFotoSelecionada = ficheiro.toURI().toString(); // Caminho no formato URI
-            fotoPerfil.setImage(new Image(caminhoFotoSelecionada));
-            atualizarFotoNaBaseDeDados(caminhoFotoSelecionada); // <-- aqui chamas o método
-        } else {
-            System.out.println("Foto de perfil não selecionada.");
-        }
-    }
-
-
-    private void atualizarFotoNaBaseDeDados(String caminho) {
-        int idUtilizador = utilizadorId; // ou como acedes ao ID
-
-        try (Connection conn = DriverManager.getConnection("jdbc:sqlserver://ctespbd.dei.isep.ipp.pt;databaseName=2025_LP2_G5_ERM;encrypt=true;trustServerCertificate=true;", "2025_LP2_G5_ERM", "LP2Grupo5")) {
-            String sql = "UPDATE utilizador SET foto = ? WHERE id_utilizador = ?";
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, caminho);
-            stmt.setInt(2, idUtilizador);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 }

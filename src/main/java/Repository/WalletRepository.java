@@ -71,7 +71,7 @@ public class WalletRepository {
         }
     }
 
-    // === DEPOSITAR (incrementar saldo_eur) ===
+    // === DEPOSITAR (acrescentar saldo_eur) ===
     public boolean deposit(int userId, BigDecimal amount) {
         String sql = "UPDATE Carteira SET saldo_eur = saldo_eur + ? WHERE id_utilizador = ?";
 

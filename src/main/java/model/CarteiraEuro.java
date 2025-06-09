@@ -7,27 +7,12 @@ public class CarteiraEuro {
     private Utilizador utilizador;
     private BigDecimal saldoEur;
 
-    // ====== Construtores, getters e setters ======
-    public CarteiraEuro() { }
+    public CarteiraEuro() {}
 
-    public Integer getIdCarteiraEuro() {
-        return idCarteiraEuro;
-    }
-    public void setIdCarteiraEuro(Integer idCarteiraEuro) {
-        this.idCarteiraEuro = idCarteiraEuro;
-    }
-
-    public Utilizador getUtilizador() {
-        return utilizador;
-    }
-    public void setUtilizador(Utilizador utilizador) {
-        this.utilizador = utilizador;
-    }
-
-    public BigDecimal getSaldoEur() {
-        return saldoEur;
-    }
-    public void setSaldoEur(BigDecimal saldoEur) {
-        this.saldoEur = saldoEur;
-    }
+    public Integer getIdCarteiraEuro() { return idCarteiraEuro; }
+    public void setIdCarteiraEuro(Integer id) { this.idCarteiraEuro = id; }
+    public Utilizador getUtilizador() { return utilizador; }
+    public void setUtilizador(Utilizador u) { this.utilizador = u; }
+    public BigDecimal getSaldoEur() { return saldoEur; }
+    public void setSaldoEur(BigDecimal s) { this.saldoEur = s; }
 }

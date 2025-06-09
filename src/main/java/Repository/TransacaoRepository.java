@@ -13,55 +13,50 @@ import java.util.List;
 
 public class TransacaoRepository {
 
-    public TransacaoRepository() {
-
-    }
+    public TransacaoRepository() { }
 
     /**
-     * Insere nova transação (compra/venda).
+     * Insere nova transação (compra ou venda).
      */
     public void inserirTransacao(int idUtilizador,
                                  int idMoeda,
-                                 String tipo,
                                  BigDecimal quantidade,
                                  BigDecimal precoUnitarioEur) throws SQLException {
-        BigDecimal totalEur = quantidade.multiply(precoUnitarioEur).setScale(8, RoundingMode.HALF_UP);
+
         String sql = """
             INSERT INTO Transacao
-              (id_utilizador, id_moeda, tipo, quantidade, preco_unitario_eur, total_eur, data_hora)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+              (id_utilizador, id_moeda, quantidade, preco_unitario_eur, data_hora)
+            VALUES (?, ?, ?, ?, ?)
             """;
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, idUtilizador);
             stmt.setInt(2, idMoeda);
-            stmt.setString(3, tipo);
-            stmt.setBigDecimal(4, quantidade.setScale(8, RoundingMode.HALF_UP));
-            stmt.setBigDecimal(5, precoUnitarioEur.setScale(8, RoundingMode.HALF_UP));
-            stmt.setBigDecimal(6, totalEur);
-            stmt.setTimestamp(7, Timestamp.valueOf(LocalDateTime.now()));
+            stmt.setBigDecimal(3, quantidade.setScale(8, RoundingMode.HALF_UP));
+            stmt.setBigDecimal(4, precoUnitarioEur.setScale(8, RoundingMode.HALF_UP));
+            stmt.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
+
             stmt.executeUpdate();
         }
     }
-
     /**
-     * Lista todas as transações de um usuário, ordenadas por data decrescente.
+     * Lista todas as transações de um utilizador, ordenadas por data decrescente.
      */
     public List<Transacao> listarPorUsuario(int idUtilizador) {
         List<Transacao> lista = new ArrayList<>();
+
         String sql = """
             SELECT t.id_transacao,
                    t.id_utilizador,
                    t.id_moeda,
-                   t.tipo,
                    t.quantidade,
                    t.preco_unitario_eur,
-                   t.total_eur,
                    t.data_hora,
                    m.nome,
                    m.simbolo,
-                   m.tipo AS tipo_moeda,
+                   m.id_tipo       AS idTipoMoeda,
                    pm.preco_em_eur AS valor_atual
               FROM Transacao t
               JOIN Moeda m ON t.id_moeda = m.id_moeda
@@ -80,26 +75,37 @@ public class TransacaoRepository {
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, idUtilizador);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     Transacao tx = new Transacao();
+
                     tx.setIdTransacao(rs.getInt("id_transacao"));
 
-                    // Preenche a Moeda associada à transação
+                    // monta o Utilizador se quiseres guardar:
+                    // Utilizador u = new Utilizador();
+                    // u.setIdUtilizador(rs.getInt("id_utilizador"));
+                    // tx.setUtilizador(u);
+
+                    // monta a Moeda
                     Moeda m = new Moeda();
                     m.setIdMoeda(rs.getInt("id_moeda"));
                     m.setNome(rs.getString("nome"));
                     m.setSimbolo(rs.getString("simbolo"));
-                    m.setTipo(rs.getString("tipo_moeda"));
-                    m.setValorAtual(rs.getBigDecimal("valor_atual")); // valor atual só para referência
+                    m.setIdTipo(rs.getInt("idTipoMoeda"));
+                    m.setValorAtual(rs.getBigDecimal("valor_atual"));
                     tx.setMoeda(m);
 
-                    tx.setTipo(rs.getString("tipo"));
-                    tx.setQuantidade(rs.getBigDecimal("quantidade"));
-                    tx.setPrecoUnitarioEur(rs.getBigDecimal("preco_unitario_eur"));
-                    tx.setTotalEur(rs.getBigDecimal("total_eur"));
+                    BigDecimal qty   = rs.getBigDecimal("quantidade");
+                    BigDecimal price = rs.getBigDecimal("preco_unitario_eur");
+                    tx.setQuantidade(qty);
+                    tx.setPrecoUnitarioEur(price);
                     tx.setDataHora(rs.getTimestamp("data_hora").toLocalDateTime());
+
+                    // calcula total em EUR
+                    BigDecimal total = qty.multiply(price).setScale(8, RoundingMode.HALF_UP);
+                    tx.setTotalEur(total);
 
                     lista.add(tx);
                 }
@@ -107,6 +113,7 @@ public class TransacaoRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return lista;
     }
 }

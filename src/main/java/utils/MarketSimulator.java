@@ -1,8 +1,8 @@
 package utils;
 
 import Database.DBConnection;
-import model.Moeda;
 import Repository.MarketRepository;
+import model.Moeda;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,21 +30,27 @@ public class MarketSimulator {
             verificarGravacaoBD();
         }, 0, 1, TimeUnit.MINUTES);
 
-        System.out.println("🚀 Simulador de mercado iniciado (atualização por segundo).");
+        System.out.println("🚀 Simulador de mercado iniciado (atualização por minuto).");
     }
 
     private static void simularValoresEmMemoria() {
         String sqlMoedas = "SELECT id_moeda FROM Moeda";
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmtMoedas = conn.prepareStatement(sqlMoedas);
-             ResultSet rsMoedas = stmtMoedas.executeQuery()) {
+             PreparedStatement ps = conn.prepareStatement(sqlMoedas);
+             ResultSet rs = ps.executeQuery()) {
 
-            while (rsMoedas.next()) {
-                int id = rsMoedas.getInt("id_moeda");
+            while (rs.next()) {
+                int id = rs.getInt("id_moeda");
                 Moeda moeda = moedasAtuais.get(id);
                 if (moeda == null) {
-                    moeda = carregarUltimosDadosDaMoeda(conn, id);
+                    try {
+                        moeda = carregarUltimosDadosDaMoeda(conn, id);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        continue; // pula essa moeda
+                    }
                 }
+                // simula flutuação de preço e volume em memória
                 BigDecimal valorAnterior = moeda.getValorAtual();
                 BigDecimal novoValor = aplicarVariacao(valorAnterior);
                 BigDecimal novoVolume = gerarVolume();
@@ -53,7 +59,8 @@ public class MarketSimulator {
                 moeda.setVolumeMercado(novoVolume);
                 moedasAtuais.put(id, moeda);
             }
-        } catch (Exception e) {
+
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
@@ -65,22 +72,22 @@ public class MarketSimulator {
              WHERE id_moeda = ?
              ORDER BY timestamp_hora DESC
             """;
-        String sqlVolume = """
-            SELECT TOP 1 volume
-              FROM VolumeMercado
+        String sqlMeta = "SELECT nome, simbolo FROM Moeda WHERE id_moeda = ?";
+        String sqlVolume24h = """
+            SELECT volume24h
+              FROM vw_MoedaVolume24h
              WHERE id_moeda = ?
-             ORDER BY timestamp_hora DESC
             """;
-        String sqlMoeda = "SELECT nome, simbolo FROM Moeda WHERE id_moeda = ?";
 
         String nome = "";
         String simbolo = "";
         BigDecimal valor = BigDecimal.valueOf(100 + rand.nextDouble() * 100);
-        BigDecimal volume = BigDecimal.valueOf(1000 + rand.nextDouble() * 9000);
+        BigDecimal volume = BigDecimal.ZERO;
 
-        try (PreparedStatement stmtMoeda = conn.prepareStatement(sqlMoeda)) {
-            stmtMoeda.setInt(1, idMoeda);
-            try (ResultSet rs = stmtMoeda.executeQuery()) {
+        // carrega nome/símbolo
+        try (PreparedStatement stm = conn.prepareStatement(sqlMeta)) {
+            stm.setInt(1, idMoeda);
+            try (ResultSet rs = stm.executeQuery()) {
                 if (rs.next()) {
                     nome = rs.getString("nome");
                     simbolo = rs.getString("simbolo");
@@ -88,24 +95,28 @@ public class MarketSimulator {
             }
         }
 
-        try (PreparedStatement stmtPreco = conn.prepareStatement(sqlPreco)) {
-            stmtPreco.setInt(1, idMoeda);
-            try (ResultSet rsPreco = stmtPreco.executeQuery()) {
-                if (rsPreco.next()) {
-                    BigDecimal dbValor = rsPreco.getBigDecimal("preco_em_eur");
-                    if (dbValor != null) valor = dbValor;
+        // carrega preço mais recente
+        try (PreparedStatement stm = conn.prepareStatement(sqlPreco)) {
+            stm.setInt(1, idMoeda);
+            try (ResultSet rs = stm.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal db = rs.getBigDecimal("preco_em_eur");
+                    if (db != null) valor = db;
                 }
             }
         }
 
-        try (PreparedStatement stmtVolume = conn.prepareStatement(sqlVolume)) {
-            stmtVolume.setInt(1, idMoeda);
-            try (ResultSet rsVol = stmtVolume.executeQuery()) {
-                if (rsVol.next()) {
-                    BigDecimal dbVol = rsVol.getBigDecimal("volume");
-                    if (dbVol != null) volume = dbVol;
+        // carrega volume 24h via view
+        try (PreparedStatement stm = conn.prepareStatement(sqlVolume24h)) {
+            stm.setInt(1, idMoeda);
+            try (ResultSet rs = stm.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal db = rs.getBigDecimal("volume24h");
+                    if (db != null) volume = db;
                 }
             }
+        } catch (SQLException e) {
+            // se a view não existir, deixa volume = 0
         }
 
         return new Moeda(idMoeda, nome, simbolo, valor, BigDecimal.ZERO, volume);
@@ -130,7 +141,7 @@ public class MarketSimulator {
         }
     }
 
-    public static Map<Integer, Moeda> getMoedasAtuais() {
+    public static Map<Integer, Moeda> getMoedasSimuladas() {
         return moedasAtuais;
     }
 }
