@@ -35,8 +35,6 @@ public class OrdemController {
     @FXML private TextField txtPrecoLimite;
     @FXML private VBox boxPrecoLimite;
 
-    @FXML private ToggleGroup toggleTipoOrdem;
-
     private String tipoOrdem;       // "COMPRA" ou "VENDA"
     private Moeda moedaSelecionada;
     private int userId;
@@ -49,14 +47,15 @@ public class OrdemController {
                            Moeda moeda,
                            int userId,
                            Connection connection) {
-        this.tipoOrdem        = tipoOrdem;
+        this.tipoOrdem        = tipoOrdem.toUpperCase();
         this.moedaSelecionada = moeda;
         this.userId           = userId;
         this.connection       = connection;
 
-        labelTitulo.setText(tipoOrdem + " – " + moeda.getNome());
+        labelTitulo.setText(this.tipoOrdem + " – " + moeda.getNome());
         labelPrecoAtual.setText("Preço atual: € " + moeda.getValorAtual());
 
+        // inicialmente market
         rbMarket.setSelected(true);
         boxPrecoLimite.setVisible(false);
         boxPrecoLimite.setManaged(false);
@@ -96,77 +95,64 @@ public class OrdemController {
         }
 
         try {
+            // lê quantidade
             BigDecimal quantidade = new BigDecimal(txtQuantidade.getText().trim());
             if (quantidade.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new NumberFormatException();
             }
 
             // determina modo e preço unitário
-            String modo;
-            BigDecimal precoUnitario;
-            if (rbMarket.isSelected()) {
-                modo = "market";
-                precoUnitario = moedaSelecionada.getValorAtual();
-            } else {
-                modo = "limit";
-                BigDecimal p = new BigDecimal(txtPrecoLimite.getText().trim());
-                if (p.compareTo(BigDecimal.ZERO) <= 0) throw new NumberFormatException();
-                precoUnitario = p;
+            String modo = rbMarket.isSelected() ? "market" : "limit";
+            BigDecimal precoUnitario = rbMarket.isSelected()
+                    ? moedaSelecionada.getValorAtual()
+                    : new BigDecimal(txtPrecoLimite.getText().trim());
+
+            if (precoUnitario.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new NumberFormatException();
             }
 
             // reserva fundos ou cripto
-            if ("COMPRA".equalsIgnoreCase(tipoOrdem)) {
+            if ("COMPRA".equals(tipoOrdem)) {
                 BigDecimal custoTotal = precoUnitario.multiply(quantidade);
-                BigDecimal meuSaldo = walletRepo.getSaldo(userId);
-                if (meuSaldo.compareTo(custoTotal) < 0) {
+                if (walletRepo.getSaldo(userId).compareTo(custoTotal) < 0
+                        || !walletRepo.withdraw(userId, custoTotal)) {
                     mostrarErro("Saldo insuficiente em Euros.");
                     return;
                 }
-                if (!walletRepo.withdraw(userId, custoTotal)) {
-                    mostrarErro("Erro ao bloquear saldo em Euros.");
-                    return;
-                }
             } else {
-                BigDecimal minhaQtd = portfolioRepo.getQuantidade(userId, moedaSelecionada.getIdMoeda());
-                if (minhaQtd.compareTo(quantidade) < 0) {
+                if (portfolioRepo.getQuantidade(userId, moedaSelecionada.getIdMoeda())
+                        .compareTo(quantidade) < 0
+                        || !portfolioRepo.diminuirQuantidade(userId, moedaSelecionada.getIdMoeda(), quantidade)) {
                     mostrarErro("Quantidade insuficiente na carteira de cripto.");
-                    return;
-                }
-                if (!portfolioRepo.diminuirQuantidade(userId, moedaSelecionada.getIdMoeda(), quantidade)) {
-                    mostrarErro("Erro ao bloquear quantidade de cripto.");
                     return;
                 }
             }
 
-            // cria objeto Ordem com os FKs corretos
+            // monta objeto Ordem
             Ordem ordem = new Ordem();
-            ordem.setUtilizador(new Utilizador(){{
-                setIdUtilizador(userId);
-            }});
+            ordem.setUtilizador(new Utilizador() {{ setIdUtilizador(userId); }});
             ordem.setMoeda(moedaSelecionada);
-
-            // Mapeia texto → ID nas tabelas de domínio
-            ordem.setIdTipoOrdem(
-                    "COMPRA".equalsIgnoreCase(tipoOrdem) ? 1 : 2
-            );
-            ordem.setIdModo(
-                    "market".equalsIgnoreCase(modo) ? 1 : 2
-            );
-            ordem.setIdStatus(
-                    1 // 'ativa' na tabela OrdemStatus
-            );
-
             ordem.setQuantidade(quantidade);
             ordem.setPrecoUnitarioEur(precoUnitario);
             ordem.setDataCriacao(LocalDateTime.now());
             ordem.setDataExpiracao(LocalDateTime.now().plusHours(24));
 
-            // persiste e processa
-            OrdemRepository ordemRepo = new OrdemRepository(connection);
-            ordemRepo.inserirOrdem(ordem);
+            // busca FKs pelo repositório
+            OrdemRepository repo = new OrdemRepository(connection);
+            int idTipo = repo.obterIdTipoOrdem(tipoOrdem.toLowerCase());
+            int idModo = repo.obterIdModo(modo.toLowerCase());
+            int idStatus = repo.obterIdStatus("ativa");
 
+            ordem.setIdTipoOrdem(idTipo);
+            ordem.setIdModo(idModo);
+            ordem.setIdStatus(idStatus);
+
+            // persiste
+            repo.inserirOrdem(ordem);
+
+            // processa matching
             TradeService tradeService = new TradeService(connection);
-            if ("COMPRA".equalsIgnoreCase(tipoOrdem)) {
+            if ("COMPRA".equals(tipoOrdem)) {
                 tradeService.processarOrdemCompra(ordem);
             } else {
                 tradeService.processarOrdemVenda(ordem);
@@ -175,13 +161,13 @@ public class OrdemController {
             new Alert(Alert.AlertType.INFORMATION,
                     tipoOrdem + " executada com sucesso!")
                     .show();
-
             fecharJanela();
-        }
-        catch (NumberFormatException e) {
-            mostrarErro("Insira valores válidos (quantidade e, se limit, preço).");
-        }
-        catch (Exception e) {
+
+        } catch (NumberFormatException e) {
+            mostrarErro("Insira valores válidos (quantidade e preço).");
+        } catch (SQLException e) {
+            mostrarErro("Erro no banco de dados: " + e.getMessage());
+        } catch (Exception e) {
             e.printStackTrace();
             mostrarErro("Erro ao processar a ordem.");
         }

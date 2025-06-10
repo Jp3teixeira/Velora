@@ -166,7 +166,7 @@
 /* ===========================
    JFXTreeTableView & TabPane
    =========================== */
-/* Table container & background */
+
 .jfx-tree-table-view {
     -fx-background-color: #1a1a1a;
     -fx-control-inner-background: #1a1a1a;
@@ -184,14 +184,12 @@
     -fx-min-width: 700px;
     -fx-max-width: 700px;
 
-    /* Remove extra white padding */
     -fx-padding: 0;
 }
 
-/* Remove the default “search” strip above columns */
 .jfx-tree-table-view .search-box {
-    -fx-background-color: transparent; /* make the strip fully transparent */
-    -fx-max-height: 0;                  /* collapse its height to zero */
+    -fx-background-color: transparent;
+    -fx-max-height: 0;
     -fx-padding: 0;
 }
 
@@ -225,14 +223,14 @@
     -fx-text-fill: #121212;
 }
 
-/* Placeholder when empty */
+
 .jfx-tree-table-view .placeholder .label {
     -fx-text-fill: #777777;
     -fx-font-style: italic;
     -fx-font-size: 13px;
 }
 
-/* Custom vertical scrollbar */
+
 .jfx-tree-table-view .scroll-bar:vertical .thumb {
     -fx-background-color: #555555;
     -fx-background-insets: 0;
@@ -242,7 +240,7 @@
     -fx-background-color: #2b2b2b;
 }
 
-/* TabPane background */
+
 .tab-pane {
     -fx-background-color: #121212;
     -fx-tab-min-width: 140;
@@ -270,7 +268,7 @@
     -fx-border-width: 0 0 2 0;
 }
 
-/* Tab content area background */
+
 .tab-pane .tab-content-area {
     -fx-background-color: #121212;
 }
@@ -279,26 +277,24 @@
 /* ===========================
    AUXILIARY
    =========================== */
-/* Break long text in cells if needed */
+
 .jfx-tree-table-cell .text {
     -fx-wrap-text: true;
 }
 
-/* Center HBox padding */
+
 .center-hbox {
     -fx-padding: 30;
 }
-/* correcção do espaço vazio à direita do cabeçalho */
+
 .jfx-tree-table-view .column-header-background .filler {
     -fx-background-color: #141414;
 }
-/* --- SEARCH-BOX (remove completamente) ----------------------------- */
+/* --- SEARCH-BOX ---------------------------- */
 .jfx-tree-table-view .search-box {
     -fx-background-color: transparent;
     -fx-padding: 0;
     -fx-border-width: 0;
-
-    /* colapsa a altura ⇒ desaparece */
     -fx-pref-height: 0;
     -fx-min-height: 0;
     -fx-max-height: 0;

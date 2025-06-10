@@ -21,13 +21,14 @@ public class TransacaoRepository {
     public void inserirTransacao(int idUtilizador,
                                  int idMoeda,
                                  BigDecimal quantidade,
-                                 BigDecimal precoUnitarioEur) throws SQLException {
+                                 BigDecimal precoUnitarioEur,
+                                 int idTipoOrdem) throws SQLException {
 
         String sql = """
-            INSERT INTO Transacao
-              (id_utilizador, id_moeda, quantidade, preco_unitario_eur, data_hora)
-            VALUES (?, ?, ?, ?, ?)
-            """;
+        INSERT INTO Transacao
+          (id_utilizador, id_moeda, quantidade, preco_unitario_eur, data_hora, id_tipo_ordem)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """;
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -37,10 +38,12 @@ public class TransacaoRepository {
             stmt.setBigDecimal(3, quantidade.setScale(8, RoundingMode.HALF_UP));
             stmt.setBigDecimal(4, precoUnitarioEur.setScale(8, RoundingMode.HALF_UP));
             stmt.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
+            stmt.setInt(6, idTipoOrdem);
 
             stmt.executeUpdate();
         }
     }
+
     /**
      * Lista todas as transações de um utilizador, ordenadas por data decrescente.
      */

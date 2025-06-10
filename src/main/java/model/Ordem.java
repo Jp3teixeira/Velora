@@ -10,14 +10,14 @@ public class Ordem {
     private Utilizador utilizador;
     private Moeda moeda;
 
-    // FKs para tabelas de domínio
+    // FKs para as tabelas
     private Integer idTipoOrdem;
     private Integer idStatus;
     private Integer idModo;
 
     // Texto vindo das tabelas de domínio
     private String tipoOrdem;   // "compra" ou "venda"
-    private String status;      // "ativa", "executada", "expirada"
+    private String status;      // "ativa", "executada"
     private String modo;        // "market" ou "limit"
 
     // Valores da ordem

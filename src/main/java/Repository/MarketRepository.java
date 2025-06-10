@@ -15,71 +15,25 @@ import java.util.Map;
 public class MarketRepository {
 
     /**
-     * Retorna todas as moedas com valor atual, variação 24h e volume negociado nas últimas 24h.
+     * Retorna todas as moedas com valor atual, valor há 24h, variação 24h e volume negociado nas últimas 24h.
      */
     public static List<Moeda> getTodasAsMoedas() {
         List<Moeda> moedas = new ArrayList<>();
-        String sql = """
-            SELECT 
-              m.id_moeda,
-              m.nome,
-              m.simbolo,
-              pm_pre.preco_em_eur  AS valor_atual,
-              pm_old.preco_em_eur  AS valor_24h,
-              t24.volume24h
-            FROM Moeda m
-            /* preço atual */
-            LEFT JOIN (
-                SELECT p1.id_moeda, p1.preco_em_eur
-                  FROM PrecoMoeda p1
-                 WHERE p1.timestamp_hora = (
-                       SELECT MAX(x.timestamp_hora)
-                         FROM PrecoMoeda x
-                        WHERE x.id_moeda = p1.id_moeda
-                   )
-            ) pm_pre ON pm_pre.id_moeda = m.id_moeda
-            /* preço 24h atrás */
-            LEFT JOIN (
-                SELECT p2.id_moeda, p2.preco_em_eur
-                  FROM PrecoMoeda p2
-                 WHERE p2.timestamp_hora = (
-                       SELECT MAX(x.timestamp_hora)
-                         FROM PrecoMoeda x
-                        WHERE x.id_moeda = p2.id_moeda
-                          AND x.timestamp_hora <= DATEADD(hour, -24, GETDATE())
-                   )
-            ) pm_old ON pm_old.id_moeda = m.id_moeda
-            /* volume negociado nas últimas 24h (sum of quantidade * preco) */
-            LEFT JOIN (
-                SELECT id_moeda,
-                       SUM(quantidade * preco_unitario_eur) AS volume24h
-                  FROM Transacao
-                 WHERE data_hora >= DATEADD(hour, -24, GETDATE())
-                 GROUP BY id_moeda
-            ) t24 ON t24.id_moeda = m.id_moeda
-            """;
+        String sql = "SELECT * FROM dbo.fn_MoedaResumo(24)";
 
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                int id       = rs.getInt("id_moeda");
-                String nome  = rs.getString("nome");
-                String sim   = rs.getString("simbolo");
-
-                BigDecimal valAtual = rs.getBigDecimal("valor_atual");
-                if (valAtual == null) valAtual = BigDecimal.ZERO;
-
-                BigDecimal val24h = rs.getBigDecimal("valor_24h");
-                if (val24h == null) val24h = BigDecimal.ZERO;
-
-                BigDecimal vol24h = rs.getBigDecimal("volume24h");
-                if (vol24h == null) vol24h = BigDecimal.ZERO;
-
-                BigDecimal variacao = calcularVariacao(val24h, valAtual);
-
-                moedas.add(new Moeda(id, nome, sim, valAtual, variacao, vol24h));
+                moedas.add(new Moeda(
+                        rs.getInt("id_moeda"),
+                        rs.getString("nome"),
+                        rs.getString("simbolo"),
+                        rs.getBigDecimal("valor_atual"),
+                        rs.getBigDecimal("variacao_24h"),
+                        rs.getBigDecimal("volume24h")
+                ));
             }
 
         } catch (SQLException e) {
@@ -91,26 +45,24 @@ public class MarketRepository {
 
     /**
      * Insere novo snapshot de preços em PrecoMoeda (uso interno, hourly).
-     * Não grava mais volume, apenas preço.
      */
     public static void gravarSnapshot(Map<Integer, Moeda> moedas) {
-        String sqlPreco = """
+        String sql = """
             INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
             VALUES (?, ?, ?)
             """;
 
         try (Connection conn = getConnection();
-             PreparedStatement stmtPreco = conn.prepareStatement(sqlPreco)) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
             Timestamp agora = Timestamp.valueOf(LocalDateTime.now());
-
-            for (Moeda moeda : moedas.values()) {
-                stmtPreco.setInt(1, moeda.getIdMoeda());
-                stmtPreco.setBigDecimal(2, moeda.getValorAtual().setScale(8, RoundingMode.HALF_UP));
-                stmtPreco.setTimestamp(3, agora);
-                stmtPreco.addBatch();
+            for (Moeda m : moedas.values()) {
+                ps.setInt(1, m.getIdMoeda());
+                ps.setBigDecimal(2, m.getValorAtual().setScale(8, RoundingMode.HALF_UP));
+                ps.setTimestamp(3, agora);
+                ps.addBatch();
             }
-            stmtPreco.executeBatch();
+            ps.executeBatch();
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -118,46 +70,44 @@ public class MarketRepository {
     }
 
     /**
-     * Adiciona nova criptomoeda ao sistema.
-     * Insere em Moeda (tipo='crypto') e cria snapshot inicial em PrecoMoeda.
+     * Adiciona nova criptomoeda e registra preço inicial.
      */
-    public static boolean addNewCoin(String nome, String simbolo, String imageName, BigDecimal initialValue) {
+    public static boolean addNewCoin(String nome,
+                                     String simbolo,
+                                     String imageName,
+                                     BigDecimal initialValue) {
         String insertMoeda = """
             INSERT INTO Moeda (nome, simbolo, foto, id_tipo)
-                 VALUES (?, ?, ?, 
-                         (SELECT id_tipo FROM MoedaTipo WHERE tipo = 'crypto'))
+            VALUES (?, ?, ?, 
+                    (SELECT id_tipo FROM MoedaTipo WHERE tipo = 'crypto'))
             """;
         String insertPreco = """
             INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
-                 VALUES (?, ?, ?)
+            VALUES (?, ?, GETDATE())
             """;
 
         try (Connection conn = getConnection();
-             PreparedStatement stmtMoeda = conn.prepareStatement(insertMoeda, Statement.RETURN_GENERATED_KEYS);
-             PreparedStatement stmtPreco = conn.prepareStatement(insertPreco)) {
+             PreparedStatement psMoeda = conn.prepareStatement(insertMoeda, Statement.RETURN_GENERATED_KEYS);
+             PreparedStatement psPreco = conn.prepareStatement(insertPreco)) {
 
             conn.setAutoCommit(false);
-
-            stmtMoeda.setString(1, nome);
-            stmtMoeda.setString(2, simbolo);
-            stmtMoeda.setString(3, imageName);
-            if (stmtMoeda.executeUpdate() == 0) {
+            psMoeda.setString(1, nome);
+            psMoeda.setString(2, simbolo);
+            psMoeda.setString(3, imageName);
+            if (psMoeda.executeUpdate() == 0) {
                 conn.rollback();
                 return false;
             }
 
-            try (ResultSet rs = stmtMoeda.getGeneratedKeys()) {
+            try (ResultSet rs = psMoeda.getGeneratedKeys()) {
                 if (!rs.next()) {
                     conn.rollback();
                     return false;
                 }
                 int newId = rs.getInt(1);
-
-                Timestamp agora = Timestamp.valueOf(LocalDateTime.now());
-                stmtPreco.setInt(1, newId);
-                stmtPreco.setBigDecimal(2, initialValue.setScale(8, RoundingMode.HALF_UP));
-                stmtPreco.setTimestamp(3, agora);
-                stmtPreco.executeUpdate();
+                psPreco.setInt(1, newId);
+                psPreco.setBigDecimal(2, initialValue.setScale(8, RoundingMode.HALF_UP));
+                psPreco.executeUpdate();
             }
 
             conn.commit();
@@ -169,40 +119,33 @@ public class MarketRepository {
     }
 
     /**
-     * Atualiza o nome, símbolo e foto da moeda e adiciona um novo preço.
-     * Não grava volume.
+     * Atualiza metadados e registra novo preço timestamp = agora.
      */
     public static void updateMoeda(Moeda moeda) throws SQLException {
-        String updateSql = "UPDATE Moeda SET nome = ?, simbolo = ?, foto = ? WHERE id_moeda = ?";
-        String insertPrecoSql = """
-            INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
-                 VALUES (?, ?, ?)
-            """;
+        String updSql = "UPDATE Moeda SET nome = ?, simbolo = ?, foto = ? WHERE id_moeda = ?";
+        String insSql = "INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora) VALUES (?, ?, GETDATE())";
 
         try (Connection conn = getConnection();
-             PreparedStatement upd = conn.prepareStatement(updateSql);
-             PreparedStatement insPreco = conn.prepareStatement(insertPrecoSql)) {
+             PreparedStatement pUp = conn.prepareStatement(updSql);
+             PreparedStatement pIn = conn.prepareStatement(insSql)) {
 
             conn.setAutoCommit(false);
+            pUp.setString(1, moeda.getNome());
+            pUp.setString(2, moeda.getSimbolo());
+            pUp.setString(3, moeda.getFoto());
+            pUp.setInt(4, moeda.getIdMoeda());
+            pUp.executeUpdate();
 
-            upd.setString(1, moeda.getNome());
-            upd.setString(2, moeda.getSimbolo());
-            upd.setString(3, moeda.getFoto());
-            upd.setInt(4, moeda.getIdMoeda());
-            upd.executeUpdate();
-
-            Timestamp agora = Timestamp.valueOf(LocalDateTime.now());
-            insPreco.setInt(1, moeda.getIdMoeda());
-            insPreco.setBigDecimal(2, moeda.getValorAtual());
-            insPreco.setTimestamp(3, agora);
-            insPreco.executeUpdate();
+            pIn.setInt(1, moeda.getIdMoeda());
+            pIn.setBigDecimal(2, moeda.getValorAtual().setScale(8, RoundingMode.HALF_UP));
+            pIn.executeUpdate();
 
             conn.commit();
         }
     }
 
     /**
-     * Exclui uma moeda de todas as tabelas referenciadas antes de deletar de Moeda.
+     * Exclui todo o histórico e metadados de uma moeda.
      */
     public static void deleteMoeda(int idMoeda) throws SQLException {
         String[] deletes = {
@@ -216,9 +159,9 @@ public class MarketRepository {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             for (String d : deletes) {
-                try (PreparedStatement stmt = conn.prepareStatement(d)) {
-                    stmt.setInt(1, idMoeda);
-                    stmt.executeUpdate();
+                try (PreparedStatement ps = conn.prepareStatement(d)) {
+                    ps.setInt(1, idMoeda);
+                    ps.executeUpdate();
                 }
             }
             conn.commit();
@@ -226,45 +169,45 @@ public class MarketRepository {
     }
 
     /**
-     * Retorna dados para gráfico de linha de preços (filtrado).
+     * Retorna histórico de preços para o gráfico, filtrado pelo intervalo.
      */
     public static List<javafx.scene.chart.XYChart.Data<String, Number>>
     getHistoricoPorMoedaFiltrado(int idMoeda, String intervalo) {
 
         List<javafx.scene.chart.XYChart.Data<String, Number>> dados = new ArrayList<>();
-
-        String intervaloSQL = switch (intervalo) {
-            case "1D" -> "DATEADD(day, -1, GETDATE())";
-            case "1W" -> "DATEADD(week, -1, GETDATE())";
-            case "1M" -> "DATEADD(month, -1, GETDATE())";
-            case "3M" -> "DATEADD(month, -3, GETDATE())";
-            case "1Y" -> "DATEADD(year, -1, GETDATE())";
-            default -> null;
+        String clause = switch (intervalo) {
+            case "1D" -> "AND timestamp_hora >= DATEADD(day, -1, GETDATE())";
+            case "1W" -> "AND timestamp_hora >= DATEADD(week, -1, GETDATE())";
+            case "1M" -> "AND timestamp_hora >= DATEADD(month, -1, GETDATE())";
+            case "3M" -> "AND timestamp_hora >= DATEADD(month, -3, GETDATE())";
+            case "1Y" -> "AND timestamp_hora >= DATEADD(year, -1, GETDATE())";
+            default  -> "";
         };
-
-        String sql = "SELECT timestamp_hora, preco_em_eur FROM PrecoMoeda WHERE id_moeda = ? ";
-        if (intervaloSQL != null) {
-            sql += "AND timestamp_hora >= " + intervaloSQL + " ";
-        }
-        sql += "ORDER BY timestamp_hora ASC";
+        String sql = String.format(
+                "SELECT timestamp_hora, preco_em_eur " +
+                        "FROM PrecoMoeda " +
+                        "WHERE id_moeda = ? %s " +
+                        "ORDER BY timestamp_hora ASC",
+                clause
+        );
 
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            stmt.setInt(1, idMoeda);
-            try (ResultSet rs = stmt.executeQuery()) {
-                DateTimeFormatter horaFmt = DateTimeFormatter.ofPattern("HH:mm");
-                DateTimeFormatter dataFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            ps.setInt(1, idMoeda);
+            try (ResultSet rs = ps.executeQuery()) {
+                DateTimeFormatter tfHora = DateTimeFormatter.ofPattern("HH:mm");
+                DateTimeFormatter tfDT   = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
                 while (rs.next()) {
                     LocalDateTime dt = rs.getTimestamp("timestamp_hora").toLocalDateTime();
                     BigDecimal preco = rs.getBigDecimal("preco_em_eur");
 
-                    String xValue = switch (intervalo) {
-                        case "1D" -> dt.toLocalTime().format(horaFmt);
-                        default  -> dt.toLocalDate().format(dataFmt);
-                    };
-                    dados.add(new javafx.scene.chart.XYChart.Data<>(xValue, preco));
+                    String xVal = "1D".equals(intervalo)
+                            ? dt.toLocalTime().format(tfHora)
+                            : dt.format(tfDT);
+
+                    dados.add(new javafx.scene.chart.XYChart.Data<>(xVal, preco));
                 }
             }
         } catch (SQLException e) {
@@ -274,7 +217,7 @@ public class MarketRepository {
     }
 
     /**
-     * Calcula variação percentual entre 'antigo' e 'atual'.
+     * Calcula variação percentual entre antigo e atual.
      */
     public static BigDecimal calcularVariacao(BigDecimal antigo, BigDecimal atual) {
         if (antigo == null || antigo.compareTo(BigDecimal.ZERO) == 0) {

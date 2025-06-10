@@ -1,21 +1,21 @@
 package controller;
 
 import Repository.MarketRepository;
-import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import model.Moeda;
 import utils.SessaoAtual;
 import utils.NavigationHelper;
 import utils.Routes;
 
+import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,226 +26,68 @@ public class AdminDashboardController {
 
     @FXML
     public void initialize() {
-        // Mostra o botão de admin apenas se o tipo for "admin"
-        if (adminButton != null) {
-            boolean isAdmin = SessaoAtual.tipo != null &&
-                    SessaoAtual.tipo.equalsIgnoreCase("admin");
-            adminButton.setVisible(isAdmin);
-            adminButton.setManaged(isAdmin);
-        }
-    }
+        boolean hasPermission = SessaoAtual.tipo != null &&
+                (SessaoAtual.tipo.equalsIgnoreCase("admin") || SessaoAtual.isSuperAdmin);
 
-    private void createAddCoinForm() {
-        try {
-            Label title = new Label("Adicionar Nova Moeda");
-            title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #4B3F72;");
-
-            TextField nameField = new TextField();
-            nameField.setPromptText("Nome da Moeda (ex: Bitcoin)");
-
-            TextField symbolField = new TextField();
-            symbolField.setPromptText("Símbolo (ex: BTC)");
-
-            // Mantido apenas como placeholder; esquema de BD não armazena imagem
-            TextField imageField = new TextField();
-            imageField.setPromptText("Nome da Imagem (ex: btc.png)");
-
-            TextField initialValueField = new TextField();
-            initialValueField.setPromptText("Valor Inicial (ex: 50000.00)");
-
-            Button submitButton = new Button("Adicionar Moeda");
-            submitButton.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white;");
-
-            Label statusLabel = new Label();
-
-            submitButton.setOnAction(e -> {
-                try {
-                    String name   = nameField.getText().trim();
-                    String symbol = symbolField.getText().trim().toUpperCase();
-                    String image  = imageField.getText().trim().toLowerCase();
-                    BigDecimal initialValue = new BigDecimal(initialValueField.getText().trim());
-
-                    if (name.isEmpty() || symbol.isEmpty() || image.isEmpty()) {
-                        statusLabel.setText("Preencha todos os campos!");
-                        statusLabel.setStyle("-fx-text-fill: red;");
-                        return;
-                    }
-
-                    // Insere em Moeda, PrecoMoeda e VolumeMercado
-                    boolean success = MarketRepository.addNewCoin(name, symbol, image, initialValue);
-
-                    if (success) {
-                        statusLabel.setText("Moeda adicionada com sucesso!");
-                        statusLabel.setStyle("-fx-text-fill: green;");
-                        nameField.clear();
-                        symbolField.clear();
-                        imageField.clear();
-                        initialValueField.clear();
-                    } else {
-                        statusLabel.setText("Erro ao adicionar moeda!");
-                        statusLabel.setStyle("-fx-text-fill: red;");
-                    }
-                } catch (NumberFormatException ex) {
-                    statusLabel.setText("Valor inválido! Use formato 50000.00");
-                    statusLabel.setStyle("-fx-text-fill: red;");
-                } catch (Exception ex) {
-                    statusLabel.setText("Erro: " + ex.getMessage());
-                    statusLabel.setStyle("-fx-text-fill: red;");
-                    ex.printStackTrace();
-                }
-            });
-
-            VBox form = new VBox(10,
-                    title,
-                    nameField,
-                    symbolField,
-                    imageField,
-                    initialValueField,
-                    submitButton,
-                    statusLabel);
-            form.setStyle("-fx-padding: 20; -fx-background-color: #F8F8F8; -fx-background-radius: 10;");
-            form.setMaxWidth(400);
-
-            contentArea.getChildren().setAll(form);
-        } catch (Exception e) {
-            e.printStackTrace();
-            contentArea.getChildren().setAll(new Label("Erro ao criar formulário: " + e.getMessage()));
+        if (!hasPermission) {
+            NavigationHelper.goTo(Routes.HOMEPAGE, true);
         }
     }
 
     @FXML
-    private void handleViewStatistics() {
-        contentArea.getChildren().clear();
-
-        TableView<Moeda> tableView = new TableView<>();
-
-        // Coluna Nome
-        TableColumn<Moeda, String> nomeCol = new TableColumn<>("Nome");
-        nomeCol.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(cellData.getValue().getNome()));
-
-        // Coluna Símbolo
-        TableColumn<Moeda, String> simboloCol = new TableColumn<>("Símbolo");
-        simboloCol.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(cellData.getValue().getSimbolo()));
-
-        // Coluna Valor Atual (€)
-        TableColumn<Moeda, String> valorCol = new TableColumn<>("Valor Atual (€)");
-        valorCol.setCellValueFactory(cellData -> {
-            BigDecimal v = cellData.getValue().getValorAtual();
-            return new javafx.beans.property.SimpleStringProperty(
-                    v != null ? v.toString() : "N/A");
-        });
-
-        // Coluna Variação 24h
-        TableColumn<Moeda, String> variacaoCol = new TableColumn<>("Variação 24h");
-        variacaoCol.setCellValueFactory(cellData -> {
-            BigDecimal v = cellData.getValue().getVariacao24h();
-            return new javafx.beans.property.SimpleStringProperty(
-                    v != null ? v.toString() + "%" : "N/A");
-        });
-
-        // Coluna Volume Mercado
-        TableColumn<Moeda, String> volumeCol = new TableColumn<>("Volume Mercado (€)");
-        volumeCol.setCellValueFactory(cellData -> {
-            BigDecimal v = cellData.getValue().getVolumeMercado();
-            return new javafx.beans.property.SimpleStringProperty(
-                    v != null ? v.toString() : "N/A");
-        });
-
-        tableView.getColumns().addAll(nomeCol, simboloCol, valorCol, variacaoCol, volumeCol);
-
-        // Popula com lista de Moedas
-        List<Moeda> listaMoedas = MarketRepository.getTodasAsMoedas();
-        tableView.getItems().addAll((Collection<? extends Moeda>) listaMoedas);
-
-        // Coluna de Ações
-        TableColumn<Moeda, Void> actionCol = new TableColumn<>("Ações");
-        actionCol.setCellFactory(col -> new TableCell<>() {
-            private final Button btnEditar   = new Button("Editar");
-            private final Button btnEliminar = new Button("Eliminar");
-            private final HBox pane = new HBox(10, btnEditar, btnEliminar);
-
-            {
-                btnEditar.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white;");
-                btnEliminar.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
-
-                btnEditar.setOnAction(event -> {
-                    Moeda moeda = getTableView().getItems().get(getIndex());
-                    abrirFormularioEdicao(moeda, tableView);
-                });
-
-                btnEliminar.setOnAction(event -> {
-                    Moeda moeda = getTableView().getItems().get(getIndex());
-                    Alert alert = new Alert(AlertType.CONFIRMATION);
-                    alert.setTitle("Confirmação");
-                    alert.setHeaderText("Eliminar Moeda");
-                    alert.setContentText("Deseja realmente eliminar " + moeda.getNome() + "?");
-
-                    Optional<ButtonType> resultado = alert.showAndWait();
-                    if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
-                        try {
-                            MarketRepository.deleteMoeda(moeda.getIdMoeda());
-                            getTableView().getItems().remove(moeda);
-                        } catch (SQLException e) {
-                            e.printStackTrace();
-                            Alert erro = new Alert(AlertType.ERROR, "Erro ao eliminar a moeda.");
-                            erro.show();
-                        }
-                    }
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    setGraphic(pane);
-                }
-            }
-        });
-
-        tableView.getColumns().add(actionCol);
-        contentArea.getChildren().add(tableView);
+    private void handleCreateCrypto(ActionEvent event) {
+        showAddCoinForm();
     }
 
-    private void abrirFormularioEdicao(Moeda moeda, TableView<Moeda> tableView) {
-        contentArea.getChildren().clear();
-
-        Label title = new Label("Editar Moeda: " + moeda.getNome());
+    private void showAddCoinForm() {
+        Label title = new Label("Adicionar Nova Moeda");
         title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #4B3F72;");
 
-        TextField nameField      = new TextField(moeda.getNome());
-        TextField symbolField    = new TextField(moeda.getSimbolo());
-        TextField valorAtualField = new TextField(moeda.getValorAtual().toString());
-        TextField variacaoField  = new TextField(moeda.getVariacao24h().toString());
-        TextField volumeField    = new TextField(moeda.getVolumeMercado().toString());
+        TextField nameField         = new TextField();
+        nameField.setPromptText("Nome da Moeda (ex: Bitcoin)");
+        TextField symbolField       = new TextField();
+        symbolField.setPromptText("Símbolo (ex: BTC)");
+        TextField imageField        = new TextField();
+        imageField.setPromptText("Nome da Imagem (ex: btc.png)");
+        TextField initialValueField = new TextField();
+        initialValueField.setPromptText("Valor Inicial (ex: 50000.00)");
 
-        Button salvarBtn = new Button("Salvar");
-        salvarBtn.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white;");
-        Label statusLabel = new Label();
+        Button submitButton = new Button("Adicionar Moeda");
+        submitButton.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white;");
+        Label statusLabel   = new Label();
 
-        salvarBtn.setOnAction(e -> {
+        submitButton.setOnAction(e -> {
+            String nome   = nameField.getText().trim();
+            String simbolo= symbolField.getText().trim().toUpperCase();
+            String foto   = imageField.getText().trim();
             try {
-                moeda.setNome(nameField.getText().trim());
-                moeda.setSimbolo(symbolField.getText().trim());
-                moeda.setValorAtual(new BigDecimal(valorAtualField.getText().trim()));
-                moeda.setVariacao24h(new BigDecimal(variacaoField.getText().trim()));
-                moeda.setVolumeMercado(new BigDecimal(volumeField.getText().trim()));
+                if (nome.isEmpty() || simbolo.isEmpty() || foto.isEmpty()) {
+                    throw new IllegalArgumentException("Preencha todos os campos!");
+                }
+                BigDecimal valorInicial = new BigDecimal(initialValueField.getText().trim());
 
-                // Atualiza tabela Moeda (colunas nome, símbolo, tipo não mudam)
-                MarketRepository.updateMoeda(moeda);
-                statusLabel.setText("Moeda atualizada com sucesso!");
-                statusLabel.setStyle("-fx-text-fill: green;");
+                boolean sucesso = MarketRepository.addNewCoin(
+                        nome, simbolo, foto, valorInicial);
 
-                handleViewStatistics(); // Recarrega a tabela
+                if (sucesso) {
+                    statusLabel.setText("Moeda adicionada com sucesso!");
+                    statusLabel.setStyle("-fx-text-fill: green;");
+                    nameField.clear();
+                    symbolField.clear();
+                    imageField.clear();
+                    initialValueField.clear();
+                } else {
+                    statusLabel.setText("Erro ao adicionar moeda!");
+                    statusLabel.setStyle("-fx-text-fill: red;");
+                }
             } catch (NumberFormatException ex) {
-                statusLabel.setText("Erro: valores inválidos!");
+                statusLabel.setText("Valor inválido! Use formato 50000.00");
                 statusLabel.setStyle("-fx-text-fill: red;");
-            } catch (SQLException ex) {
-                statusLabel.setText("Erro ao atualizar moeda.");
+            } catch (IllegalArgumentException ex) {
+                statusLabel.setText(ex.getMessage());
+                statusLabel.setStyle("-fx-text-fill: red;");
+            } catch (Exception ex) {
+                statusLabel.setText("Erro: " + ex.getMessage());
                 statusLabel.setStyle("-fx-text-fill: red;");
                 ex.printStackTrace();
             }
@@ -255,25 +97,139 @@ public class AdminDashboardController {
                 title,
                 nameField,
                 symbolField,
-                valorAtualField,
-                variacaoField,
-                volumeField,
-                salvarBtn,
-                statusLabel);
+                imageField,
+                initialValueField,
+                submitButton,
+                statusLabel
+        );
         form.setStyle("-fx-padding: 20; -fx-background-color: #F8F8F8; -fx-background-radius: 10;");
         form.setMaxWidth(400);
 
-        contentArea.getChildren().add(form);
+        contentArea.getChildren().setAll(form);
+    }
+
+    @FXML
+    private void handleViewStatistics() {
+        TableView<Moeda> tableView = new TableView<>();
+        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        TableColumn<Moeda, String> nomeCol = new TableColumn<>("Nome");
+        nomeCol.setCellValueFactory(cd ->
+                new javafx.beans.property.SimpleStringProperty(cd.getValue().getNome()));
+
+        TableColumn<Moeda, String> simboloCol = new TableColumn<>("Símbolo");
+        simboloCol.setCellValueFactory(cd ->
+                new javafx.beans.property.SimpleStringProperty(cd.getValue().getSimbolo()));
+
+        TableColumn<Moeda, String> valorCol = new TableColumn<>("Valor Atual (€)");
+        valorCol.setCellValueFactory(cd ->
+                new javafx.beans.property.SimpleStringProperty(
+                        cd.getValue().getValorAtual().toPlainString()));
+
+        TableColumn<Moeda, String> variacaoCol = new TableColumn<>("Variação 24h (%)");
+        variacaoCol.setCellValueFactory(cd ->
+                new javafx.beans.property.SimpleStringProperty(
+                        cd.getValue().getVariacao24h().toPlainString()));
+
+        TableColumn<Moeda, String> volumeCol = new TableColumn<>("Volume 24h");
+        volumeCol.setCellValueFactory(cd ->
+                new javafx.beans.property.SimpleStringProperty(
+                        cd.getValue().getVolumeMercado().toPlainString()));
+
+        TableColumn<Moeda, Void> actionCol = new TableColumn<>("Ações");
+        actionCol.setCellFactory(col -> new TableCell<>() {
+            private final Button btnEditar   = new Button("Editar");
+            private final Button btnEliminar = new Button("Eliminar");
+            private final HBox pane = new HBox(8, btnEditar, btnEliminar);
+
+            {
+                btnEditar.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white;");
+                btnEliminar.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
+
+                btnEditar.setOnAction(e -> editarMoeda(getIndex(), tableView));
+                btnEliminar.setOnAction(e -> eliminarMoeda(getIndex(), tableView));
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : pane);
+            }
+        });
+
+        tableView.getColumns().addAll(
+                nomeCol, simboloCol, valorCol, variacaoCol, volumeCol, actionCol
+        );
+
+        List<Moeda> lista = MarketRepository.getTodasAsMoedas();
+        tableView.setItems(FXCollections.observableArrayList(lista));
+
+        contentArea.getChildren().setAll(tableView);
+    }
+
+    private void editarMoeda(int index, TableView<Moeda> tableView) {
+        Moeda m = tableView.getItems().get(index);
+        Dialog<Moeda> dialog = new Dialog<>();
+        dialog.setTitle("Editar Moeda");
+
+        TextField nomeField    = new TextField(m.getNome());
+        TextField simboloField = new TextField(m.getSimbolo());
+        TextField valorField   = new TextField(m.getValorAtual().toPlainString());
+
+        VBox vb = new VBox(8,
+                new Label("Nome:"), nomeField,
+                new Label("Símbolo:"), simboloField,
+                new Label("Valor Atual:"), valorField
+        );
+        dialog.getDialogPane().setContent(vb);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.setResultConverter(bt -> {
+            if (bt == ButtonType.OK) {
+                m.setNome(nomeField.getText().trim());
+                m.setSimbolo(simboloField.getText().trim());
+                m.setValorAtual(new BigDecimal(valorField.getText().trim()));
+                return m;
+            }
+            return null;
+        });
+
+        Optional<Moeda> result = dialog.showAndWait();
+        result.ifPresent(updated -> {
+            try {
+                MarketRepository.updateMoeda(updated);
+                handleViewStatistics();
+            } catch (SQLException ex) {
+                new Alert(Alert.AlertType.ERROR,
+                        "Erro ao atualizar moeda: " + ex.getMessage())
+                        .showAndWait();
+            }
+        });
+    }
+
+    private void eliminarMoeda(int index, TableView<Moeda> tableView) {
+        Moeda m = tableView.getItems().get(index);
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "Deseja realmente eliminar " + m.getNome() + "?",
+                ButtonType.OK, ButtonType.CANCEL);
+        confirm.setTitle("Confirmar exclusão");
+        confirm.showAndWait().ifPresent(bt -> {
+            if (bt == ButtonType.OK) {
+                try {
+                    MarketRepository.deleteMoeda(m.getIdMoeda());
+                    tableView.getItems().remove(index);
+                } catch (SQLException ex) {
+                    new Alert(Alert.AlertType.ERROR,
+                            "Erro ao eliminar moeda: " + ex.getMessage())
+                            .showAndWait();
+                }
+            }
+        });
     }
 
     @FXML
     private void handleLogOut() {
         SessaoAtual.limparSessao();
         NavigationHelper.goTo(Routes.LOGIN, false);
-    }
-
-    @FXML
-    private void handleCreateCrypto(ActionEvent event) {
-        createAddCoinForm();
     }
 }

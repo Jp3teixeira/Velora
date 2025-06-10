@@ -20,6 +20,11 @@ public class MarketSimulator {
     private static final Random rand = new Random();
     private static boolean agendadorIniciado = false;
 
+    // Parâmetros do OU
+    private static final double THETA = 0.3;         // velocidade de reversão
+    private static final double SIGMA = 0.02;        // volatilidade
+    private static final double DT = 1.0 / (24 * 60); // passo: 1 minuto em fração de dia
+
     public static void startSimulador() {
         if (agendadorIniciado) return;
         agendadorIniciado = true;
@@ -47,12 +52,14 @@ public class MarketSimulator {
                         moeda = carregarUltimosDadosDaMoeda(conn, id);
                     } catch (SQLException e) {
                         e.printStackTrace();
-                        continue; // pula essa moeda
+                        continue;
                     }
                 }
-                // simula flutuação de preço e volume em memória
+                // Flutuação OU em memória
                 BigDecimal valorAnterior = moeda.getValorAtual();
-                BigDecimal novoValor = aplicarVariacao(valorAnterior);
+                // μ = preço médio; aqui usamos o próprio último valor como pivô
+                BigDecimal mu = valorAnterior;
+                BigDecimal novoValor = aplicarVariacaoOU(valorAnterior, mu, THETA, SIGMA, DT);
                 BigDecimal novoVolume = gerarVolume();
 
                 moeda.setValorAtual(novoValor);
@@ -65,67 +72,124 @@ public class MarketSimulator {
         }
     }
 
+    /**
+     * Carrega do banco os dados iniciais de uma moeda:
+     *  - nome, símbolo
+     *  - último preço (valorAtual)
+     *  - preço de 24h atrás (valor24h)
+     *  - volume negociado nas últimas 24h
+     *  - variação percentual 24h (variacao24h)
+     */
     private static Moeda carregarUltimosDadosDaMoeda(Connection conn, int idMoeda) throws SQLException {
-        String sqlPreco = """
-            SELECT TOP 1 preco_em_eur
+        String sqlMeta      = "SELECT nome, simbolo FROM Moeda WHERE id_moeda = ?";
+        String sqlPreco     = """
+        SELECT TOP 1 preco_em_eur
+          FROM PrecoMoeda
+         WHERE id_moeda = ?
+         ORDER BY timestamp_hora DESC
+        """;
+        String sqlPreco24h  = """
+        SELECT preco_em_eur AS valor_24h
+          FROM (
+            SELECT preco_em_eur,
+                   ROW_NUMBER() OVER (ORDER BY timestamp_hora DESC) AS rn
               FROM PrecoMoeda
              WHERE id_moeda = ?
-             ORDER BY timestamp_hora DESC
-            """;
-        String sqlMeta = "SELECT nome, simbolo FROM Moeda WHERE id_moeda = ?";
+               AND timestamp_hora <= DATEADD(hour, -24, GETDATE())
+          ) t
+         WHERE rn = 1
+        """;
         String sqlVolume24h = """
-            SELECT volume24h
-              FROM vw_MoedaVolume24h
-             WHERE id_moeda = ?
-            """;
+        SELECT COALESCE(SUM(quantidade * preco_unitario_eur), 0) AS volume24h
+          FROM Transacao
+         WHERE id_moeda = ?
+           AND data_hora >= DATEADD(hour, -24, GETDATE())
+        """;
 
-        String nome = "";
+        String nome    = "";
         String simbolo = "";
-        BigDecimal valor = BigDecimal.valueOf(100 + rand.nextDouble() * 100);
-        BigDecimal volume = BigDecimal.ZERO;
+        BigDecimal valorAtual  = BigDecimal.ZERO;
+        BigDecimal valor24h    = BigDecimal.ZERO;
+        BigDecimal volume24h   = BigDecimal.ZERO;
 
-        // carrega nome/símbolo
-        try (PreparedStatement stm = conn.prepareStatement(sqlMeta)) {
-            stm.setInt(1, idMoeda);
-            try (ResultSet rs = stm.executeQuery()) {
+        // 1) Nome e símbolo
+        try (PreparedStatement st = conn.prepareStatement(sqlMeta)) {
+            st.setInt(1, idMoeda);
+            try (ResultSet rs = st.executeQuery()) {
                 if (rs.next()) {
-                    nome = rs.getString("nome");
+                    nome    = rs.getString("nome");
                     simbolo = rs.getString("simbolo");
                 }
             }
         }
 
-        // carrega preço mais recente
-        try (PreparedStatement stm = conn.prepareStatement(sqlPreco)) {
-            stm.setInt(1, idMoeda);
-            try (ResultSet rs = stm.executeQuery()) {
-                if (rs.next()) {
-                    BigDecimal db = rs.getBigDecimal("preco_em_eur");
-                    if (db != null) valor = db;
+        // 2) Último preço
+        try (PreparedStatement st = conn.prepareStatement(sqlPreco)) {
+            st.setInt(1, idMoeda);
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next() && rs.getBigDecimal("preco_em_eur") != null) {
+                    valorAtual = rs.getBigDecimal("preco_em_eur");
                 }
             }
         }
 
-        // carrega volume 24h via view
-        try (PreparedStatement stm = conn.prepareStatement(sqlVolume24h)) {
-            stm.setInt(1, idMoeda);
-            try (ResultSet rs = stm.executeQuery()) {
-                if (rs.next()) {
-                    BigDecimal db = rs.getBigDecimal("volume24h");
-                    if (db != null) volume = db;
+        // 3) Preço 24h atrás
+        try (PreparedStatement st = conn.prepareStatement(sqlPreco24h)) {
+            st.setInt(1, idMoeda);
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next() && rs.getBigDecimal("valor_24h") != null) {
+                    valor24h = rs.getBigDecimal("valor_24h");
                 }
             }
-        } catch (SQLException e) {
-            // se a view não existir, deixa volume = 0
         }
 
-        return new Moeda(idMoeda, nome, simbolo, valor, BigDecimal.ZERO, volume);
+        // 4) Volume 24h
+        try (PreparedStatement st = conn.prepareStatement(sqlVolume24h)) {
+            st.setInt(1, idMoeda);
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    volume24h = rs.getBigDecimal("volume24h");
+                }
+            }
+        }
+
+        // 5) Cálculo da variação percentual 24h
+        BigDecimal variacao24h = BigDecimal.ZERO;
+        if (valor24h.compareTo(BigDecimal.ZERO) > 0) {
+            variacao24h = valorAtual
+                    .subtract(valor24h)
+                    .divide(valor24h, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(2, RoundingMode.HALF_UP);
+        }
+
+        // 6) Retorna objeto Moeda populado
+        return new Moeda(
+                idMoeda,
+                nome,
+                simbolo,
+                valorAtual.setScale(2, RoundingMode.HALF_UP),
+                variacao24h,
+                volume24h.setScale(2, RoundingMode.HALF_UP)
+        );
     }
 
-    private static BigDecimal aplicarVariacao(BigDecimal valorAnterior) {
-        double variacao = 1 + ((rand.nextDouble() * 6 - 3) / 100.0);
-        return valorAnterior.multiply(BigDecimal.valueOf(variacao))
-                .setScale(2, RoundingMode.HALF_UP);
+    /**
+     * Ornstein-Uhlenbeck: dX = θ(μ - X)dt + σ√dt·Z
+     */
+    private static BigDecimal aplicarVariacaoOU(
+            BigDecimal valorAnterior,
+            BigDecimal mu,
+            double theta,
+            double sigma,
+            double dt
+    ) {
+        double x = valorAnterior.doubleValue();
+        double m = mu.doubleValue();
+        double drift = theta * (m - x) * dt;
+        double diffusion = sigma * Math.sqrt(dt) * rand.nextGaussian();
+        double novo = x + drift + diffusion;
+        return BigDecimal.valueOf(novo).setScale(2, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal gerarVolume() {

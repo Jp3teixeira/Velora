@@ -102,7 +102,7 @@
 
                 <!-- Preço Limite (invisível até “Limit” ser selecionado) -->
                 <VBox fx:id="boxPrecoLimite" spacing="5" alignment="CENTER_LEFT" visible="false" managed="false">
-                    <Label text="Preço Limite:" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
+                    <Label text="Preço Minimo:" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
                     <TextField fx:id="txtPrecoLimite"
                                promptText="Ex: 30.00"
                                prefWidth="200"

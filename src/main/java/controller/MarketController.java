@@ -162,20 +162,35 @@ public class MarketController implements Initializable {
     private void aplicarFiltro(String intervalo) {
         if (moedaAtualSelecionada == null) return;
         marketChart.getData().clear();
-        List<XYChart.Data<String, Number>> hist =
-                MarketRepository.getHistoricoPorMoedaFiltrado(
-                        moedaAtualSelecionada.getIdMoeda(), intervalo);
+
+        // 1) monta a série
         XYChart.Series<String, Number> serie = new XYChart.Series<>();
         serie.setName(intervalo);
-        hist.forEach(p -> {
-            serie.getData().add(p);
-            Tooltip tp = new Tooltip(String.format("%s: € %.2f",
-                    p.getXValue(), p.getYValue().doubleValue()));
-            tp.setShowDelay(Duration.millis(50));
-            Tooltip.install(p.getNode(), tp);
-            p.getNode().setStyle("-fx-background-color: white, #B892FF; -fx-background-radius:6px;");
-        });
+        MarketRepository
+                .getHistoricoPorMoedaFiltrado(moedaAtualSelecionada.getIdMoeda(), intervalo)
+                .forEach(serie.getData()::add);
+
+        // 2) adiciona ao chart
         marketChart.getData().add(serie);
+
+        // 3) espera nodes existirem para estilizar
+        Platform.runLater(() -> {
+            for (XYChart.Data<String, Number> d : serie.getData()) {
+                Node node = d.getNode();
+                if (node != null) {
+                    Tooltip tp = new Tooltip(
+                            String.format("%s: € %.2f", d.getXValue(), d.getYValue().doubleValue())
+                    );
+                    tp.setShowDelay(Duration.millis(50));
+                    Tooltip.install(node, tp);
+
+                    node.setStyle(
+                            "-fx-background-color: white, #B892FF; " +
+                                    "-fx-background-radius: 6px;"
+                    );
+                }
+            }
+        });
     }
 
     @FXML private void abrirModalCompra() { abrirModalOrdem("COMPRA"); }

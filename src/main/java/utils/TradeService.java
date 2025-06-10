@@ -56,13 +56,15 @@ public class TradeService {
                     novaCompra.getUtilizador().getIdUtilizador(),
                     novaCompra.getMoeda().getIdMoeda(),
                     matchQtde,
-                    precoExecucao
+                    precoExecucao,
+                    novaCompra.getIdTipoOrdem()
             );
             transacaoRepo.inserirTransacao(
                     venda.getUtilizador().getIdUtilizador(),
                     venda.getMoeda().getIdMoeda(),
                     matchQtde,
-                    precoExecucao
+                    precoExecucao,
+                    venda.getIdTipoOrdem()
             );
 
             // actualiza ordem de venda
@@ -141,13 +143,15 @@ public class TradeService {
                     novaVenda.getUtilizador().getIdUtilizador(),
                     novaVenda.getMoeda().getIdMoeda(),
                     matchQtde,
-                    precoExecucao
+                    precoExecucao,
+                    novaVenda.getIdTipoOrdem()
             );
             transacaoRepo.inserirTransacao(
                     compra.getUtilizador().getIdUtilizador(),
                     compra.getMoeda().getIdMoeda(),
                     matchQtde,
-                    precoExecucao
+                    precoExecucao,
+                    compra.getIdTipoOrdem()
             );
 
             // actualiza ordem de compra
