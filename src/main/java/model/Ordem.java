@@ -1,9 +1,11 @@
 package model;
 
+import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public class Ordem {
+public class Ordem extends RecursiveTreeObject<Ordem> {
     private Integer idOrdem;
 
     // Relacionamento
