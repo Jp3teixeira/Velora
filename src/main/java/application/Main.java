@@ -1,5 +1,7 @@
 package application;
 
+import Database.DBConnection;
+import Repository.OrdemRepository;
 import javafx.scene.image.Image;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -7,6 +9,11 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import utils.MarketSimulator;
+
+import java.sql.SQLException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Main extends Application {
     @Override
@@ -30,5 +37,17 @@ public class Main extends Application {
         primaryStage.setResizable(false);
         primaryStage.centerOnScreen();
         primaryStage.show();
+
+        // Ao iniciar a aplicação expira as ordens que nas ultimas 24h nao deram "match"
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                new OrdemRepository(DBConnection.getConnection())
+                        .expirarOrdens();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }, 0, 1, TimeUnit.MINUTES);
+
     }
 }

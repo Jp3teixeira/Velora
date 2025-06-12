@@ -2,6 +2,7 @@ package Repository;
 
 import static Database.DBConnection.getConnection;
 import model.Moeda;
+import utils.TradeService;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -48,9 +49,9 @@ public class MarketRepository {
      */
     public static void gravarSnapshot(Map<Integer, Moeda> moedas) {
         String sql = """
-            INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
-            VALUES (?, ?, ?)
-            """;
+        INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
+        VALUES (?, ?, ?)
+        """;
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -64,10 +65,21 @@ public class MarketRepository {
             }
             ps.executeBatch();
 
+            // Processa de novo todos os market orders pendentes para cada moeda ---
+            TradeService tradeService = new TradeService(conn);
+            for (Integer idMoeda : moedas.keySet()) {
+                // primeiro as ordens de venda market
+                tradeService.processarOrdensVendaMarketPendentes(idMoeda);
+                // depois as ordens de compra market
+                tradeService.processarOrdensCompraMarketPendentes(idMoeda);
+            }
+            // -------------------------------------------------------------------------
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
 
     /**
      * Adiciona nova criptomoeda e registra preço inicial.

@@ -33,4 +33,6 @@ public class Transacao extends RecursiveTreeObject<Transacao> {
     public void setTotalEur(BigDecimal t) { this.totalEur = t; }
     public LocalDateTime getDataHora() { return dataHora; }
     public void setDataHora(LocalDateTime d) { this.dataHora = d; }
+
+
 }

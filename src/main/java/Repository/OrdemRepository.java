@@ -72,6 +72,7 @@ public class OrdemRepository {
                        AND ot.tipo_ordem = 'venda'
                        AND om.modo = 'limit'
                        AND os.status = 'ativa'
+                         AND t.data_expiracao > CURRENT_TIMESTAMP
                        AND t.preco_unitario_eur <= ?
                      ORDER BY t.preco_unitario_eur ASC, t.data_criacao ASC
                     """;
@@ -85,6 +86,7 @@ public class OrdemRepository {
                      WHERE t.id_moeda = ?
                        AND ot.tipo_ordem = 'venda'
                        AND os.status = 'ativa'
+                         AND t.data_expiracao > CURRENT_TIMESTAMP
                      ORDER BY t.data_criacao ASC
                     """;
             }
@@ -100,6 +102,7 @@ public class OrdemRepository {
                        AND ot.tipo_ordem = 'compra'
                        AND om.modo = 'limit'
                        AND os.status = 'ativa'
+                           AND t.data_expiracao > CURRENT_TIMESTAMP
                        AND t.preco_unitario_eur >= ?
                      ORDER BY t.preco_unitario_eur DESC, t.data_criacao ASC
                     """;
@@ -113,6 +116,7 @@ public class OrdemRepository {
                      WHERE t.id_moeda = ?
                        AND ot.tipo_ordem = 'compra'
                        AND os.status = 'ativa'
+                         AND t.data_expiracao > CURRENT_TIMESTAMP
                      ORDER BY t.data_criacao ASC
                     """;
             }
@@ -165,19 +169,19 @@ public class OrdemRepository {
     /**
      * Lista ordens abertas (ativa & limit) de um usuário.
      */
-    public List<Ordem> listarOrdensAbertasPorUsuario(int idUtilizador) throws SQLException {
+    public List<Ordem> listarOrdensPendentesPorUsuario(int idUtilizador) throws SQLException {
         List<Ordem> ordens = new ArrayList<>();
         String sql = """
-            SELECT t.*, ot.tipo_ordem, os.status, om.modo
-              FROM Ordem t
-              JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
-              JOIN OrdemStatus os ON t.id_status     = os.id_status
-              JOIN OrdemModo om   ON t.id_modo       = om.id_modo
-             WHERE t.id_utilizador = ?
-               AND os.status = 'ativa'
-               AND om.modo   = 'limit'
-             ORDER BY t.data_criacao DESC
-            """;
+        SELECT t.*, ot.tipo_ordem, os.status, om.modo
+          FROM Ordem t
+          JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
+          JOIN OrdemStatus os ON t.id_status     = os.id_status
+          JOIN OrdemModo om   ON t.id_modo       = om.id_modo
+         WHERE t.id_utilizador = ?
+           AND os.status = 'ativa'
+           AND t.data_expiracao > CURRENT_TIMESTAMP
+         ORDER BY t.data_criacao DESC
+        """;
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, idUtilizador);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -259,5 +263,18 @@ public class OrdemRepository {
         ordem.setDataExpiracao(    rs.getTimestamp("data_expiracao").toLocalDateTime());
 
         return ordem;
+    }
+    public void expirarOrdens() throws SQLException {
+        String sql = """
+        UPDATE Ordem
+           SET id_status = ?
+         WHERE id_status = ?
+           AND data_expiracao <= CURRENT_TIMESTAMP
+        """;
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, obterIdStatus("expirada"));
+            ps.setInt(2, obterIdStatus("ativa"));
+            ps.executeUpdate();
+        }
     }
 }

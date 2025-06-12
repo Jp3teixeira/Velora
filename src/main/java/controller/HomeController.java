@@ -219,15 +219,18 @@ public class HomeController implements Initializable {
         });
 
         TableColumn<Transacao, String> colTipo = new TableColumn<>("Tipo");
-        colTipo.setCellValueFactory(cell ->
-                new SimpleStringProperty(cell.getValue().getTipo().toUpperCase()));
+        colTipo.setCellValueFactory(cell -> {
+            String tipo = cell.getValue().getTipo();
+            String texto = (tipo != null) ? tipo.toUpperCase() : "";
+            return new SimpleStringProperty(texto);
+        });
 
         TableColumn<Transacao, String> colAtivoTx = new TableColumn<>("Ativo");
         colAtivoTx.setCellValueFactory(cell -> {
             if (cell.getValue().getMoeda() != null) {
                 return new SimpleStringProperty(cell.getValue().getMoeda().getSimbolo());
             } else {
-                return new SimpleStringProperty("EUR"); // por exemplo, depósito/saque
+                return new SimpleStringProperty("EUR");
             }
         });
 
@@ -253,6 +256,7 @@ public class HomeController implements Initializable {
                 colData, colTipo, colAtivoTx, colQuantidadeTx, colPrecoUnitario, colTotal
         );
     }
+
 
     /** Carrega dados reais de TransacaoRepository e popula historyTable. */
     private void carregarHistorico() {

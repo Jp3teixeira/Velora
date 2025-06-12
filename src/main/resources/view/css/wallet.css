@@ -1,6 +1,10 @@
+/* wallet.css */
+
 /* ===========================
    NAVBAR
-   =========================== */
+=========================== */
+
+/* Botões da navbar */
 .menu-button {
     -fx-text-fill: #e0e0e0;
     -fx-background-color: transparent;
@@ -15,16 +19,20 @@
     -fx-scale-y: 1.05;
 }
 
+/* Navbar container */
 .navbar {
     -fx-background-color: #1a1a1a;
     -fx-padding: 12 20;
 }
+
+/* Título */
 .navbar-title {
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-font-size: 18px;
 }
 
+/* Botão de Logout */
 .logout-button {
     -fx-text-fill: white;
     -fx-background-color: #b892ff;
@@ -42,271 +50,144 @@
     -fx-scale-y: 1.04;
 }
 
-
 /* ===========================
-   ROOT & BACKGROUNDS
-   =========================== */
+   ROOT & COMMON
+=========================== */
+
+/* Root */
 .root {
-    -fx-font-family: "Segoe UI", sans-serif;
     -fx-background-color: #121212;
+    -fx-font-family: "Segoe UI", sans-serif;
 }
 
+/* Container comum */
+.container-box {
+    -fx-background-color: #1f1f1f;
+    -fx-border-color: #2a2a2a;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 15;
+}
+
+/* Header container */
 .header-container {
-    -fx-background-color: #1a1a1a;
-    -fx-padding: 25 30;
-    -fx-spacing: 20;
-    -fx-background-radius: 12;
-    -fx-effect: dropshadow(three-pass-box, #00000060, 10, 0, 2, 4);
+    -fx-background-color: #1f1f1f;
+    -fx-padding: 30 30 20 30;
 }
 
+/* Portfólio display */
 .portfolio-display {
-    -fx-text-fill: #ffffff;
-    -fx-font-size: 22px;
-    -fx-font-weight: bold;
-    -fx-effect: dropshadow(gaussian, #b892ff40, 10, 0.5, 0, 1);
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 14px;
+    -fx-padding: 0 0 8 0;
 }
 
-.balance-display {
-    -fx-text-fill: #ffffff;
-    -fx-font-size: 28px;
-    -fx-font-weight: bold;
-    -fx-effect: dropshadow(gaussian, #b892ff40, 10, 0.5, 0, 1);
+/* Center GridPane */
+.center-hbox {
+    -fx-background-color: transparent;
 }
-
 
 /* ===========================
-   WALLET ACTIONS PANEL
-   =========================== */
-.wallet-actions-box {
-    -fx-background-color: #1a1a1a;
-    -fx-background-radius: 16;
-    -fx-border-radius: 16;
-    -fx-border-color: #2e2e2e;
-    -fx-padding: 25;
-    -fx-spacing: 14;
-    -fx-pref-width: 340;
-    -fx-max-height: 360;
-    -fx-effect: dropshadow(three-pass-box, #00000066, 10, 0, 2, 3);
+   TABLE SECTION
+=========================== */
+
+/* Container de tabela – igual a .container-box */
+.table-container {
+    -fx-background-color: #1f1f1f;
+    -fx-border-color: #2a2a2a;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 15;
 }
+
+/* JFXTreeTableView */
+.jfx-tree-table-view {
+    -fx-background-color: #1a1a1a;
+    -fx-control-inner-background: #1a1a1a;
+    -fx-cell-hover-color: #2a2a2a;
+    -fx-selection-bar: #3a3a3a;
+    -fx-selection-bar-text: #ffffff;
+}
+.jfx-tree-table-view .tree-table-row-cell {
+    -fx-background-color: transparent;
+}
+.jfx-tree-table-view .column-header-background {
+    -fx-background-color: #2a2a2a;
+}
+.jfx-tree-table-view .column-header .label {
+    -fx-text-fill: #e0e0e0;
+    -fx-font-weight: bold;
+}
+
+/* TabPane dentro de .container-box */
+.tab-pane {
+    -fx-background-color: transparent;
+}
+
+/* ===========================
+   WALLET ACTIONS
+=========================== */
+
+.wallet-actions-box { }
 
 .wallet-actions-title {
-    -fx-text-fill: #b892ff;
-    -fx-font-size: 15px;
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 13px;
     -fx-font-weight: bold;
-    -fx-padding: 0 0 12 0;
 }
 
 .wallet-actions-label {
     -fx-text-fill: #e0e0e0;
-    -fx-font-size: 13px;
-    -fx-font-weight: 600;
-    -fx-padding: 0 0 4 0;
+    -fx-font-size: 12px;
 }
 
+/* Balance display */
+.balance-display {
+    -fx-text-fill: #b892ff;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 0 0 0;
+}
+
+/* ===========================
+   FORM CONTROLS
+=========================== */
+
+/* Botões de ação */
+.action-button {
+    -fx-background-color: linear-gradient(to bottom right, #b892ff, #8f6fea);
+    -fx-text-fill: #fff;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-padding: 6 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 4, 0, 0, 2);
+}
+.action-button:hover {
+    -fx-background-color: #a679f8;
+}
+
+/* TextFields */
 .text-field {
-    -fx-background-color: #1e1e1e;
-    -fx-background-radius: 8;
-    -fx-border-color: #333333;
-    -fx-border-radius: 8;
-    -fx-text-fill: #ffffff;
-    -fx-prompt-text-fill: #888888;
-    -fx-padding: 8 12;
-    -fx-effect: dropshadow(three-pass-box, #00000033, 4, 0, 1, 2);
+    -fx-background-color: #1f1f1f;
+    -fx-text-fill: #e0e0e0;
+    -fx-prompt-text-fill: #7a7a7a;
+    -fx-border-color: #2a2a2a;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 6 8;
 }
 .text-field:focused {
     -fx-border-color: #b892ff;
-    -fx-effect: dropshadow(gaussian, #b892ff55, 8, 0.3, 0, 1);
 }
 
-
-/* ===========================
-   ACTION BUTTONS
-   =========================== */
-.action-button {
-    -fx-background-radius: 12;
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-    -fx-cursor: hand;
-    -fx-padding: 10 20;
-    -fx-border-color: transparent;
-    -fx-effect: dropshadow(three-pass-box, #00000055, 4, 0, 2, 2);
-    -fx-transition: all 0.3s ease-in-out;
-}
-.action-button.deposit {
-    -fx-background-color: linear-gradient(to right, #7bd88f, #3fbf6f);
-    -fx-text-fill: #121212;
-}
-.action-button.deposit:hover {
-    -fx-background-color: linear-gradient(to right, #8cf3a1, #5de58c);
-    -fx-scale-x: 1.04;
-    -fx-scale-y: 1.04;
-}
-.action-button.withdraw {
-    -fx-background-color: linear-gradient(to right, #ff6b6b, #d94c4c);
-    -fx-text-fill: #121212;
-}
-.action-button.withdraw:hover {
-    -fx-background-color: linear-gradient(to right, #ff8383, #ec5e5e);
-    -fx-scale-x: 1.04;
-    -fx-scale-y: 1.04;
-}
-
-
-/* ===========================
-   STATUS LABELS
-   =========================== */
+/* Status labels */
 .status-label {
     -fx-font-size: 12px;
-    -fx-font-weight: 600;
 }
-.deposit-success { -fx-text-fill: #7bd88f; }
-.withdraw-error  { -fx-text-fill: #ff6b6b; }
-
-
-/* ===========================
-   JFXTreeTableView & TabPane
-   =========================== */
-
-.jfx-tree-table-view {
-    -fx-background-color: #1a1a1a;
-    -fx-control-inner-background: #1a1a1a;
-    -fx-background-insets: 0;
-    -fx-border-color: transparent;
-    -fx-background-radius: 12;
-    -fx-effect: dropshadow(three-pass-box, #00000060, 6, 0, 2, 3);
-
-    /* Fixed size */
-    -fx-pref-height: 500px;
-    -fx-min-height: 500px;
-    -fx-max-height: 500px;
-
-    -fx-pref-width: 700px;
-    -fx-min-width: 700px;
-    -fx-max-width: 700px;
-
-    -fx-padding: 0;
+.status-label.deposit-success {
+    -fx-text-fill: #4caf50;
 }
-
-.jfx-tree-table-view .search-box {
-    -fx-background-color: transparent;
-    -fx-max-height: 0;
-    -fx-padding: 0;
+.status-label.withdraw-error {
+    -fx-text-fill: #f44336;
 }
-
-/* Column header style */
-.jfx-tree-table-view .column-header-background {
-    -fx-background-color: #141414;
-    -fx-background-radius: 12 12 0 0;
-    -fx-effect: dropshadow(gaussian, #00000088, 4, 0.3, 0, 1);
-}
-.jfx-tree-table-view .column-header .label {
-    -fx-text-fill: #b892ff;
-    -fx-font-size: 13px;
-    -fx-font-weight: bold;
-    -fx-padding: 10 5 10 5;
-}
-
-/* Cells & rows */
-.jfx-tree-table-cell {
-    -fx-text-fill: #ffffff;
-    -fx-font-size: 14px;
-    -fx-padding: 10 12;
-}
-.jfx-tree-table-row-cell:odd  { -fx-background-color: #1a1a1a; }
-.jfx-tree-table-row-cell:even { -fx-background-color: #202020; }
-.jfx-tree-table-row-cell:hover {
-    -fx-background-color: #2a2a2a;
-    -fx-cursor: hand;
-}
-.jfx-tree-table-row-cell:selected {
-    -fx-background-color: #b892ff;
-    -fx-text-fill: #121212;
-}
-
-
-.jfx-tree-table-view .placeholder .label {
-    -fx-text-fill: #777777;
-    -fx-font-style: italic;
-    -fx-font-size: 13px;
-}
-
-
-.jfx-tree-table-view .scroll-bar:vertical .thumb {
-    -fx-background-color: #555555;
-    -fx-background-insets: 0;
-    -fx-background-radius: 4;
-}
-.jfx-tree-table-view .scroll-bar:vertical .track {
-    -fx-background-color: #2b2b2b;
-}
-
-
-.tab-pane {
-    -fx-background-color: #121212;
-    -fx-tab-min-width: 140;
-    -fx-padding: 0;
-}
-.tab-pane .tab-header-area {
-    -fx-background-color: #1a1a1a;
-    -fx-padding: 0 0 5 0;
-}
-.tab-pane .tab {
-    -fx-background-color: transparent;
-}
-.tab-pane .tab-label {
-    -fx-text-fill: #e0e0e0;
-    -fx-font-size: 13px;
-    -fx-font-weight: bold;
-    -fx-padding: 10 20;
-}
-.tab-pane .tab:selected .tab-label {
-    -fx-text-fill: #b892ff;
-}
-.tab-pane .tab:selected {
-    -fx-background-color: #121212;
-    -fx-border-color: transparent transparent #b892ff transparent;
-    -fx-border-width: 0 0 2 0;
-}
-
-
-.tab-pane .tab-content-area {
-    -fx-background-color: #121212;
-}
-
-
-/* ===========================
-   AUXILIARY
-   =========================== */
-
-.jfx-tree-table-cell .text {
-    -fx-wrap-text: true;
-}
-
-
-.center-hbox {
-    -fx-padding: 30;
-}
-
-.jfx-tree-table-view .column-header-background .filler {
-    -fx-background-color: #141414;
-}
-/* --- SEARCH-BOX ---------------------------- */
-.jfx-tree-table-view .search-box {
-    -fx-background-color: transparent;
-    -fx-padding: 0;
-    -fx-border-width: 0;
-    -fx-pref-height: 0;
-    -fx-min-height: 0;
-    -fx-max-height: 0;
-}
-.jfx-tree-table-view .search-box {
-    -fx-background-color: #1a1a1a;
-    -fx-padding: 4 8;
-}
-.jfx-tree-table-view .search-box .text-field {
-    -fx-background-color: #2a2a2a;
-    -fx-text-fill: #ffffff;
-    -fx-prompt-text-fill: #777;
-}
-
-

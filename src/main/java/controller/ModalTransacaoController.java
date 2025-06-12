@@ -16,14 +16,14 @@ import java.util.TimerTask;
 public class ModalTransacaoController {
 
     // PARA DEPÓSITO
-    @FXML private ToggleGroup metodoGroup;       // só existe em deposit_modal.fxml
-    @FXML private TextField depositAmountField;  // só existe em deposit_modal.fxml
-    @FXML private Label depositStatusLabel;      // só existe em deposit_modal.fxml
+    @FXML private ToggleGroup metodoGroup;
+    @FXML private TextField depositAmountField;
+    @FXML private Label depositStatusLabel;
 
     // PARA LEVANTAMENTO
-    @FXML private ComboBox<String> contaDestinoCombo; // só existe em withdraw_modal.fxml
-    @FXML private TextField withdrawAmountField;      // só existe em withdraw_modal.fxml
-    @FXML private Label withdrawStatusLabel;          // só existe em withdraw_modal.fxml
+    @FXML private ComboBox<String> contaDestinoCombo;
+    @FXML private TextField withdrawAmountField;
+    @FXML private Label withdrawStatusLabel;
 
     private int userId;
     private WalletController mainController;
