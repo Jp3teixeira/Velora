@@ -63,6 +63,7 @@ public class WalletController {
 
     @FXML
     public void initialize() {
+        System.out.println("CSS URL: " + getClass().getResource("/view/css/wallet.css"));
         atualizarTudo();
         balanceLabel.sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene != null) {
@@ -130,9 +131,13 @@ public class WalletController {
                                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
                 )
         );
-        colTipo.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getValue().getTipo().toUpperCase())
-        );
+
+        colTipo.setCellValueFactory(c -> {
+            String tipo = c.getValue().getValue().getTipo();
+            String texto = (tipo != null) ? tipo.toUpperCase() : "";
+            return new SimpleStringProperty(texto);
+        });
+
         colAtivoTx.setCellValueFactory(c ->
                 new SimpleStringProperty(
                         c.getValue().getValue().getMoeda() != null
@@ -140,17 +145,24 @@ public class WalletController {
                                 : "EUR"
                 )
         );
+
         colQuantidadeTx.setCellValueFactory(c ->
                 new SimpleStringProperty(
-                        c.getValue().getValue().getQuantidade().setScale(8, RoundingMode.HALF_UP).toPlainString()
+                        c.getValue().getValue().getQuantidade()
+                                .setScale(8, RoundingMode.HALF_UP)
+                                .toPlainString()
                 )
         );
+
         colValorTx.setCellValueFactory(c ->
                 new SimpleStringProperty(
-                        c.getValue().getValue().getTotalEur().setScale(2, RoundingMode.HALF_UP).toPlainString()
+                        c.getValue().getValue().getTotalEur()
+                                .setScale(2, RoundingMode.HALF_UP)
+                                .toPlainString()
                 )
         );
     }
+
 
     public void carregarPortfolio() {
         List<Portfolio> lista = portfolioRepo.listarPorUtilizador(SessaoAtual.utilizadorId);

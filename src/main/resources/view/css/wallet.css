@@ -1,45 +1,115 @@
 /* wallet.css */
 
+/* ===========================
+   NAVBAR
+=========================== */
+
+/* Botões da navbar */
+.menu-button {
+    -fx-text-fill: #e0e0e0;
+    -fx-background-color: transparent;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-padding: 6 10;
+    -fx-border-color: transparent;
+}
+.menu-button:hover {
+    -fx-text-fill: #b892ff;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* Navbar container */
+.navbar {
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 12 20;
+}
+
+/* Título */
+.navbar-title {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 18px;
+}
+
+/* Botão de Logout */
+.logout-button {
+    -fx-text-fill: white;
+    -fx-background-color: #b892ff;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 14;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(one-pass-box, #00000033, 4, 0, 0, 2);
+    -fx-border-color: transparent;
+}
+.logout-button:hover {
+    -fx-background-color: #a679f8;
+    -fx-scale-x: 1.04;
+    -fx-scale-y: 1.04;
+}
+
+/* ===========================
+   ROOT & COMMON
+=========================== */
+
 /* Root */
 .root {
     -fx-background-color: #121212;
     -fx-font-family: "Segoe UI", sans-serif;
 }
 
-/* Header */
+/* Container comum */
+.container-box {
+    -fx-background-color: #1f1f1f;
+    -fx-border-color: #2a2a2a;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 15;
+}
+
+/* Header container */
 .header-container {
     -fx-background-color: #1f1f1f;
     -fx-padding: 30 30 20 30;
 }
 
-/* Navbar title */
-.navbar-title {
-    -fx-text-fill: #fff;
-    -fx-font-size: 18px;
-    -fx-font-weight: bold;
+/* Portfólio display */
+.portfolio-display {
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 14px;
+    -fx-padding: 0 0 8 0;
 }
 
-/* Center HBox */
+/* Center GridPane */
 .center-hbox {
     -fx-background-color: transparent;
-    /* NÃO tente fazer width aqui; deixe o FXML controlar com prefWidth/HBox.hgrow */
 }
 
-/* Table container */
+/* ===========================
+   TABLE SECTION
+=========================== */
+
+/* Container de tabela – igual a .container-box */
 .table-container {
     -fx-background-color: #1f1f1f;
     -fx-border-color: #2a2a2a;
     -fx-border-radius: 6;
     -fx-background-radius: 6;
-    -fx-padding: 10;
+    -fx-padding: 15;
 }
 
-/* TreeTableView geral */
+/* JFXTreeTableView */
 .jfx-tree-table-view {
     -fx-background-color: #1a1a1a;
+    -fx-control-inner-background: #1a1a1a;
     -fx-cell-hover-color: #2a2a2a;
     -fx-selection-bar: #3a3a3a;
     -fx-selection-bar-text: #ffffff;
+}
+.jfx-tree-table-view .tree-table-row-cell {
+    -fx-background-color: transparent;
 }
 .jfx-tree-table-view .column-header-background {
     -fx-background-color: #2a2a2a;
@@ -49,23 +119,49 @@
     -fx-font-weight: bold;
 }
 
-/* Wallet-actions box */
-.wallet-actions-box {
-    -fx-background-color: #1f1f1f;
-    -fx-border-color: #2a2a2a;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-padding: 20;
+/* TabPane dentro de .container-box */
+.tab-pane {
+    -fx-background-color: transparent;
 }
 
-/* Buttons */
+/* ===========================
+   WALLET ACTIONS
+=========================== */
+
+.wallet-actions-box { }
+
+.wallet-actions-title {
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.wallet-actions-label {
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 12px;
+}
+
+/* Balance display */
+.balance-display {
+    -fx-text-fill: #b892ff;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 0 0 0;
+}
+
+/* ===========================
+   FORM CONTROLS
+=========================== */
+
+/* Botões de ação */
 .action-button {
-    -fx-background-color: #b892ff;
+    -fx-background-color: linear-gradient(to bottom right, #b892ff, #8f6fea);
     -fx-text-fill: #fff;
     -fx-font-weight: bold;
     -fx-background-radius: 6;
     -fx-cursor: hand;
     -fx-padding: 6 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 4, 0, 0, 2);
 }
 .action-button:hover {
     -fx-background-color: #a679f8;
@@ -85,7 +181,7 @@
     -fx-border-color: #b892ff;
 }
 
-/* Labels de status */
+/* Status labels */
 .status-label {
     -fx-font-size: 12px;
 }

@@ -1,23 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import com.jfoenix.controls.*?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.*?>
 
-<?import java.net.URL?>
 <BorderPane xmlns="http://javafx.com/javafx/17.0.12"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="controller.WalletController"
+            stylesheets="@/view/css/wallet.css"
             styleClass="root">
 
-    <stylesheets>
-        <URL value="@/view/css/wallet.css"/>
-    </stylesheets>
-
-    <!-- ==========================
-         TOPO: Navbar + Título
-         ========================== -->
+    <!-- TOPO -->
     <top>
         <VBox spacing="0">
             <fx:include source="navbar.fxml"/>
@@ -30,34 +24,34 @@
         </VBox>
     </top>
 
-    <!-- ==========================
-         CORPO (CENTRO)
-         ========================== -->
+    <!-- CORPO -->
     <center>
-        <!-- CORPO: GRID com 70% tabelas e 30% ações -->
-        <GridPane styleClass="center-hbox">
+        <GridPane styleClass="center-hbox" hgap="20" vgap="20">
             <padding>
                 <Insets top="20" right="20" bottom="20" left="20"/>
             </padding>
             <columnConstraints>
-                <ColumnConstraints percentWidth="70" hgrow="ALWAYS"/>
-                <ColumnConstraints percentWidth="30"/>
+                <ColumnConstraints percentWidth="70" hgrow="ALWAYS" minWidth="400"/>
+                <ColumnConstraints percentWidth="30" hgrow="SOMETIMES" minWidth="250"/>
             </columnConstraints>
             <rowConstraints>
                 <RowConstraints vgrow="ALWAYS"/>
             </rowConstraints>
 
-            <!-- LADO ESQUERDO: Tabelas -->
+            <!-- ESQUERDA: Tabelas -->
             <VBox GridPane.columnIndex="0" spacing="15" VBox.vgrow="ALWAYS">
                 <Label fx:id="totalLabel"
                        text="Valor Total do Portfólio: € 0,00"
                        styleClass="portfolio-display"/>
 
-                <TabPane fx:id="walletTabPane" VBox.vgrow="ALWAYS" styleClass="tab-pane">
+                <TabPane fx:id="walletTabPane"
+                         VBox.vgrow="ALWAYS"
+                         styleClass="tab-pane container-box">
                     <tabs>
+
                         <!-- Posições -->
                         <Tab text="Posições">
-                            <AnchorPane styleClass="table-container">
+                            <AnchorPane styleClass="table-container container-box">
                                 <JFXTreeTableView fx:id="cryptoTable"
                                                   showRoot="false"
                                                   AnchorPane.topAnchor="0"
@@ -117,36 +111,44 @@
                                 </JFXTreeTableView>
                             </AnchorPane>
                         </Tab>
+
                     </tabs>
                 </TabPane>
             </VBox>
 
-            <!-- LADO DIREITO: Saldo & Operações -->
-            <VBox GridPane.columnIndex="1" spacing="25" VBox.vgrow="NEVER">
-
-                <!-- Saldo -->
-                <VBox spacing="10" styleClass="wallet-actions-box">
+            <!-- DIREITA: Ações -->
+            <VBox GridPane.columnIndex="1" spacing="20">
+                <VBox spacing="10" styleClass="container-box wallet-actions-box">
                     <Label text="Saldo da Carteira" styleClass="wallet-actions-title"/>
                     <Label fx:id="balanceLabel" text="€ 0,00" styleClass="balance-display"/>
                 </VBox>
 
-                <Separator orientation="HORIZONTAL"/>
+                <Separator/>
 
-                <!-- Depositar/Levantar -->
-                <VBox spacing="15" styleClass="wallet-actions-box">
+                <VBox spacing="15" styleClass="container-box wallet-actions-box">
                     <Label text="Operações de Saldo" styleClass="wallet-actions-title"/>
 
                     <HBox spacing="10" alignment="CENTER_LEFT">
                         <Label text="Depositar:" styleClass="wallet-actions-label"/>
-                        <TextField fx:id="depositAmountField" promptText="€" styleClass="text-field"/>
-                        <Button text="OK" styleClass="action-button deposit" onAction="#confirmarDeposito"/>
+                        <TextField fx:id="depositAmountField"
+                                   promptText="€"
+                                   styleClass="text-field"
+                                   HBox.hgrow="ALWAYS"/>
+                        <Button text="OK"
+                                styleClass="action-button deposit"
+                                onAction="#confirmarDeposito"/>
                     </HBox>
                     <Label fx:id="depositStatusLabel" styleClass="status-label deposit-success"/>
 
                     <HBox spacing="10" alignment="CENTER_LEFT">
                         <Label text="Levantar:" styleClass="wallet-actions-label"/>
-                        <TextField fx:id="withdrawAmountField" promptText="€" styleClass="text-field"/>
-                        <Button text="OK" styleClass="action-button withdraw" onAction="#confirmarLevantamento"/>
+                        <TextField fx:id="withdrawAmountField"
+                                   promptText="€"
+                                   styleClass="text-field"
+                                   HBox.hgrow="ALWAYS"/>
+                        <Button text="OK"
+                                styleClass="action-button withdraw"
+                                onAction="#confirmarLevantamento"/>
                     </HBox>
                     <Label fx:id="withdrawStatusLabel" styleClass="status-label withdraw-error"/>
                 </VBox>
