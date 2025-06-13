@@ -64,7 +64,12 @@ public class HomeController implements Initializable {
 
         // 2) Monta o gráfico real para **alguma** moeda:
 
-        List<Moeda> listaMoedas = marketRepo.getTodasAsMoedas();
+        List<Moeda> listaMoedas = marketRepo.getMoedasFiltradas( /* termo    */ "",
+                /* campo    */ null,
+                /* operador */ null,
+                /* valor    */ null,
+                /* sortBy   */ "Volume 24h"
+        );
         if (!listaMoedas.isEmpty()) {
             Moeda primeira = listaMoedas.get(0);
             assetLabel.setText("Ativo: " + primeira.getNome() + " (" + primeira.getSimbolo() + ")");

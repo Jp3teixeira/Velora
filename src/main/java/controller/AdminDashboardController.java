@@ -161,7 +161,12 @@ public class AdminDashboardController {
                 nomeCol, simboloCol, valorCol, variacaoCol, volumeCol, actionCol
         );
 
-        List<Moeda> lista = MarketRepository.getTodasAsMoedas();
+        List<Moeda> lista = MarketRepository.getMoedasFiltradas(/* termo    */ "",
+                /* campo    */ null,
+                /* operador */ null,
+                /* valor    */ null,
+                /* sortBy   */ "Volume 24h"
+        );
         tableView.setItems(FXCollections.observableArrayList(lista));
 
         contentArea.getChildren().setAll(tableView);

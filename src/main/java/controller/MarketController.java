@@ -35,77 +35,93 @@ import java.util.ResourceBundle;
 
 public class MarketController implements Initializable {
 
-    // ——————————————————————————————————————————————————————————
-    // COMPONENTES PARA FILTROS & TRENDS
     @FXML private TextField searchField;
     @FXML private ComboBox<String> filterField;
     @FXML private ComboBox<String> filterOp;
     @FXML private TextField filterValue;
-    @FXML private ListView<Moeda> trendingView;
+    @FXML private ComboBox<String> sortOrder; // Novo: crescente/decrescente
     @FXML private ListView<Moeda> watchlistView;
-
 
     @FXML private ToggleButton btn1D, btn1W, btn1M, btn3M, btn1Y, btnMAX;
     @FXML private ImageView iconMoeda;
     @FXML private Label marketTitle, labelValorAtual, labelVariacao, labelVolume;
     @FXML private LineChart<String, Number> marketChart;
 
-    // ——————————————————————————————————————————————————————————
-    // OBSERVABLE LISTS
-    private final ObservableList<Moeda> fullList  = FXCollections.observableArrayList();
-    private final ObservableList<Moeda> trendList = FXCollections.observableArrayList();
-
-    // SELEÇÃO ATUAL
-    private Moeda moedaAtualSelecionada;
-
-    // PAUSA PARA “LAZY SEARCH”
+    private final ObservableList<Moeda> fullList = FXCollections.observableArrayList();
+    private Moeda moedaAtual;
     private PauseTransition pause;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // 1) configurar pausa (debounce)
         pause = new PauseTransition(Duration.millis(300));
         pause.setOnFinished(e -> aplicarFiltros());
 
-        // 2) inicializa trending
-        trendList.setAll(MarketRepository.getTrendingMoedas(5));
-        trendingView.setItems(trendList);
-        trendingView.setCellFactory(param -> createCellFactory());
-        trendingView.setOnMouseClicked(e -> selecionarMoeda(trendingView.getSelectionModel().getSelectedItem()));
-
-        // 3) inicializa watchlist (filtrada)
+        // Inicializar ListView
         watchlistView.setItems(fullList);
-        watchlistView.setCellFactory(param -> createCellFactory());
-        watchlistView.setOnMouseClicked(e -> selecionarMoeda(watchlistView.getSelectionModel().getSelectedItem()));
+        watchlistView.setCellFactory(lv -> createCell());
+        watchlistView.setOnMouseClicked(e ->
+                selecionarMoeda(watchlistView.getSelectionModel().getSelectedItem())
+        );
 
-        // 4) listeners de pesquisa e filtros
-        searchField.textProperty().addListener((obs,o,n) -> pause.playFromStart());
-        filterField.valueProperty().addListener((obs,o,n) -> pause.playFromStart());
-        filterOp.valueProperty().addListener((obs,o,n) -> pause.playFromStart());
-        filterValue.textProperty().addListener((obs,o,n) -> pause.playFromStart());
+        // Listeners
+        searchField.textProperty().addListener((o, a, b) -> pause.playFromStart());
+        filterField.valueProperty().addListener((obs, old, novo) -> aplicarFiltros());
+        filterOp.valueProperty().addListener((o, a, b) -> aplicarFiltros());
+        filterValue.textProperty().addListener((o, a, b) -> pause.playFromStart());
 
-        // 5) carrega lista inicial (sem filtro)
-        aplicarFiltros();
+        if (sortOrder != null) {
+            sortOrder.setItems(FXCollections.observableArrayList("Crescente", "Decrescente"));
+            sortOrder.setValue("Decrescente");
+            sortOrder.valueProperty().addListener((o, a, b) -> aplicarFiltros());
+        }
 
-        // 6) configura botões de intervalo e gráfico
         setupToggleButtons();
+        aplicarFiltros();
     }
 
-    /** Cria o mesmo ListCell usado para trending e watchlist. */
-    private ListCell<Moeda> createCellFactory() {
+    private void aplicarFiltros() {
+        String termo = Optional.ofNullable(searchField.getText()).orElse("").trim();
+        String campo = Optional.ofNullable(filterField.getValue()).orElse(null);
+        String operador = Optional.ofNullable(filterOp.getValue()).orElse(null);
+        BigDecimal valor = null;
+
+        try {
+            String raw = filterValue.getText();
+            if (raw != null && !raw.trim().isEmpty()) {
+                valor = new BigDecimal(raw.trim());
+            }
+        } catch (NumberFormatException e) {
+            valor = null; // ignora se inválido
+        }
+
+        String sortBy = campo != null ? campo : "Volume 24h";
+        String ordem = (sortOrder != null && "Crescente".equals(sortOrder.getValue())) ? "ASC" : "DESC";
+
+        List<Moeda> lista = MarketRepository.getMoedasFiltradas(
+                termo,
+                campo,
+                operador,
+                valor,
+                sortBy + " " + ordem
+        );
+
+        fullList.setAll(lista);
+    }
+
+    private ListCell<Moeda> createCell() {
         return new ListCell<>() {
             private final HBox hBox = new HBox(10);
             private final ImageView img = new ImageView();
             private final VBox vBox = new VBox(2);
-            private final Label lblNome = new Label();
-            private final Label lblValor= new Label();
+            private final Label nome = new Label();
+            private final Label valor = new Label();
 
             {
                 img.setFitWidth(24);
                 img.setFitHeight(24);
-                lblNome.getStyleClass().add("nome-moeda");
-                lblValor.getStyleClass().add("valor-moeda");
-                vBox.getChildren().setAll(lblNome, lblValor);
+                nome.getStyleClass().add("nome-moeda");
+                valor.getStyleClass().add("valor-moeda");
+                vBox.getChildren().setAll(nome, valor);
                 hBox.getChildren().setAll(img, vBox);
             }
 
@@ -115,15 +131,14 @@ public class MarketController implements Initializable {
                 if (empty || m == null) {
                     setGraphic(null);
                 } else {
-                    boolean sel = m.equals(moedaAtualSelecionada);
-                    hBox.setStyle(sel
-                            ? "-fx-background-color: #2a2a2a; -fx-border-color: #b892ff; -fx-border-radius:6; -fx-background-radius:6;"
-                            : "");
-                    lblNome.setText(m.getNome());
-                    lblValor.setText(String.format("€ %.2f", m.getValorAtual()));
+                    nome.setText(m.getNome());
+                    valor.setText(String.format("€ %.2f", m.getValorAtual()));
                     try {
-                        String path = "/icons/" + m.getSimbolo().toLowerCase() + ".png";
-                        img.setImage(new Image(getClass().getResourceAsStream(path)));
+                        img.setImage(new Image(
+                                getClass().getResourceAsStream(
+                                        "/icons/" + m.getSimbolo().toLowerCase() + ".png"
+                                )
+                        ));
                     } catch (Exception ex) {
                         img.setImage(null);
                     }
@@ -133,35 +148,38 @@ public class MarketController implements Initializable {
         };
     }
 
-    /** Aplica os filtros (pesquisa + campo numérico) via Repository. */
-    private void aplicarFiltros() {
-        String termo = Optional.ofNullable(searchField.getText()).orElse("").trim();
-        String campo = filterField.getValue();
-        String op    = filterOp.getValue();
-        BigDecimal val = null;
-        try {
-            if (filterValue.getText() != null && !filterValue.getText().isBlank()) {
-                val = new BigDecimal(filterValue.getText().trim());
-            }
-        } catch (NumberFormatException ignored) { }
-        List<Moeda> resultado = MarketRepository.getMoedasFiltradas(termo, campo, op, val);
-        fullList.setAll(resultado);
-    }
-
-    /** Seleciona a moeda, atualiza detalhes e carrega gráfico “MAX”. */
     private void selecionarMoeda(Moeda m) {
-        if (m != null && !m.equals(moedaAtualSelecionada)) {
-            moedaAtualSelecionada = m;
-            atualizarInformacoesMoeda();
-            aplicarFiltro("MAX");
+        if (m == null || m.equals(moedaAtual)) return;
+        moedaAtual = m;
+
+        marketTitle.setText(m.getNome() + " (" + m.getSimbolo() + ")");
+        labelValorAtual.setText(String.format("€ %.2f", m.getValorAtual()));
+        labelVariacao.setText(String.format("%.2f%%", m.getVariacao24h()));
+        labelVariacao.getStyleClass().setAll(
+                m.getVariacao24h().doubleValue() >= 0
+                        ? "label-variacao-positiva"
+                        : "label-variacao-negativa"
+        );
+        labelVolume.setText(String.format("€ %,.2f", m.getVolumeMercado()));
+
+        try {
+            iconMoeda.setImage(new Image(
+                    getClass().getResourceAsStream(
+                            "/icons/" + m.getSimbolo().toLowerCase() + ".png"
+                    )
+            ));
+        } catch (Exception ex) {
+            iconMoeda.setImage(null);
         }
+
+        aplicarFiltro("MAX");
     }
 
     private void setupToggleButtons() {
         ToggleGroup tg = new ToggleGroup();
-        btn1D.setToggleGroup(tg); btn1W.setToggleGroup(tg);
-        btn1M.setToggleGroup(tg); btn3M.setToggleGroup(tg);
-        btn1Y.setToggleGroup(tg); btnMAX.setToggleGroup(tg);
+        for (ToggleButton b : List.of(btn1D, btn1W, btn1M, btn3M, btn1Y, btnMAX)) {
+            b.setToggleGroup(tg);
+        }
         btnMAX.setSelected(true);
         btn1D.setOnAction(e -> aplicarFiltro("1D"));
         btn1W.setOnAction(e -> aplicarFiltro("1W"));
@@ -171,51 +189,30 @@ public class MarketController implements Initializable {
         btnMAX.setOnAction(e -> aplicarFiltro("MAX"));
     }
 
-    private void atualizarInformacoesMoeda() {
-        marketTitle.setText(moedaAtualSelecionada.getNome()
-                + " (" + moedaAtualSelecionada.getSimbolo() + ")");
-        labelValorAtual.setText(String.format("€ %.2f", moedaAtualSelecionada.getValorAtual()));
-        labelVariacao.setText(String.format("%.2f%%", moedaAtualSelecionada.getVariacao24h()));
-        labelVariacao.getStyleClass().setAll(
-                moedaAtualSelecionada.getVariacao24h().doubleValue() >= 0
-                        ? "label-variacao-positiva"
-                        : "label-variacao-negativa"
-        );
-        labelVolume.setText(String.format("€ %,.2f", moedaAtualSelecionada.getVolumeMercado()));
-        try {
-            String path = "/icons/" + moedaAtualSelecionada.getSimbolo().toLowerCase() + ".png";
-            iconMoeda.setImage(new Image(getClass().getResourceAsStream(path)));
-        } catch (Exception e) {
-            iconMoeda.setImage(null);
-        }
-    }
-
-    /** Mantém o comportamento original de carregar histórico no gráfico. */
     private void aplicarFiltro(String intervalo) {
-        if (moedaAtualSelecionada == null) return;
+        if (moedaAtual == null) return;
         marketChart.getData().clear();
 
         XYChart.Series<String, Number> serie = new XYChart.Series<>();
         serie.setName(intervalo);
 
         MarketRepository
-                .getHistoricoPorMoedaFiltrado(moedaAtualSelecionada.getIdMoeda(), intervalo)
+                .getHistoricoPorMoedaFiltrado(moedaAtual.getIdMoeda(), intervalo)
                 .forEach(serie.getData()::add);
 
         marketChart.getData().add(serie);
 
-        // tooltips & estilo dos pontos
         Platform.runLater(() -> {
             for (XYChart.Data<String, Number> d : serie.getData()) {
                 Node node = d.getNode();
                 if (node != null) {
                     Tooltip tp = new Tooltip(
-                            String.format("%s: € %.2f", d.getXValue(), d.getYValue().doubleValue())
+                            d.getXValue() + ": € " + d.getYValue().doubleValue()
                     );
                     tp.setShowDelay(Duration.millis(50));
                     Tooltip.install(node, tp);
                     node.setStyle(
-                            "-fx-background-color: white, #B892FF; " +
+                            "-fx-background-color: white, #b892ff; " +
                                     "-fx-background-radius: 6px;"
                     );
                 }
@@ -227,24 +224,23 @@ public class MarketController implements Initializable {
     @FXML private void abrirModalVenda()  { abrirModalOrdem("VENDA"); }
 
     private void abrirModalOrdem(String tipo) {
-        if (moedaAtualSelecionada == null) return;
+        if (moedaAtual == null) return;
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/BuySell.fxml"));
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/view/BuySell.fxml")
+            );
             Parent root = loader.load();
             controller.OrdemController ctrl = loader.getController();
-            ctrl.configurar(tipo,
-                    moedaAtualSelecionada,
-                    SessaoAtual.utilizadorId,
-                    null);
+            ctrl.configurar(tipo, moedaAtual, SessaoAtual.utilizadorId, null);
 
             Stage modal = new Stage();
-            modal.initOwner(btn1D.getScene().getWindow());
+            modal.initOwner(marketChart.getScene().getWindow());
             modal.initModality(Modality.APPLICATION_MODAL);
             modal.initStyle(StageStyle.TRANSPARENT);
             Scene sc = new Scene(root);
             sc.setFill(Color.TRANSPARENT);
             modal.setScene(sc);
-            modal.setTitle(tipo + " " + moedaAtualSelecionada.getNome());
+            modal.setTitle(tipo + " " + moedaAtual.getNome());
             modal.setResizable(false);
             modal.showAndWait();
         } catch (IOException ex) {

@@ -1,148 +1,171 @@
-/* ===========================
-   BASE
-=========================== */
+/* ====================================
+   CORE STYLES
+==================================== */
 .root {
     -fx-font-family: "Segoe UI", sans-serif;
     -fx-background-color: #121212;
+    -fx-text-fill: #e0e0e0;
 }
 
-/* ===========================
+/* ====================================
    NAVBAR
-=========================== */
-/* Container */
+==================================== */
 .navbar {
-    -fx-background-color: #1a1a1a;
+    -fx-background-color: #1F1B24;
     -fx-padding: 12 20;
 }
-/* Título */
 .navbar-title {
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
+    -fx-text-fill: #FFFFFF;
     -fx-font-size: 18px;
+    -fx-font-weight: bold;
 }
-/* Botões */
 .menu-button {
     -fx-background-color: transparent;
     -fx-text-fill: #e0e0e0;
-    -fx-font-size: 14px;
-    -fx-padding: 6 10;
+    -fx-padding: 6 12;
     -fx-cursor: hand;
-    -fx-border-color: transparent;
-    -fx-effect: dropshadow(one-pass-box, #00000033, 2, 0, 0, 1);
 }
 .menu-button:hover {
     -fx-text-fill: #b892ff;
-    -fx-scale-x: 1.05;
-    -fx-scale-y: 1.05;
-}
-/* Logout */
-.logout-button {
-    -fx-background-color: #b892ff;
-    -fx-text-fill: white;
-    -fx-font-size: 13px;
-    -fx-font-weight: bold;
-    -fx-padding: 6 14;
-    -fx-background-radius: 6;
-    -fx-cursor: hand;
-    -fx-effect: dropshadow(one-pass-box, #00000033, 4, 0, 0, 2);
-}
-.logout-button:hover {
-    -fx-background-color: #a679f8;
-    -fx-scale-x: 1.04;
-    -fx-scale-y: 1.04;
 }
 
-/* ===========================
-   SIDEBAR / WATCHLIST
-=========================== */
+/* ====================================
+   SIDEBAR
+==================================== */
+.sidebar {
+    -fx-padding: 20;
+    -fx-background-color: #1A171F;
+}
+.search-field {
+    -fx-pref-width: 260;
+    -fx-background-color: #1E1C24;
+    -fx-text-fill: #e0e0e0;
+    -fx-prompt-text-fill: #777777;
+    -fx-background-radius: 6;
+    -fx-border-color: #b892ff;
+    -fx-border-radius: 6;
+    -fx-padding: 8 12;
+}
+.sidebar-controls {
+    -fx-spacing: 6;
+    -fx-padding: 12 0 12 0;
+}
+.combo-box {
+    -fx-pref-width: 260;
+    -fx-background-color: #1E1C24;
+    -fx-text-fill: #e0e0e0;
+    -fx-prompt-text-fill: #aaaaaa;
+    -fx-border-color: #b892ff;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+.combo-box .arrow-button {
+    -fx-background-color: transparent;
+}
+.combo-box .list-cell {
+    -fx-background-color: #1E1C24;
+    -fx-text-fill: #e0e0e0;
+}
+.combo-box .list-cell:hover {
+    -fx-background-color: #2E2A33;
+}
+.combo-box .list-cell:selected {
+    -fx-background-color: #b892ff;
+    -fx-text-fill: #121212;
+}
+
+/* ====================================
+   WATCHLIST (ListView)
+==================================== */
 .list-view.watchlist {
-    -fx-background-color: #1a1a1a;
-    -fx-control-inner-background: #1a1a1a;
-    -fx-border-color: transparent;
+    -fx-background-color: #1A171F;
+    -fx-control-inner-background: #1A171F;
+    -fx-border-color: #2E2A33;
 }
 .list-cell {
     -fx-padding: 10 12;
     -fx-background-color: transparent;
-    -fx-text-fill: #f0f0f0;
+    -fx-text-fill: #e0e0e0;
     -fx-cursor: hand;
 }
 .list-cell:hover {
-    -fx-background-color: #2e2e2e;
+    -fx-background-color: #2E2A33;
 }
 .list-cell:selected {
     -fx-background-color: #b892ff;
     -fx-text-fill: #121212;
+}
+
+/* ====================================
+   TITLES & LABELS
+==================================== */
+.title-mercado,
+.titulo-moeda {
+    -fx-font-size: 20px;
     -fx-font-weight: bold;
+    -fx-text-fill: #FFFFFF;
 }
-
-/* ===========================
-   TÍTULOS
-=========================== */
-.title-mercado {
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #ffffff;
-}
-
-/* ===========================
-   CONTROLES DE FILTRO
-=========================== */
-.search-field {
-    -fx-background-color: #2a2a2a;
-    -fx-text-fill: #f0f0f0;
-    -fx-prompt-text-fill: #777;
-    -fx-background-radius: 6;
-    -fx-padding: 6 10;
-}
-.combo-box, .text-field {
-    -fx-background-color: #2a2a2a;
-    -fx-text-fill: #f0f0f0;
-    -fx-prompt-text-fill: #777;
-    -fx-background-radius: 6;
-    -fx-padding: 4 8;
-}
-.combo-box .list-cell:hover {
-    -fx-background-color: #3a3a3a;
-}
-
-/* ===========================
-   TOGGLE BUTTONS
-=========================== */
-.toggle-button,
-.filtro-toggle {
-    -fx-background-color: #2a2a2a;
-    -fx-text-fill: #f0f0f0;
-    -fx-background-radius: 8;
+.label-subtitle {
+    -fx-text-fill: #888888;
     -fx-font-size: 13px;
+}
+
+/* ====================================
+   KPIs
+==================================== */
+.label-valor {
+    -fx-text-fill: #b892ff;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+.label-variacao-positiva {
+    -fx-text-fill: #7bd88f;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+.label-variacao-negativa {
+    -fx-text-fill: #ff6b6b;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+.label-volume {
+    -fx-text-fill: #cccccc;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+/* ====================================
+   TOGGLE BUTTONS (Time Filters)
+==================================== */
+.filtro-toggle {
+    -fx-background-color: #1E1C24;
+    -fx-text-fill: #e0e0e0;
+    -fx-background-radius: 8;
     -fx-padding: 6 14;
-    -fx-border-color: transparent;
+    -fx-font-size: 13px;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
+    -fx-border-color: transparent;
 }
-.toggle-button:hover,
 .filtro-toggle:hover {
-    -fx-background-color: #3a3a3a;
-    -fx-scale-x: 1.03;
-    -fx-scale-y: 1.03;
+    -fx-background-color: #2E2A33;
 }
-.toggle-button:selected,
 .filtro-toggle:selected {
     -fx-background-color: #b892ff;
     -fx-text-fill: #121212;
 }
 
-/* ===========================
-   GRÁFICOS
-=========================== */
+/* ====================================
+   CHART STYLES
+==================================== */
 .chart {
     -fx-background-color: #121212;
 }
 .chart-plot-background {
-    -fx-background-color: #1b1b1b;
+    -fx-background-color: #1E1C24;
 }
-.chart-vertical-grid-lines,
-.chart-horizontal-grid-lines {
-    -fx-stroke: #2a2a2a;
+.chart-horizontal-grid-lines,
+.chart-vertical-grid-lines {
+    -fx-stroke: #2E2A33;
 }
 .default-color0.chart-series-line {
     -fx-stroke: #b892ff;
@@ -150,79 +173,40 @@
 }
 .default-color0.chart-line-symbol {
     -fx-background-color: white, #b892ff;
-    -fx-background-radius: 6px;
+    -fx-background-radius: 5px;
 }
 
-/* ===========================
-   LABELS / METRICS
-=========================== */
-.label-valor {
-    -fx-text-fill: #b892ff;
-    -fx-font-size: 20px;
-    -fx-font-weight: bold;
-}
-.label-variacao-positiva {
-    -fx-text-fill: #7bd88f;
-    -fx-font-size: 20px;
-    -fx-font-weight: bold;
-}
-.label-variacao-negativa {
-    -fx-text-fill: #ff6b6b;
-    -fx-font-size: 20px;
-    -fx-font-weight: bold;
-}
-.label-volume {
-    -fx-text-fill: #bbbbbb;
-    -fx-font-size: 18px;
-    -fx-font-weight: bold;
-}
-
-/* ===========================
-   NOME + VALOR MOEDA (ListCell)
-=========================== */
-.nome-moeda {
-    -fx-text-fill: #f0f0f0;
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-}
-.valor-moeda {
-    -fx-text-fill: #bbbbbb;
-    -fx-font-size: 12px;
-}
-
-/* ===========================
-   BOTÕES DE AÇÃO
-=========================== */
-.btn-comprar {
-    -fx-background-color: #2ecc71;
+/* ====================================
+   ACTION BUTTONS
+==================================== */
+.btn-comprar,
+.btn-vender {
+    -fx-background-radius: 6;
     -fx-text-fill: white;
     -fx-font-weight: bold;
-    -fx-background-radius: 6;
     -fx-padding: 8 20;
     -fx-cursor: hand;
 }
+.btn-comprar {
+    -fx-background-color: #2ecc71;
+}
 .btn-comprar:hover {
-    -fx-scale-x: 1.03;
-    -fx-scale-y: 1.03;
+    -fx-background-color: #29b166;
 }
 .btn-vender {
     -fx-background-color: #e74c3c;
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-background-radius: 6;
-    -fx-padding: 8 20;
-    -fx-cursor: hand;
 }
 .btn-vender:hover {
-    -fx-scale-x: 1.03;
-    -fx-scale-y: 1.03;
+    -fx-background-color: #cf4330;
 }
 
-/* ===========================
-   ANIMAÇÕES
-=========================== */
-.animated-hover:hover {
-    -fx-scale-x: 1.05;
-    -fx-scale-y: 1.05;
-    -fx-effect: dropshadow(gaussian, #b892ff, 8, 0.4, 0, 0);
+/* ====================================
+   MODALS & OVERLAYS
+==================================== */
+.dialog-pane {
+    -fx-background-color: #1E1C24;
+    -fx-text-fill: #e0e0e0;
+}
+.button {
+    -fx-cursor: hand;
 }
