@@ -159,7 +159,7 @@ public class OrdemController {
             }
 
             new Alert(Alert.AlertType.INFORMATION,
-                    tipoOrdem + " executada com sucesso!")
+                    tipoOrdem + " pedido de ordem executado com sucesso!")
                     .show();
             fecharJanela();
 

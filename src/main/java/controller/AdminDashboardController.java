@@ -1,11 +1,7 @@
 package controller;
 
 import Repository.MarketRepository;
-import model.Moeda;
-import utils.SessaoAtual;
-import utils.NavigationHelper;
-import utils.Routes;
-
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -13,11 +9,20 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import model.Moeda;
+import utils.MarketSimulator;
+import utils.NavigationHelper;
+import utils.Routes;
+import utils.SessaoAtual;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
+
+import static utils.SessaoAtual.limparSessao;
 
 public class AdminDashboardController {
 
@@ -28,7 +33,6 @@ public class AdminDashboardController {
     public void initialize() {
         boolean hasPermission = SessaoAtual.tipo != null &&
                 (SessaoAtual.tipo.equalsIgnoreCase("admin") || SessaoAtual.isSuperAdmin);
-
         if (!hasPermission) {
             NavigationHelper.goTo(Routes.HOMEPAGE, true);
         }
@@ -50,32 +54,47 @@ public class AdminDashboardController {
         TextField imageField        = new TextField();
         imageField.setPromptText("Nome da Imagem (ex: btc.png)");
         TextField initialValueField = new TextField();
-        initialValueField.setPromptText("Valor Inicial (ex: 50000.00)");
+        initialValueField.setPromptText("Valor Base (ex: 50000.00)");
 
         Button submitButton = new Button("Adicionar Moeda");
         submitButton.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white;");
         Label statusLabel   = new Label();
 
         submitButton.setOnAction(e -> {
-            String nome   = nameField.getText().trim();
-            String simbolo= symbolField.getText().trim().toUpperCase();
-            String foto   = imageField.getText().trim();
+            String nome    = nameField.getText().trim();
+            String simbolo = symbolField.getText().trim().toUpperCase();
+            String foto    = imageField.getText().trim();
+
             try {
                 if (nome.isEmpty() || simbolo.isEmpty() || foto.isEmpty()) {
                     throw new IllegalArgumentException("Preencha todos os campos!");
                 }
                 BigDecimal valorInicial = new BigDecimal(initialValueField.getText().trim());
 
-                boolean sucesso = MarketRepository.addNewCoin(
-                        nome, simbolo, foto, valorInicial);
+                // Insere e recebe o novo ID
+                OptionalInt optId = MarketRepository.addNewCoinReturnId(
+                        nome, simbolo, foto, valorInicial
 
-                if (sucesso) {
+                );
+
+                if (optId.isPresent()) {
+                    int novoId = optId.getAsInt();
+
+                    // Injeta no simulador
+                    Moeda m = new Moeda(
+                            novoId,
+                            nome,
+                            simbolo,
+                            valorInicial.setScale(2, RoundingMode.HALF_UP),
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO
+                    );
+                    MarketSimulator.getMoedasSimuladas().put(novoId, m);
+
                     statusLabel.setText("Moeda adicionada com sucesso!");
                     statusLabel.setStyle("-fx-text-fill: green;");
-                    nameField.clear();
-                    symbolField.clear();
-                    imageField.clear();
-                    initialValueField.clear();
+                    nameField.clear(); symbolField.clear();
+                    imageField.clear(); initialValueField.clear();
                 } else {
                     statusLabel.setText("Erro ao adicionar moeda!");
                     statusLabel.setStyle("-fx-text-fill: red;");
@@ -115,26 +134,41 @@ public class AdminDashboardController {
 
         TableColumn<Moeda, String> nomeCol = new TableColumn<>("Nome");
         nomeCol.setCellValueFactory(cd ->
-                new javafx.beans.property.SimpleStringProperty(cd.getValue().getNome()));
+                new SimpleStringProperty(
+                        Optional.ofNullable(cd.getValue().getNome()).orElse("—")
+                )
+        );
 
         TableColumn<Moeda, String> simboloCol = new TableColumn<>("Símbolo");
         simboloCol.setCellValueFactory(cd ->
-                new javafx.beans.property.SimpleStringProperty(cd.getValue().getSimbolo()));
+                new SimpleStringProperty(
+                        Optional.ofNullable(cd.getValue().getSimbolo()).orElse("—")
+                )
+        );
 
         TableColumn<Moeda, String> valorCol = new TableColumn<>("Valor Atual (€)");
-        valorCol.setCellValueFactory(cd ->
-                new javafx.beans.property.SimpleStringProperty(
-                        cd.getValue().getValorAtual().toPlainString()));
+        valorCol.setCellValueFactory(cd -> {
+            BigDecimal v = cd.getValue().getValorAtual();
+            return new SimpleStringProperty(
+                    v != null ? v.toPlainString() : "—"
+            );
+        });
 
         TableColumn<Moeda, String> variacaoCol = new TableColumn<>("Variação 24h (%)");
-        variacaoCol.setCellValueFactory(cd ->
-                new javafx.beans.property.SimpleStringProperty(
-                        cd.getValue().getVariacao24h().toPlainString()));
+        variacaoCol.setCellValueFactory(cd -> {
+            BigDecimal v = cd.getValue().getVariacao24h();
+            return new SimpleStringProperty(
+                    v != null ? v.toPlainString() : "—"
+            );
+        });
 
         TableColumn<Moeda, String> volumeCol = new TableColumn<>("Volume 24h");
-        volumeCol.setCellValueFactory(cd ->
-                new javafx.beans.property.SimpleStringProperty(
-                        cd.getValue().getVolumeMercado().toPlainString()));
+        volumeCol.setCellValueFactory(cd -> {
+            BigDecimal v = cd.getValue().getVolumeMercado();
+            return new SimpleStringProperty(
+                    v != null ? v.toPlainString() : "—"
+            );
+        });
 
         TableColumn<Moeda, Void> actionCol = new TableColumn<>("Ações");
         actionCol.setCellFactory(col -> new TableCell<>() {
@@ -161,7 +195,9 @@ public class AdminDashboardController {
                 nomeCol, simboloCol, valorCol, variacaoCol, volumeCol, actionCol
         );
 
-        List<Moeda> lista = MarketRepository.getTodasAsMoedas();
+        List<Moeda> lista = MarketRepository.getMoedasOrdenadas(
+                "", "Valor Atual", false
+        );
         tableView.setItems(FXCollections.observableArrayList(lista));
 
         contentArea.getChildren().setAll(tableView);
@@ -174,7 +210,9 @@ public class AdminDashboardController {
 
         TextField nomeField    = new TextField(m.getNome());
         TextField simboloField = new TextField(m.getSimbolo());
-        TextField valorField   = new TextField(m.getValorAtual().toPlainString());
+        TextField valorField   = new TextField(
+                m.getValorAtual() != null ? m.getValorAtual().toPlainString() : ""
+        );
 
         VBox vb = new VBox(8,
                 new Label("Nome:"), nomeField,
@@ -182,13 +220,16 @@ public class AdminDashboardController {
                 new Label("Valor Atual:"), valorField
         );
         dialog.getDialogPane().setContent(vb);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
+        dialog.getDialogPane().getButtonTypes().addAll(
+                ButtonType.OK, ButtonType.CANCEL
+        );
         dialog.setResultConverter(bt -> {
             if (bt == ButtonType.OK) {
                 m.setNome(nomeField.getText().trim());
                 m.setSimbolo(simboloField.getText().trim());
-                m.setValorAtual(new BigDecimal(valorField.getText().trim()));
+                try {
+                    m.setValorAtual(new BigDecimal(valorField.getText().trim()));
+                } catch (Exception ignore) {}
                 return m;
             }
             return null;
