@@ -1,6 +1,6 @@
 package controller;
 
-import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -13,7 +13,6 @@ import javafx.scene.Scene;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
-import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
@@ -25,39 +24,76 @@ import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import model.Moeda;
 import Repository.MarketRepository;
-import utils.MarketSimulator;
 import utils.SessaoAtual;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.Connection;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class MarketController implements Initializable {
 
+    // ——————————————————————————————————————————————————————————
+    // COMPONENTES PARA FILTROS & TRENDS
+    @FXML private TextField searchField;
+    @FXML private ComboBox<String> filterField;
+    @FXML private ComboBox<String> filterOp;
+    @FXML private TextField filterValue;
+    @FXML private ListView<Moeda> trendingView;
+    @FXML private ListView<Moeda> watchlistView;
+
+
     @FXML private ToggleButton btn1D, btn1W, btn1M, btn3M, btn1Y, btnMAX;
     @FXML private ImageView iconMoeda;
-    @FXML private Label labelValorAtual, labelVariacao, labelVolume, marketTitle;
-    @FXML private ListView<Moeda> watchlistView;
+    @FXML private Label marketTitle, labelValorAtual, labelVariacao, labelVolume;
     @FXML private LineChart<String, Number> marketChart;
 
-    private final ObservableList<Moeda> listaMoedas = FXCollections.observableArrayList();
+    // ——————————————————————————————————————————————————————————
+    // OBSERVABLE LISTS
+    private final ObservableList<Moeda> fullList  = FXCollections.observableArrayList();
+    private final ObservableList<Moeda> trendList = FXCollections.observableArrayList();
+
+    // SELEÇÃO ATUAL
     private Moeda moedaAtualSelecionada;
-    private Connection connection;
+
+    // PAUSA PARA “LAZY SEARCH”
+    private PauseTransition pause;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Inicia o simulador (se ainda não iniciado) e carrega a lista
-        MarketSimulator.startSimulador();
-        listaMoedas.setAll(MarketSimulator.getMoedasSimuladas().values());
-        watchlistView.setItems(listaMoedas);
+        // 1) configurar pausa (debounce)
+        pause = new PauseTransition(Duration.millis(300));
+        pause.setOnFinished(e -> aplicarFiltros());
 
-        // Configura células da ListView
-        watchlistView.setCellFactory(param -> new ListCell<>() {
+        // 2) inicializa trending
+        trendList.setAll(MarketRepository.getTrendingMoedas(5));
+        trendingView.setItems(trendList);
+        trendingView.setCellFactory(param -> createCellFactory());
+        trendingView.setOnMouseClicked(e -> selecionarMoeda(trendingView.getSelectionModel().getSelectedItem()));
+
+        // 3) inicializa watchlist (filtrada)
+        watchlistView.setItems(fullList);
+        watchlistView.setCellFactory(param -> createCellFactory());
+        watchlistView.setOnMouseClicked(e -> selecionarMoeda(watchlistView.getSelectionModel().getSelectedItem()));
+
+        // 4) listeners de pesquisa e filtros
+        searchField.textProperty().addListener((obs,o,n) -> pause.playFromStart());
+        filterField.valueProperty().addListener((obs,o,n) -> pause.playFromStart());
+        filterOp.valueProperty().addListener((obs,o,n) -> pause.playFromStart());
+        filterValue.textProperty().addListener((obs,o,n) -> pause.playFromStart());
+
+        // 5) carrega lista inicial (sem filtro)
+        aplicarFiltros();
+
+        // 6) configura botões de intervalo e gráfico
+        setupToggleButtons();
+    }
+
+    /** Cria o mesmo ListCell usado para trending e watchlist. */
+    private ListCell<Moeda> createCellFactory() {
+        return new ListCell<>() {
             private final HBox hBox = new HBox(10);
             private final ImageView img = new ImageView();
             private final VBox vBox = new VBox(2);
@@ -65,7 +101,8 @@ public class MarketController implements Initializable {
             private final Label lblValor= new Label();
 
             {
-                img.setFitWidth(24); img.setFitHeight(24);
+                img.setFitWidth(24);
+                img.setFitHeight(24);
                 lblNome.getStyleClass().add("nome-moeda");
                 lblValor.getStyleClass().add("valor-moeda");
                 vBox.getChildren().setAll(lblNome, lblValor);
@@ -87,43 +124,37 @@ public class MarketController implements Initializable {
                     try {
                         String path = "/icons/" + m.getSimbolo().toLowerCase() + ".png";
                         img.setImage(new Image(getClass().getResourceAsStream(path)));
-                    } catch (Exception e) {
+                    } catch (Exception ex) {
                         img.setImage(null);
                     }
                     setGraphic(hBox);
                 }
             }
-        });
+        };
+    }
 
-        setupToggleButtons();
-
-        watchlistView.setOnMouseClicked(evt -> {
-            Moeda m = watchlistView.getSelectionModel().getSelectedItem();
-            if (m != null && !m.equals(moedaAtualSelecionada)) {
-                moedaAtualSelecionada = m;
-                atualizarInformacoesMoeda();
-                aplicarFiltro("MAX");
+    /** Aplica os filtros (pesquisa + campo numérico) via Repository. */
+    private void aplicarFiltros() {
+        String termo = Optional.ofNullable(searchField.getText()).orElse("").trim();
+        String campo = filterField.getValue();
+        String op    = filterOp.getValue();
+        BigDecimal val = null;
+        try {
+            if (filterValue.getText() != null && !filterValue.getText().isBlank()) {
+                val = new BigDecimal(filterValue.getText().trim());
             }
-        });
+        } catch (NumberFormatException ignored) { }
+        List<Moeda> resultado = MarketRepository.getMoedasFiltradas(termo, campo, op, val);
+        fullList.setAll(resultado);
+    }
 
-        // Atualiza UI a cada 1 minuto
-        ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-        exec.scheduleAtFixedRate(() -> Platform.runLater(() -> {
-            List<Moeda> atuais = List.copyOf(MarketSimulator.getMoedasSimuladas().values());
-            listaMoedas.setAll(atuais);
-            watchlistView.refresh();
-
-            if (moedaAtualSelecionada != null) {
-                int id = moedaAtualSelecionada.getIdMoeda();
-                Moeda novo = MarketSimulator.getMoedasSimuladas().get(id);
-                if (novo != null) {
-                    moedaAtualSelecionada.setValorAtual(novo.getValorAtual());
-                    moedaAtualSelecionada.setVariacao24h(novo.getVariacao24h());
-                    moedaAtualSelecionada.setVolumeMercado(novo.getVolumeMercado());
-                    atualizarInformacoesMoeda();
-                }
-            }
-        }), 0, 1, TimeUnit.MINUTES);
+    /** Seleciona a moeda, atualiza detalhes e carrega gráfico “MAX”. */
+    private void selecionarMoeda(Moeda m) {
+        if (m != null && !m.equals(moedaAtualSelecionada)) {
+            moedaAtualSelecionada = m;
+            atualizarInformacoesMoeda();
+            aplicarFiltro("MAX");
+        }
     }
 
     private void setupToggleButtons() {
@@ -145,12 +176,12 @@ public class MarketController implements Initializable {
                 + " (" + moedaAtualSelecionada.getSimbolo() + ")");
         labelValorAtual.setText(String.format("€ %.2f", moedaAtualSelecionada.getValorAtual()));
         labelVariacao.setText(String.format("%.2f%%", moedaAtualSelecionada.getVariacao24h()));
-        labelVolume.setText(String.format("€ %,.2f", moedaAtualSelecionada.getVolumeMercado()));
         labelVariacao.getStyleClass().setAll(
                 moedaAtualSelecionada.getVariacao24h().doubleValue() >= 0
                         ? "label-variacao-positiva"
                         : "label-variacao-negativa"
         );
+        labelVolume.setText(String.format("€ %,.2f", moedaAtualSelecionada.getVolumeMercado()));
         try {
             String path = "/icons/" + moedaAtualSelecionada.getSimbolo().toLowerCase() + ".png";
             iconMoeda.setImage(new Image(getClass().getResourceAsStream(path)));
@@ -159,21 +190,21 @@ public class MarketController implements Initializable {
         }
     }
 
+    /** Mantém o comportamento original de carregar histórico no gráfico. */
     private void aplicarFiltro(String intervalo) {
         if (moedaAtualSelecionada == null) return;
         marketChart.getData().clear();
 
-        // 1) monta a série
         XYChart.Series<String, Number> serie = new XYChart.Series<>();
         serie.setName(intervalo);
+
         MarketRepository
                 .getHistoricoPorMoedaFiltrado(moedaAtualSelecionada.getIdMoeda(), intervalo)
                 .forEach(serie.getData()::add);
 
-        // 2) adiciona ao chart
         marketChart.getData().add(serie);
 
-        // 3) espera nodes existirem para estilizar
+        // tooltips & estilo dos pontos
         Platform.runLater(() -> {
             for (XYChart.Data<String, Number> d : serie.getData()) {
                 Node node = d.getNode();
@@ -183,7 +214,6 @@ public class MarketController implements Initializable {
                     );
                     tp.setShowDelay(Duration.millis(50));
                     Tooltip.install(node, tp);
-
                     node.setStyle(
                             "-fx-background-color: white, #B892FF; " +
                                     "-fx-background-radius: 6px;"
@@ -205,7 +235,7 @@ public class MarketController implements Initializable {
             ctrl.configurar(tipo,
                     moedaAtualSelecionada,
                     SessaoAtual.utilizadorId,
-                    this.connection);
+                    null);
 
             Stage modal = new Stage();
             modal.initOwner(btn1D.getScene().getWindow());
@@ -220,10 +250,5 @@ public class MarketController implements Initializable {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-    }
-
-    // Chamado pelo NavigationHelper ao abrir esta tela
-    public void setConnection(Connection connection) {
-        this.connection = connection;
     }
 }

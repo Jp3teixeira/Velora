@@ -1,55 +1,4 @@
 /* ===========================
-   NAVBAR
-=========================== */
-
-/* Botões da navbar  */
-.menu-button {
-    -fx-text-fill: #e0e0e0;
-    -fx-background-color: transparent;
-    -fx-font-size: 14px;
-    -fx-cursor: hand;
-    -fx-padding: 6 10;
-    -fx-border-color: transparent;
-}
-
-/* Efeito  */
-.menu-button:hover {
-    -fx-text-fill: #b892ff;
-    -fx-scale-x: 1.05;
-    -fx-scale-y: 1.05;
-}
-
-/* Navbar container  */
-.navbar {
-    -fx-background-color: #1a1a1a;
-    -fx-padding: 12 20;
-}
-
-/* Título  */
-.navbar-title {
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-font-size: 18px;
-}
-/* Botão de Logout */
-.logout-button {
-    -fx-text-fill: white;
-    -fx-background-color: #b892ff;
-    -fx-font-size: 13px;
-    -fx-font-weight: bold;
-    -fx-padding: 6 14;
-    -fx-background-radius: 6;
-    -fx-cursor: hand;
-    -fx-effect: dropshadow(one-pass-box, #00000033, 4, 0, 0, 2);
-    -fx-border-color: transparent;
-}
-
-.logout-button:hover {
-    -fx-background-color: #a679f8;
-    -fx-scale-x: 1.04;
-    -fx-scale-y: 1.04;
-}
-/* ===========================
    BASE
 =========================== */
 .root {
@@ -58,71 +7,53 @@
 }
 
 /* ===========================
-   GRÁFICOS
+   NAVBAR
 =========================== */
-.chart {
-    -fx-background-color: #121212;
+/* Container */
+.navbar {
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 12 20;
 }
-.chart-plot-background {
-    -fx-background-color: #1b1b1b;
+/* Título */
+.navbar-title {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 18px;
 }
-.chart-vertical-grid-lines,
-.chart-horizontal-grid-lines {
-    -fx-stroke: #2a2a2a;
-}
-.default-color0.chart-series-line {
-    -fx-stroke: #b892ff;
-    -fx-stroke-width: 2px;
-}
-.default-color0.chart-line-symbol {
-    -fx-background-color: white, #b892ff;
-    -fx-background-radius: 6px;
-}
-
-/* ===========================
-   TOGGLE BUTTONS
-=========================== */
-.toggle-button,
-.filtro-toggle {
-    -fx-background-color: #2a2a2a;
-    -fx-text-fill: #f0f0f0;
-    -fx-background-radius: 8;
-    -fx-font-size: 13px;
-    -fx-padding: 6 14;
-    -fx-border-color: transparent;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
-    -fx-cursor: hand;
-}
-.toggle-button:hover,
-.filtro-toggle:hover {
-    -fx-background-color: #3a3a3a;
-    -fx-scale-x: 1.03;
-    -fx-scale-y: 1.03;
-}
-.toggle-button:selected,
-.filtro-toggle:selected {
-    -fx-background-color: #b892ff;
-    -fx-text-fill: #121212;
-}
-
-/* ===========================
-   NAVBAR MENU BUTTONS
-=========================== */
+/* Botões */
 .menu-button {
-    -fx-text-fill: #e0e0e0;
     -fx-background-color: transparent;
+    -fx-text-fill: #e0e0e0;
     -fx-font-size: 14px;
-    -fx-cursor: hand;
     -fx-padding: 6 10;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-effect: dropshadow(one-pass-box, #00000033, 2, 0, 0, 1);
 }
 .menu-button:hover {
     -fx-text-fill: #b892ff;
     -fx-scale-x: 1.05;
     -fx-scale-y: 1.05;
 }
+/* Logout */
+.logout-button {
+    -fx-background-color: #b892ff;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 14;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(one-pass-box, #00000033, 4, 0, 0, 2);
+}
+.logout-button:hover {
+    -fx-background-color: #a679f8;
+    -fx-scale-x: 1.04;
+    -fx-scale-y: 1.04;
+}
 
 /* ===========================
-   WATCHLIST
+   SIDEBAR / WATCHLIST
 =========================== */
 .list-view.watchlist {
     -fx-background-color: #1a1a1a;
@@ -154,7 +85,76 @@
 }
 
 /* ===========================
-   LABELS PRINCIPAIS
+   CONTROLES DE FILTRO
+=========================== */
+.search-field {
+    -fx-background-color: #2a2a2a;
+    -fx-text-fill: #f0f0f0;
+    -fx-prompt-text-fill: #777;
+    -fx-background-radius: 6;
+    -fx-padding: 6 10;
+}
+.combo-box, .text-field {
+    -fx-background-color: #2a2a2a;
+    -fx-text-fill: #f0f0f0;
+    -fx-prompt-text-fill: #777;
+    -fx-background-radius: 6;
+    -fx-padding: 4 8;
+}
+.combo-box .list-cell:hover {
+    -fx-background-color: #3a3a3a;
+}
+
+/* ===========================
+   TOGGLE BUTTONS
+=========================== */
+.toggle-button,
+.filtro-toggle {
+    -fx-background-color: #2a2a2a;
+    -fx-text-fill: #f0f0f0;
+    -fx-background-radius: 8;
+    -fx-font-size: 13px;
+    -fx-padding: 6 14;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
+}
+.toggle-button:hover,
+.filtro-toggle:hover {
+    -fx-background-color: #3a3a3a;
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+.toggle-button:selected,
+.filtro-toggle:selected {
+    -fx-background-color: #b892ff;
+    -fx-text-fill: #121212;
+}
+
+/* ===========================
+   GRÁFICOS
+=========================== */
+.chart {
+    -fx-background-color: #121212;
+}
+.chart-plot-background {
+    -fx-background-color: #1b1b1b;
+}
+.chart-vertical-grid-lines,
+.chart-horizontal-grid-lines {
+    -fx-stroke: #2a2a2a;
+}
+.default-color0.chart-series-line {
+    -fx-stroke: #b892ff;
+    -fx-stroke-width: 2px;
+}
+.default-color0.chart-line-symbol {
+    -fx-background-color: white, #b892ff;
+    -fx-background-radius: 6px;
+}
+
+/* ===========================
+   LABELS / METRICS
 =========================== */
 .label-valor {
     -fx-text-fill: #b892ff;
@@ -178,7 +178,7 @@
 }
 
 /* ===========================
-   NOME + VALOR MOEDA
+   NOME + VALOR MOEDA (ListCell)
 =========================== */
 .nome-moeda {
     -fx-text-fill: #f0f0f0;
@@ -191,9 +191,36 @@
 }
 
 /* ===========================
+   BOTÕES DE AÇÃO
+=========================== */
+.btn-comprar {
+    -fx-background-color: #2ecc71;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6;
+    -fx-padding: 8 20;
+    -fx-cursor: hand;
+}
+.btn-comprar:hover {
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+.btn-vender {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6;
+    -fx-padding: 8 20;
+    -fx-cursor: hand;
+}
+.btn-vender:hover {
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+
+/* ===========================
    ANIMAÇÕES
 =========================== */
-
 .animated-hover:hover {
     -fx-scale-x: 1.05;
     -fx-scale-y: 1.05;

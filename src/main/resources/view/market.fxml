@@ -1,47 +1,103 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
+<?import javafx.collections.FXCollections?>
+<?import java.lang.String?>
 <?import java.net.URL?>
 
-<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="controller.MarketController"
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="controller.MarketController"
             style="-fx-background-color: #121212;">
     <stylesheets>
         <URL value="@/view/css/geral.css"/>
     </stylesheets>
 
-    <!-- Navbar centralizada -->
+    <!-- Navbar -->
     <top>
         <fx:include source="navbar.fxml"/>
     </top>
 
-    <!-- Sidebar -->
+    <!-- 1) Sidebar: pesquisa, filtros, tendências e todos os mercados -->
     <left>
-        <VBox spacing="12" style="-fx-padding: 20;" prefWidth="250">
-            <Label text="Mercados" styleClass="title-mercado"/>
-            <ListView fx:id="watchlistView" styleClass="watchlist" VBox.vgrow="ALWAYS"/>
+        <VBox spacing="8" prefWidth="250" style="-fx-padding: 20;">
+            <!-- Pesquisa lazy -->
+            <TextField fx:id="searchField"
+                       promptText="Pesquisar mercados…"
+                       styleClass="search-field"/>
+
+            <!-- Filtros numéricos -->
+            <HBox spacing="4">
+                <ComboBox fx:id="filterField" promptText="Campo">
+                    <items>
+                        <FXCollections fx:factory="observableArrayList">
+                            <String fx:value="Variação 24h"/>
+                            <String fx:value="Valor Atual"/>
+                            <String fx:value="Volume Mercado"/>
+                        </FXCollections>
+                    </items>
+                </ComboBox>
+                <ComboBox fx:id="filterOp" promptText="Op">
+                    <items>
+                        <FXCollections fx:factory="observableArrayList">
+                            <String fx:value="&lt;"/>
+                            <String fx:value="&gt;"/>
+                        </FXCollections>
+                    </items>
+                </ComboBox>
+                <TextField fx:id="filterValue"
+                           promptText="Valor"
+                           prefWidth="60"/>
+            </HBox>
+
+            <!-- Trending Markets -->
+            <TitledPane text="Tendências" expanded="true">
+                <ListView fx:id="trendingView"
+                          prefHeight="120"
+                          styleClass="watchlist"/>
+            </TitledPane>
+
+            <!-- Todos os Mercados -->
+            <TitledPane text="Todos os Mercados" expanded="true" VBox.vgrow="ALWAYS">
+                <ListView fx:id="watchlistView"
+                          styleClass="watchlist"
+                          VBox.vgrow="ALWAYS"/>
+            </TitledPane>
         </VBox>
     </left>
 
-    <!-- Centro -->
+    <!-- 2) Área de detalhe: título, filtros de tempo, gráfico, KPIs e ações -->
     <center>
-        <VBox spacing="25" alignment="TOP_CENTER" style="-fx-padding: 30;" VBox.vgrow="ALWAYS">
+        <VBox spacing="20" alignment="TOP_CENTER" style="-fx-padding: 30;" VBox.vgrow="ALWAYS">
 
-            <!-- Título -->
-            <HBox spacing="15" alignment="CENTER">
-                <ImageView fx:id="iconMoeda" fitWidth="32" fitHeight="32" preserveRatio="true"/>
-                <Label fx:id="marketTitle" text="Seleciona uma moeda"
+            <!-- Título da moeda -->
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <ImageView fx:id="iconMoeda"
+                           fitWidth="32"
+                           fitHeight="32"
+                           preserveRatio="true"/>
+                <Label fx:id="marketTitle"
+                       text="Seleciona uma moeda"
                        style="-fx-text-fill: white; -fx-font-size: 26; -fx-font-weight: bold;"/>
             </HBox>
 
+            <!-- Filtros de tempo -->
+            <HBox spacing="8" alignment="CENTER">
+                <ToggleButton text="Últimas 24h" fx:id="btn1D"  styleClass="filtro-toggle"/>
+                <ToggleButton text="Últimos 7 dias" fx:id="btn1W" styleClass="filtro-toggle"/>
+                <ToggleButton text="Último mês" fx:id="btn1M"  styleClass="filtro-toggle"/>
+                <ToggleButton text="Últimos 3 meses" fx:id="btn3M" styleClass="filtro-toggle"/>
+                <ToggleButton text="Último ano" fx:id="btn1Y"  styleClass="filtro-toggle"/>
+                <ToggleButton text="Todos os dados" fx:id="btnMAX" styleClass="filtro-toggle"/>
+            </HBox>
+
             <!-- Gráfico -->
-            <StackPane maxWidth="Infinity" style="-fx-background-color: #1e1e1e;">
+            <StackPane style="-fx-background-color: #1e1e1e;" VBox.vgrow="ALWAYS">
                 <LineChart fx:id="marketChart"
                            title="Market Chart"
-                           prefHeight="500"
-                           prefWidth="1200"
+                           prefHeight="400"
+                           prefWidth="800"
                            styleClass="chart-style">
                     <xAxis>
                         <CategoryAxis label="Hora"/>
@@ -52,8 +108,8 @@
                 </LineChart>
             </StackPane>
 
-            <!-- Dados -->
-            <HBox spacing="40" alignment="CENTER" style="-fx-padding: 10 0 20 0;">
+            <!-- KPIs -->
+            <HBox spacing="40" alignment="CENTER" style="-fx-padding: 10 0 0 0;">
                 <VBox alignment="CENTER">
                     <Label text="Valor Atual" style="-fx-text-fill: gray; -fx-font-size: 13;"/>
                     <Label fx:id="labelValorAtual" text="-" styleClass="label-valor"/>
@@ -68,23 +124,12 @@
                 </VBox>
             </HBox>
 
-            <!-- Filtros -->
-            <HBox spacing="8" alignment="CENTER">
-                <ToggleButton text="Últimas 24h" fx:id="btn1D" styleClass="toggle-button filtro-toggle"/>
-                <ToggleButton text="Últimos 7 dias" fx:id="btn1W" styleClass="toggle-button filtro-toggle"/>
-                <ToggleButton text="Último mês" fx:id="btn1M" styleClass="toggle-button filtro-toggle"/>
-                <ToggleButton text="Últimos 3 meses" fx:id="btn3M" styleClass="toggle-button filtro-toggle"/>
-                <ToggleButton text="Último ano" fx:id="btn1Y" styleClass="toggle-button filtro-toggle"/>
-                <ToggleButton text="Todos os dados" fx:id="btnMAX" styleClass="toggle-button filtro-toggle"/>
-            </HBox>
-
-            <!-- Compra e Venda -->
+            <!-- Ações de compra e venda -->
             <HBox spacing="10" alignment="CENTER" style="-fx-padding: 20 0 0 0;">
                 <Button text="Comprar" onAction="#abrirModalCompra"
-                        style="-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;"/>
-                <Button text="Vender" onAction="#abrirModalVenda"
-                        style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;"/>
-
+                        styleClass="btn-comprar"/>
+                <Button text="Vender"  onAction="#abrirModalVenda"
+                        styleClass="btn-vender"/>
             </HBox>
 
         </VBox>
