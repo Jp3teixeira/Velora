@@ -4,6 +4,10 @@ import Repository.MarketRepository;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.OptionalInt;
+import model.Moeda;
+import utils.MarketSimulator;
 
 public class CriptomoedaController {
 
@@ -26,9 +30,25 @@ public class CriptomoedaController {
 
         try {
             BigDecimal valor = new BigDecimal(valorStr);
-            boolean sucesso = MarketRepository.addNewCoin(nome, simbolo, "imagem.png", valor);
 
-            if (sucesso) {
+            // Chama o método que devolve o ID (OptionalInt)
+            OptionalInt optId = MarketRepository.addNewCoinReturnId(
+                    nome, simbolo, "imagem.png", valor);
+
+            if (optId.isPresent()) {
+                int novoId = optId.getAsInt();
+
+                // Injeta no simulador em memória
+                Moeda m = new Moeda(
+                        novoId,
+                        nome,
+                        simbolo,
+                        valor.setScale(2, RoundingMode.HALF_UP),
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO
+                );
+                MarketSimulator.getMoedasSimuladas().put(novoId, m);
+
                 mensagemLabel.setText("Criptomoeda criada com sucesso!");
                 mensagemLabel.setStyle("-fx-text-fill: green;");
                 nomeField.clear();

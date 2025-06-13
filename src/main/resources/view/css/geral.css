@@ -28,6 +28,24 @@
 .menu-button:hover {
     -fx-text-fill: #b892ff;
 }
+/* Botão de Logout */
+.logout-button {
+    -fx-text-fill: white;
+    -fx-background-color: #b892ff;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 14;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(one-pass-box, #00000033, 4, 0, 0, 2);
+    -fx-border-color: transparent;
+}
+
+.logout-button:hover {
+    -fx-background-color: #a679f8;
+    -fx-scale-x: 1.04;
+    -fx-scale-y: 1.04;
+}
 
 /* ====================================
    SIDEBAR
@@ -210,3 +228,65 @@
 .button {
     -fx-cursor: hand;
 }
+
+/* ====================================
+   VARIAÇÃO PEQUENA NA LISTVIEW
+==================================== */
+.label-variacao-pequena {
+    -fx-font-size: 0.8em;
+    -fx-text-fill: #cccccc;
+}
+
+
+.label-variacao-positiva {
+    -fx-text-fill: #7bd88f;
+    -fx-font-size: 0.8em;
+    -fx-font-weight: bold;
+}
+
+.label-variacao-negativa {
+    -fx-text-fill: #ff6b6b;
+    -fx-font-size: 0.8em;
+    -fx-font-weight: bold;
+}
+/* ====================================
+   FILTER PANEL STYLES
+==================================== */
+/* Título do TitledPane */
+.titled-pane > .title {
+    -fx-background-color: #1E1C24;
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 12;
+    -fx-background-radius: 6 6 0 0;
+}
+
+
+.titled-pane > .title > .arrow-button {
+    -fx-background-color: transparent;
+}
+.titled-pane > .title > .arrow-button:hover {
+    -fx-background-color: #2E2A33;
+}
+
+
+.titled-pane > .content {
+    -fx-background-color: #1A171F;
+    -fx-padding: 10;
+    -fx-border-color: #2E2A33;
+    -fx-border-width: 1;
+    -fx-border-radius: 0 0 6 6;
+    -fx-background-radius: 0 0 6 6;
+}
+
+
+.titled-pane .disclosure-node {
+    -fx-background-color: transparent;
+}
+
+.titled-pane > .title {
+    -fx-text-fill: #FFFFFF;
+}
+
+

@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
+
 import javafx.scene.chart.XYChart;
 
 public class MarketRepository {
@@ -24,49 +26,32 @@ public class MarketRepository {
      * @param valor    valor de comparação
      * @param sortBy   “Volume 24h”, “Valor Atual” ou “Variação 24h”
      */
-    public static List<Moeda> getMoedasFiltradas(String termo,
+    /**
+     * Busca por nome/símbolo e ordena por Valor Atual ou Variação 24h,
+     * crescente ou decrescente.
+     *
+     * @param termo texto para LIKE em nome ou símbolo (já em lowercase)
+     * @param campo "Valor Atual" ou "Variação 24h"
+     * @param asc   true = ASC, false = DESC
+     */
+    public static List<Moeda> getMoedasOrdenadas(String termo,
                                                  String campo,
-                                                 String operador,
-                                                 BigDecimal valor,
-                                                 String sortBy) {
+                                                 boolean asc) {
         List<Moeda> moedas = new ArrayList<>();
-        StringBuilder sb = new StringBuilder();
-        sb.append("SELECT r.id_moeda, r.nome, r.simbolo, r.valor_atual, r.variacao_24h, r.volume24h ")
-                .append("FROM dbo.fn_MoedaResumo(24) r ")
-                .append("WHERE (LOWER(r.nome) LIKE ? OR LOWER(r.simbolo) LIKE ?) ");
+        String coluna = colunaParaCampo(campo);
+        String order = asc ? "ASC" : "DESC";
 
-        // Filtro numérico
-        String colunaFiltro = null;
-        if (campo != null) {
-            switch (campo) {
-                case "Variação 24h"   -> colunaFiltro = "r.variacao_24h";
-                case "Valor Atual"    -> colunaFiltro = "r.valor_atual";
-                case "Volume Mercado" -> colunaFiltro = "r.volume24h";
-            }
-        }
-        if (colunaFiltro != null && operador != null
-                && (operador.equals("<") || operador.equals(">"))
-                && valor != null) {
-            sb.append("AND ").append(colunaFiltro).append(" ").append(operador).append(" ? ");
-        }
-
-        // Ordenação
-        String colunaSort = switch (sortBy) {
-            case "Variação 24h"   -> "r.variacao_24h";
-            case "Valor Atual"    -> "r.valor_atual";
-            default                -> "r.volume24h";
-        };
-        sb.append("ORDER BY ").append(colunaSort).append(" DESC, r.nome");
+        String sql = "SELECT r.id_moeda, r.nome, r.simbolo, r.valor_atual, r.variacao_24h, r.volume24h " +
+                "FROM dbo.fn_MoedaResumo(24) r " +
+                "WHERE LOWER(r.nome) LIKE ? OR LOWER(r.simbolo) LIKE ? " +
+                "ORDER BY r." + coluna + " " + order + ", r.nome";
 
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            String like = "%" + (termo == null ? "" : termo.toLowerCase()) + "%";
+            String like = "%" + termo + "%";
             ps.setString(1, like);
             ps.setString(2, like);
-            if (colunaFiltro != null && valor != null) {
-                ps.setBigDecimal(3, valor);
-            }
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -78,6 +63,15 @@ public class MarketRepository {
         }
         return moedas;
     }
+
+    private static String colunaParaCampo(String campo) {
+        return switch (campo) {
+            case "Variação 24h" -> "variacao_24h";
+            case "Valor Atual"  -> "valor_atual";
+            default              -> "valor_atual";
+        };
+    }
+
 
 
     /**
@@ -113,18 +107,18 @@ public class MarketRepository {
     /**
      * Adiciona nova criptomoeda e registra preço inicial.
      */
-    public static boolean addNewCoin(String nome,
-                                     String simbolo,
-                                     String imageName,
-                                     BigDecimal initialValue) {
+    public static OptionalInt addNewCoinReturnId(String nome,
+                                                 String simbolo,
+                                                 String imageName,
+                                                 BigDecimal initialValue) {
         String insertMoeda = """
-            INSERT INTO Moeda (nome, simbolo, foto, id_tipo)
-            VALUES (?, ?, ?, (SELECT id_tipo FROM MoedaTipo WHERE tipo='crypto'))
-        """;
+        INSERT INTO Moeda (nome, simbolo, foto, id_tipo)
+        VALUES (?, ?, ?, (SELECT id_tipo FROM MoedaTipo WHERE tipo='crypto'))
+    """;
         String insertPreco = """
-            INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
-            VALUES (?, ?, GETDATE())
-        """;
+        INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
+        VALUES (?, ?, GETDATE())
+    """;
         try (Connection conn = getConnection();
              PreparedStatement psM = conn.prepareStatement(insertMoeda, Statement.RETURN_GENERATED_KEYS);
              PreparedStatement psP = conn.prepareStatement(insertPreco)) {
@@ -135,23 +129,24 @@ public class MarketRepository {
             psM.setString(3, imageName);
             if (psM.executeUpdate() == 0) {
                 conn.rollback();
-                return false;
+                return OptionalInt.empty();
             }
             try (ResultSet rs = psM.getGeneratedKeys()) {
                 if (!rs.next()) {
                     conn.rollback();
-                    return false;
+                    return OptionalInt.empty();
                 }
                 int newId = rs.getInt(1);
+                // Grava o preço inicial na tabela PrecoMoeda
                 psP.setInt(1, newId);
                 psP.setBigDecimal(2, initialValue.setScale(8, RoundingMode.HALF_UP));
                 psP.executeUpdate();
+                conn.commit();
+                return OptionalInt.of(newId);
             }
-            conn.commit();
-            return true;
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
+            return OptionalInt.empty();
         }
     }
 
@@ -248,9 +243,9 @@ public class MarketRepository {
             return BigDecimal.ZERO;
         }
         return atual.subtract(antigo)
-                .divide(antigo, 4, RoundingMode.HALF_UP)
+                .divide(antigo, 4, java.math.RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100))
-                .setScale(2, RoundingMode.HALF_UP);
+                .setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
     // mapeia uma linha de ResultSet para Moeda

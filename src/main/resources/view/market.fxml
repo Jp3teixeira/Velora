@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
@@ -31,40 +32,12 @@
             <TitledPane text="Filtros" expanded="false">
                 <VBox spacing="8" style="-fx-padding: 10;">
                     <ComboBox fx:id="filterField"
-                              promptText="Campo"
+                              promptText="Ordenar por…"
                               styleClass="combo-box">
                         <items>
                             <FXCollections fx:factory="observableArrayList">
                                 <String fx:value="Valor Atual"/>
                                 <String fx:value="Variação 24h"/>
-                                <String fx:value="Volume Mercado"/>
-                            </FXCollections>
-                        </items>
-                    </ComboBox>
-
-                    <ComboBox fx:id="filterOp"
-                              promptText="Operador"
-                              styleClass="combo-box">
-                        <items>
-                            <FXCollections fx:factory="observableArrayList">
-                                <String fx:value="&gt;"/>
-                                <String fx:value="&lt;"/>
-                                <String fx:value="="/>
-                            </FXCollections>
-                        </items>
-                    </ComboBox>
-
-                    <TextField fx:id="filterValue"
-                               promptText="Valor"
-                               styleClass="search-field"/>
-
-                    <ComboBox fx:id="sortOrder"
-                              promptText="Ordenar"
-                              styleClass="combo-box">
-                        <items>
-                            <FXCollections fx:factory="observableArrayList">
-                                <String fx:value="Crescente"/>
-                                <String fx:value="Decrescente"/>
                             </FXCollections>
                         </items>
                     </ComboBox>

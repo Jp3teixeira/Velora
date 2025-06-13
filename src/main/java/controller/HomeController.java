@@ -58,17 +58,17 @@ public class HomeController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // 1) Configura o comportamento dos ToggleButtons (se “Limit” estiver ativo, habilita priceField)
+        // 1) Configura o comportamento dos ToggleButtons
         marketToggle.setOnAction(e -> priceField.setDisable(true));
         limitToggle.setOnAction(e -> priceField.setDisable(false));
 
-        // 2) Monta o gráfico real para **alguma** moeda:
-
-        List<Moeda> listaMoedas = marketRepo.getMoedasFiltradas( /* termo    */ "",
-                /* campo    */ null,
-                /* operador */ null,
-                /* valor    */ null,
-                /* sortBy   */ "Volume 24h"
+        // 2) Monta o gráfico real para alguma moeda:
+        //    - termo vazio (todas)
+        //    - ordenar por Valor Atual (descendente) para pegar a maior logo à cabeça
+        List<Moeda> listaMoedas = MarketRepository.getMoedasOrdenadas(
+                "",              // termo de busca
+                "Valor Atual",   // campo de ordenação
+                false            // false = DESC (maior primeiro)
         );
         if (!listaMoedas.isEmpty()) {
             Moeda primeira = listaMoedas.get(0);
@@ -86,24 +86,24 @@ public class HomeController implements Initializable {
         configurarTabelaHistorico();
         carregarHistorico();
 
-        // 5) Exemplo simples para a aba “Ordens Abertas”—por enquanto sem dados
+        // 5) Exemplo simples para a aba “Ordens Abertas”
+        openOrdersTable.setPlaceholder(
+                new Label("Funcionalidade de Ordens Abertas ainda a implementar")
+        );
 
-        openOrdersTable.setPlaceholder(new Label("Funcionalidade de Ordens Abertas ainda a implementar"));
-
-        // 6) “Comprar / Vender” (ainda só imprime no console; você pode chamar TransacaoRepository + PortfolioRepository)
+        // 6) “Comprar / Vender” (ainda só imprime no console)
         buyButton.setOnAction(e -> {
             System.out.println("Botão COMPRAR clicado para " + assetLabel.getText() +
                     ", quantidade = " + quantityField.getText() +
                     (limitToggle.isSelected() ? ", preço = " + priceField.getText() : " (Market)"));
-
         });
         sellButton.setOnAction(e -> {
             System.out.println("Botão VENDER clicado para " + assetLabel.getText() +
                     ", quantidade = " + quantityField.getText() +
                     (limitToggle.isSelected() ? ", preço = " + priceField.getText() : " (Market)"));
-
         });
     }
+
 
     // =====================  MÉTODOS PARA O GRÁFICO  =====================
 
