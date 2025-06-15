@@ -1,3 +1,4 @@
+// utils/TradeService.java
 package utils;
 
 import Repository.OrdemRepository;
@@ -9,8 +10,11 @@ import model.Ordem;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 public class TradeService {
 
@@ -18,12 +22,25 @@ public class TradeService {
     private final TransacaoRepository transacaoRepo;
     private final PortfolioRepository portfolioRepo;
     private final WalletRepository walletRepo;
+    private final Connection conn;
 
     public TradeService(Connection connection) {
-        this.ordemRepo     = new OrdemRepository(connection);
-        this.transacaoRepo = new TransacaoRepository();
-        this.portfolioRepo = new PortfolioRepository();
-        this.walletRepo    = WalletRepository.getInstance();
+        this.conn            = connection;
+        this.ordemRepo       = new OrdemRepository(connection);
+        this.transacaoRepo   = new TransacaoRepository();
+        this.portfolioRepo   = new PortfolioRepository();
+        this.walletRepo      = WalletRepository.getInstance();
+    }
+
+    private int getStatusId(String status) throws SQLException {
+        String sql = "SELECT id_status FROM OrdemStatus WHERE status = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+                throw new SQLException("Status não encontrado: " + status);
+            }
+        }
     }
 
     /**
@@ -31,94 +48,88 @@ public class TradeService {
      */
     public void processarOrdemCompra(Ordem novaCompra) throws SQLException {
         BigDecimal restante    = novaCompra.getQuantidade();
-        String    modo         = novaCompra.getModo();
-        BigDecimal precoLimite = novaCompra.getPrecoUnitarioEur();
-        boolean   compraMarket = "market".equalsIgnoreCase(modo);
-        // status IDs
-        int idStatusExecutada = ordemRepo.obterIdStatus("executada");
-        int idStatusAtiva     = ordemRepo.obterIdStatus("ativa");
+        boolean   compraMarket = "market".equalsIgnoreCase(novaCompra.getModo());
+        int       idStatusExec = getStatusId("executada");
+        int       idStatusAtv  = getStatusId("ativa");
 
-        // 1) busca ordens de venda compatíveis (filtrando expiradas no repository)
+        // 1) busca ordens de venda compatíveis
         List<Ordem> ordensVenda = ordemRepo.obterOrdensPendentes(
                 novaCompra.getMoeda().getIdMoeda(),
                 "venda",
-                modo,
-                precoLimite
+                novaCompra.getModo(),
+                novaCompra.getPrecoUnitarioEur()
         );
 
-        // 2) faz matching com cálculo de preço de execução
+        // 2) matching
         for (Ordem venda : ordensVenda) {
-            if (restante.compareTo(BigDecimal.ZERO) <= 0) break;
+            if (restante.signum() <= 0) break;
 
-            BigDecimal disponivelVenda = venda.getQuantidade();
-            BigDecimal matchQtde       = restante.min(disponivelVenda);
+            BigDecimal disponivel = venda.getQuantidade();
+            BigDecimal qtdeMatch  = restante.min(disponivel);
 
             boolean vendaMarket = "market".equalsIgnoreCase(venda.getModo());
-            BigDecimal precoExecucao;
+            BigDecimal precoExec;
             if (!compraMarket && !vendaMarket) {
-                precoExecucao = novaCompra.getPrecoUnitarioEur()
+                precoExec = novaCompra.getPrecoUnitarioEur()
                         .add(venda.getPrecoUnitarioEur())
                         .divide(BigDecimal.valueOf(2), 8, RoundingMode.HALF_UP);
             } else if (compraMarket && !vendaMarket) {
-                precoExecucao = venda.getPrecoUnitarioEur();
-            } else if (!compraMarket && vendaMarket) {
-                precoExecucao = novaCompra.getPrecoUnitarioEur();
+                precoExec = venda.getPrecoUnitarioEur();
             } else {
-                precoExecucao = novaCompra.getPrecoUnitarioEur();
+                precoExec = novaCompra.getPrecoUnitarioEur();
             }
-            precoExecucao = precoExecucao.setScale(8, RoundingMode.HALF_UP);
+            precoExec = precoExec.setScale(8, RoundingMode.HALF_UP);
 
-            // insere transações
+            // regista transações
             transacaoRepo.inserirTransacao(
                     novaCompra.getUtilizador().getIdUtilizador(),
                     novaCompra.getMoeda().getIdMoeda(),
-                    matchQtde,
-                    precoExecucao,
+                    qtdeMatch,
+                    precoExec,
                     novaCompra.getIdTipoOrdem()
             );
             transacaoRepo.inserirTransacao(
                     venda.getUtilizador().getIdUtilizador(),
                     venda.getMoeda().getIdMoeda(),
-                    matchQtde,
-                    precoExecucao,
+                    qtdeMatch,
+                    precoExec,
                     venda.getIdTipoOrdem()
             );
 
-            // atualiza ordem de venda
-            BigDecimal novaVendaRest = disponivelVenda.subtract(matchQtde);
-            venda.setQuantidade(novaVendaRest);
-            if (novaVendaRest.compareTo(BigDecimal.ZERO) == 0) {
+            // atualiza venda
+            BigDecimal remVenda = disponivel.subtract(qtdeMatch);
+            venda.setQuantidade(remVenda);
+            if (remVenda.signum() == 0) {
+                venda.setIdStatus(idStatusExec);
                 venda.setStatus("executada");
-                venda.setIdStatus(idStatusExecutada);
             } else {
+                venda.setIdStatus(idStatusAtv);
                 venda.setStatus("ativa");
-                venda.setIdStatus(idStatusAtiva);
             }
             ordemRepo.atualizarOrdem(venda);
 
-            // credita cripto ao comprador e EUR ao vendedor
+            // mover ativos
             portfolioRepo.aumentarQuantidade(
                     novaCompra.getUtilizador().getIdUtilizador(),
                     novaCompra.getMoeda().getIdMoeda(),
-                    matchQtde
+                    qtdeMatch
             );
-            BigDecimal valorVendedor = matchQtde.multiply(precoExecucao);
             walletRepo.deposit(
                     venda.getUtilizador().getIdUtilizador(),
-                    valorVendedor
+                    qtdeMatch.multiply(precoExec)
             );
 
-            restante = restante.subtract(matchQtde);
+            restante = restante.subtract(qtdeMatch);
         }
 
-        // 3) atualiza a própria ordem de compra
+        // 3) atualiza ordem de compra
         novaCompra.setQuantidade(restante);
-        if (restante.compareTo(BigDecimal.ZERO) == 0) {
+        if (restante.signum() == 0) {
+            novaCompra.setIdStatus(idStatusExec);
             novaCompra.setStatus("executada");
-            novaCompra.setIdStatus(idStatusExecutada);
         } else {
+            novaCompra.setIdStatus(idStatusAtv);
             novaCompra.setStatus("ativa");
-            novaCompra.setIdStatus(idStatusAtiva);
         }
         ordemRepo.atualizarOrdem(novaCompra);
     }
@@ -128,117 +139,96 @@ public class TradeService {
      */
     public void processarOrdemVenda(Ordem novaVenda) throws SQLException {
         BigDecimal restante    = novaVenda.getQuantidade();
-        String    modo         = novaVenda.getModo();
-        BigDecimal precoLimite = novaVenda.getPrecoUnitarioEur();
-        boolean   vendaMarket  = "market".equalsIgnoreCase(modo);
-        // status IDs
-        int idStatusExecutada = ordemRepo.obterIdStatus("executada");
-        int idStatusAtiva     = ordemRepo.obterIdStatus("ativa");
+        boolean   vendaMarket  = "market".equalsIgnoreCase(novaVenda.getModo());
+        int       idStatusExec = getStatusId("executada");
+        int       idStatusAtv  = getStatusId("ativa");
 
-        // 1) busca ordens de compra compatíveis
         List<Ordem> ordensCompra = ordemRepo.obterOrdensPendentes(
                 novaVenda.getMoeda().getIdMoeda(),
                 "compra",
-                modo,
-                precoLimite
+                novaVenda.getModo(),
+                novaVenda.getPrecoUnitarioEur()
         );
 
-        // 2) faz matching
         for (Ordem compra : ordensCompra) {
-            if (restante.compareTo(BigDecimal.ZERO) <= 0) break;
+            if (restante.signum() <= 0) break;
 
-            BigDecimal disponivelCompra = compra.getQuantidade();
-            BigDecimal matchQtde        = restante.min(disponivelCompra);
+            BigDecimal disponivel = compra.getQuantidade();
+            BigDecimal qtdeMatch  = restante.min(disponivel);
 
             boolean compraMarket = "market".equalsIgnoreCase(compra.getModo());
-            BigDecimal precoExecucao;
+            BigDecimal precoExec;
             if (!vendaMarket && !compraMarket) {
-                precoExecucao = novaVenda.getPrecoUnitarioEur()
+                precoExec = novaVenda.getPrecoUnitarioEur()
                         .add(compra.getPrecoUnitarioEur())
                         .divide(BigDecimal.valueOf(2), 8, RoundingMode.HALF_UP);
             } else if (vendaMarket && !compraMarket) {
-                precoExecucao = compra.getPrecoUnitarioEur();
-            } else if (!vendaMarket && compraMarket) {
-                precoExecucao = novaVenda.getPrecoUnitarioEur();
+                precoExec = compra.getPrecoUnitarioEur();
             } else {
-                precoExecucao = novaVenda.getPrecoUnitarioEur();
+                precoExec = novaVenda.getPrecoUnitarioEur();
             }
-            precoExecucao = precoExecucao.setScale(8, RoundingMode.HALF_UP);
+            precoExec = precoExec.setScale(8, RoundingMode.HALF_UP);
 
-            // insere transações
             transacaoRepo.inserirTransacao(
                     novaVenda.getUtilizador().getIdUtilizador(),
                     novaVenda.getMoeda().getIdMoeda(),
-                    matchQtde,
-                    precoExecucao,
+                    qtdeMatch,
+                    precoExec,
                     novaVenda.getIdTipoOrdem()
             );
             transacaoRepo.inserirTransacao(
                     compra.getUtilizador().getIdUtilizador(),
                     compra.getMoeda().getIdMoeda(),
-                    matchQtde,
-                    precoExecucao,
+                    qtdeMatch,
+                    precoExec,
                     compra.getIdTipoOrdem()
             );
 
-            // atualiza ordem de compra
-            BigDecimal novaCompraRest = disponivelCompra.subtract(matchQtde);
-            compra.setQuantidade(novaCompraRest);
-            if (novaCompraRest.compareTo(BigDecimal.ZERO) == 0) {
+            BigDecimal remCompra = disponivel.subtract(qtdeMatch);
+            compra.setQuantidade(remCompra);
+            if (remCompra.signum() == 0) {
+                compra.setIdStatus(idStatusExec);
                 compra.setStatus("executada");
-                compra.setIdStatus(idStatusExecutada);
             } else {
+                compra.setIdStatus(idStatusAtv);
                 compra.setStatus("ativa");
-                compra.setIdStatus(idStatusAtiva);
             }
             ordemRepo.atualizarOrdem(compra);
 
-            // credita EUR ao vendedor e cripto ao comprador
-            BigDecimal valorVendedor = matchQtde.multiply(precoExecucao);
             walletRepo.deposit(
                     compra.getUtilizador().getIdUtilizador(),
-                    valorVendedor
+                    qtdeMatch.multiply(precoExec)
             );
             portfolioRepo.aumentarQuantidade(
                     compra.getUtilizador().getIdUtilizador(),
                     compra.getMoeda().getIdMoeda(),
-                    matchQtde
+                    qtdeMatch
             );
 
-            restante = restante.subtract(matchQtde);
+            restante = restante.subtract(qtdeMatch);
         }
 
-        // 3) atualiza a própria ordem de venda
         novaVenda.setQuantidade(restante);
-        if (restante.compareTo(BigDecimal.ZERO) == 0) {
+        if (restante.signum() == 0) {
+            novaVenda.setIdStatus(idStatusExec);
             novaVenda.setStatus("executada");
-            novaVenda.setIdStatus(idStatusExecutada);
         } else {
+            novaVenda.setIdStatus(idStatusAtv);
             novaVenda.setStatus("ativa");
-            novaVenda.setIdStatus(idStatusAtiva);
         }
         ordemRepo.atualizarOrdem(novaVenda);
     }
 
     /**
-     * Re-processa todas as ordens market de compra pendentes para um dado ativo.
+     * Re-processa todas as ordens market pendentes para um ativo.
      */
     public void processarOrdensCompraMarketPendentes(int idMoeda) throws SQLException {
-        List<Ordem> compras = ordemRepo.obterOrdensPendentes(
-                idMoeda, "compra", "market", null);
-        for (Ordem compra : compras) {
-            processarOrdemCompra(compra);
-        }
+        List<Ordem> compras = ordemRepo.obterOrdensPendentes(idMoeda, "compra", "market", null);
+        for (Ordem c : compras) processarOrdemCompra(c);
     }
 
-    /**
-     * Re-processa todas as ordens market de venda pendentes para um dado ativo.
-     */
     public void processarOrdensVendaMarketPendentes(int idMoeda) throws SQLException {
-        List<Ordem> vendas = ordemRepo.obterOrdensPendentes(
-                idMoeda, "venda", "market", null);
-        for (Ordem venda : vendas) {
-            processarOrdemVenda(venda);
-        }
+        List<Ordem> vendas = ordemRepo.obterOrdensPendentes(idMoeda, "venda", "market", null);
+        for (Ordem v : vendas) processarOrdemVenda(v);
     }
 }

@@ -17,22 +17,9 @@ import javafx.scene.chart.XYChart;
 public class MarketRepository {
 
     /**
-     * Busca por nome/símbolo com filtro numérico opcional,
-     * e ordena pelo critério escolhido (desc) + nome.
-     *
-     * @param termo    texto para LIKE em nome ou símbolo
-     * @param campo    “Variação 24h”, “Valor Atual” ou “Volume Mercado”
-     * @param operador “<” ou “>”
-     * @param valor    valor de comparação
-     * @param sortBy   “Volume 24h”, “Valor Atual” ou “Variação 24h”
-     */
-    /**
-     * Busca por nome/símbolo e ordena por Valor Atual ou Variação 24h,
-     * crescente ou decrescente.
-     *
-     * @param termo texto para LIKE em nome ou símbolo (já em lowercase)
-     * @param campo "Valor Atual" ou "Variação 24h"
-     * @param asc   true = ASC, false = DESC
+     * Procura pelo nome/símbolo e ordena por Valor Atual ou Variação 24h,
+     * crescente ou decrescente, usando a view v_MoedaResumo24h.
+
      */
     public static List<Moeda> getMoedasOrdenadas(String termo,
                                                  String campo,
@@ -41,10 +28,13 @@ public class MarketRepository {
         String coluna = colunaParaCampo(campo);
         String order = asc ? "ASC" : "DESC";
 
-        String sql = "SELECT r.id_moeda, r.nome, r.simbolo, r.valor_atual, r.variacao_24h, r.volume24h " +
-                "FROM dbo.fn_MoedaResumo(24) r " +
-                "WHERE LOWER(r.nome) LIKE ? OR LOWER(r.simbolo) LIKE ? " +
-                "ORDER BY r." + coluna + " " + order + ", r.nome";
+        String sql = """
+        SELECT r.id_moeda, r.nome, r.simbolo,
+               r.valor_atual, r.variacao_24h, r.volume24h
+          FROM dbo.v_MoedaResumo24h r
+         WHERE LOWER(r.nome)   LIKE ?
+            OR LOWER(r.simbolo) LIKE ?
+         ORDER BY r.""" + colunaParaCampo(campo) + " " + (asc ? "ASC" : "DESC") + ", r.nome";
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -72,16 +62,11 @@ public class MarketRepository {
         };
     }
 
-
-
     /**
-     * Insere novo snapshot de preços em PrecoMoeda (uso interno, hourly).
+     * Insere snapshot de preços na tabelaPrecoMoeda e processa ordens market pendentes.
      */
     public static void gravarSnapshot(java.util.Map<Integer, Moeda> moedas) {
-        String sql = """
-            INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
-            VALUES (?, ?, ?)
-        """;
+        String sql = "INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora) VALUES (?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -105,45 +90,24 @@ public class MarketRepository {
     }
 
     /**
-     * Adiciona nova criptomoeda e registra preço inicial.
+     * Adiciona nova criptomoeda via stored procedure sp_AddNewCoin e retorna novo ID.
      */
     public static OptionalInt addNewCoinReturnId(String nome,
                                                  String simbolo,
                                                  String imageName,
                                                  BigDecimal initialValue) {
-        String insertMoeda = """
-        INSERT INTO Moeda (nome, simbolo, foto, id_tipo)
-        VALUES (?, ?, ?, (SELECT id_tipo FROM MoedaTipo WHERE tipo='crypto'))
-    """;
-        String insertPreco = """
-        INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora)
-        VALUES (?, ?, GETDATE())
-    """;
+        String call = "{ CALL dbo.sp_AddNewCoin(?, ?, ?, ?, ?) }";
         try (Connection conn = getConnection();
-             PreparedStatement psM = conn.prepareStatement(insertMoeda, Statement.RETURN_GENERATED_KEYS);
-             PreparedStatement psP = conn.prepareStatement(insertPreco)) {
+             CallableStatement cstmt = conn.prepareCall(call)) {
 
-            conn.setAutoCommit(false);
-            psM.setString(1, nome);
-            psM.setString(2, simbolo);
-            psM.setString(3, imageName);
-            if (psM.executeUpdate() == 0) {
-                conn.rollback();
-                return OptionalInt.empty();
-            }
-            try (ResultSet rs = psM.getGeneratedKeys()) {
-                if (!rs.next()) {
-                    conn.rollback();
-                    return OptionalInt.empty();
-                }
-                int newId = rs.getInt(1);
-                // Grava o preço inicial na tabela PrecoMoeda
-                psP.setInt(1, newId);
-                psP.setBigDecimal(2, initialValue.setScale(8, RoundingMode.HALF_UP));
-                psP.executeUpdate();
-                conn.commit();
-                return OptionalInt.of(newId);
-            }
+            cstmt.setString(1, nome);
+            cstmt.setString(2, simbolo);
+            cstmt.setString(3, imageName);
+            cstmt.setBigDecimal(4, initialValue.setScale(8, RoundingMode.HALF_UP));
+            cstmt.registerOutParameter(5, Types.INTEGER);
+            cstmt.execute();
+            int newId = cstmt.getInt(5);
+            return newId > 0 ? OptionalInt.of(newId) : OptionalInt.empty();
         } catch (SQLException e) {
             e.printStackTrace();
             return OptionalInt.empty();
@@ -151,7 +115,7 @@ public class MarketRepository {
     }
 
     /**
-     * Atualiza metadados e registra novo preço (timestamp = agora).
+     * Atualiza metadados e registra novo preço na tabelaPrecoMoeda.
      */
     public static void updateMoeda(Moeda m) throws SQLException {
         String upd = "UPDATE Moeda SET nome=?, simbolo=?, foto=? WHERE id_moeda=?";
@@ -203,6 +167,7 @@ public class MarketRepository {
     public static List<XYChart.Data<String, Number>> getHistoricoPorMoedaFiltrado(int idMoeda,
                                                                                   String intervalo) {
         List<XYChart.Data<String, Number>> dados = new ArrayList<>();
+
         String clause = switch (intervalo) {
             case "1D" -> "AND timestamp_hora >= DATEADD(day,-1,GETDATE())";
             case "1W" -> "AND timestamp_hora >= DATEADD(week,-1,GETDATE())";
@@ -233,19 +198,6 @@ public class MarketRepository {
             e.printStackTrace();
         }
         return dados;
-    }
-
-    /**
-     * Calcula variação percentual entre antigo e atual.
-     */
-    public static BigDecimal calcularVariacao(BigDecimal antigo, BigDecimal atual) {
-        if (antigo == null || antigo.compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO;
-        }
-        return atual.subtract(antigo)
-                .divide(antigo, 4, java.math.RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100))
-                .setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
     // mapeia uma linha de ResultSet para Moeda

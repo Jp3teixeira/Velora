@@ -9,10 +9,10 @@ import java.util.*;
 public class UserRepository {
 
     /**
-     * Obtém o id_perfil a partir do texto ("user" ou "admin").
+     * Obtém o id_perfil a partir do texto a partir da função fn_GetPerfilId.
      */
     public Optional<Integer> getPerfilId(String perfilNome) {
-        String sql = "SELECT id_perfil FROM Perfil WHERE perfil = ?";
+        String sql = "SELECT dbo.fn_GetPerfilId(?) AS id_perfil";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, perfilNome);
@@ -27,29 +27,14 @@ public class UserRepository {
     }
 
     /**
-     * Procura um utilizador por e-mail ou por nome de utilizador (username).
-     * Retorna Optional.empty() se não encontrar.
+     * Procura um utilizador por e-mail ou username usando a view v_UtilizadorPerfil.
      */
     public Optional<Map<String, String>> findUserByEmailOrUsername(String input) {
-        String sql = """
-            SELECT 
-              u.id_utilizador,
-              u.nome,
-              u.email,
-              u.password,
-              u.foto,
-              p.perfil AS tipoPerfil
-            FROM Utilizador u
-            JOIN Perfil p ON u.id_perfil = p.id_perfil
-            WHERE u.email = ?
-               OR u.nome  = ?
-            """;
-
+        String sql = "SELECT * FROM v_UtilizadorPerfil WHERE email = ? OR nome = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, input);
             stmt.setString(2, input);
-
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 Map<String, String> user = new HashMap<>();
@@ -67,18 +52,16 @@ public class UserRepository {
         return Optional.empty();
     }
 
-
     /**
-     * Verifica se já existe um utilizador com este email.
+     * Verifica existência de email usando função fn_UserExistsByEmail.
      */
     public boolean existsByEmail(String email) {
-        String sql = "SELECT 1 FROM Utilizador WHERE email = ?";
+        String sql = "SELECT dbo.fn_UserExistsByEmail(?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setString(1, email);
             ResultSet rs = stmt.executeQuery();
-            return rs.next();
+            return rs.next() && rs.getBoolean(1);
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -86,16 +69,15 @@ public class UserRepository {
     }
 
     /**
-     * Verifica se já existe um utilizador com este nome de utilizador.
+     * Verifica existência de username usando função fn_UserExistsByUsername.
      */
     public boolean existsByUsername(String username) {
-        String sql = "SELECT 1 FROM Utilizador WHERE nome = ?";
+        String sql = "SELECT dbo.fn_UserExistsByUsername(?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setString(1, username);
             ResultSet rs = stmt.executeQuery();
-            return rs.next();
+            return rs.next() && rs.getBoolean(1);
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -106,16 +88,9 @@ public class UserRepository {
      * Verifica se a conta do utilizador (por ID) está validada em VerificacaoEmail.
      */
     public boolean isContaVerificada(int utilizadorId) {
-        String sql = """
-            SELECT verificado
-              FROM VerificacaoEmail
-             WHERE id_utilizador = ?
-               AND tipo = 'REGISTO'
-            """;
-
+        String sql = "SELECT verificado FROM VerificacaoEmail WHERE id_utilizador = ? AND tipo = 'REGISTO'";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setInt(1, utilizadorId);
             ResultSet rs = stmt.executeQuery();
             return rs.next() && rs.getBoolean("verificado");
@@ -126,43 +101,24 @@ public class UserRepository {
     }
 
     /**
-     * Regista um novo utilizador na tabela Utilizador.
-     * Retorna Optional contendo o id_utilizador gerado, ou Optional.empty() em caso de falha.
+     * Regista um novo utilizador via stored procedure sp_RegistarNovoUtilizador.
      */
     public Optional<Integer> registarNovoUtilizador(String nome, String email, String senhaHashed) {
-        String insertUser = """
-            INSERT INTO Utilizador (nome, email, password, id_perfil)
-            VALUES (
-               ?, ?, ?,
-               (SELECT id_perfil FROM Perfil WHERE perfil = 'user')
-            )
-        """;
-
+        String call = "{ call sp_RegistarNovoUtilizador(?, ?, ?, ?) }";
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     insertUser, Statement.RETURN_GENERATED_KEYS)) {
-
-            stmt.setString(1, nome);
-            stmt.setString(2, email);
-            stmt.setString(3, senhaHashed);
-
-            int linhas = stmt.executeUpdate();
-            if (linhas > 0) {
-                ResultSet rs = stmt.getGeneratedKeys();
-                if (rs.next()) {
-                    return Optional.of(rs.getInt(1));
-                }
-            }
+             CallableStatement cstmt = conn.prepareCall(call)) {
+            cstmt.setString(1, nome);
+            cstmt.setString(2, email);
+            cstmt.setString(3, senhaHashed);
+            cstmt.registerOutParameter(4, Types.INTEGER);
+            cstmt.execute();
+            int newId = cstmt.getInt(4);
+            return newId > 0 ? Optional.of(newId) : Optional.empty();
         } catch (SQLException e) {
-            // 2627 = PK/unique violation
-            if (e.getErrorCode() == 2627) {
-                return Optional.empty();
-            }
             e.printStackTrace();
+            return Optional.empty();
         }
-        return Optional.empty();
     }
-
 
     /**
      * Insere (ou atualiza) um código de verificação em VerificacaoEmail.
@@ -194,10 +150,8 @@ public class UserRepository {
 
             stmt.setInt(1, utilizadorId);
             stmt.setString(2, tipo);
-
             stmt.setString(3, codigo);
             stmt.setTimestamp(4, Timestamp.valueOf(expira));
-
             stmt.setInt(5, utilizadorId);
             stmt.setString(6, codigo);
             stmt.setTimestamp(7, Timestamp.valueOf(expira));
@@ -210,10 +164,6 @@ public class UserRepository {
             return false;
         }
     }
-
-
-
-
 
     /**
      * Valida um código de verificação para um utilizador e tipo específico.
@@ -357,6 +307,7 @@ public class UserRepository {
             return false;
         }
     }
+
     /**
      * Actualiza nome, email e perfil de um utilizador.
      */
@@ -391,5 +342,3 @@ public class UserRepository {
         }
     }
 }
-
-

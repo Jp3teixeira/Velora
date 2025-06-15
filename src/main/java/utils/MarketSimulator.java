@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class MarketSimulator {
@@ -51,7 +52,7 @@ public class MarketSimulator {
                 m.setValorAtual(novo);
             });
             System.out.println("🔄 Preços simulados em memória.");
-        }, 0, 1, TimeUnit.MINUTES);
+        }, 0, 1, MINUTES);
 
         // 3) Agendamento hora a hora (persistência em batch)
         scheduler.scheduleAtFixedRate(() -> {

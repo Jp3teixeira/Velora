@@ -39,7 +39,7 @@ public class MoedaController implements Initializable {
         // Ajustado para mostrar em euros
         valorAtual.setText(String.format("€ %.2f", moeda.getValorAtual()));
         variacao24h.setText(String.format("%.2f%%", moeda.getVariacao24h()));
-        volumeMercado.setText(String.format("€ %,.2f", moeda.getVolumeMercado()));
+        volumeMercado.setText(String.format("€ %,.2f", moeda.getVolume24h()));
 
         try {
             String path = "/icons/" + moeda.getSimbolo().toLowerCase() + ".png";

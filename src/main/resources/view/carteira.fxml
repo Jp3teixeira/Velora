@@ -1,158 +1,109 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<?import com.jfoenix.controls.*?>
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import com.jfoenix.controls.*?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17.0.12"
-            xmlns:fx="http://javafx.com/fxml/1"
+<?import java.net.URL?>
+<BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="controller.WalletController"
-            stylesheets="@/view/css/wallet.css"
-            styleClass="root">
+            styleClass="wallet-root">
+    <!-- Carrega o CSS -->
+    <stylesheets><URL value="@/view/css/wallet.css"/></stylesheets>
 
-    <!-- TOPO -->
+    <!-- Grupo de toggles para troca de tabelas -->
+    <fx:define>
+        <ToggleGroup fx:id="tableToggleGroup"/>
+    </fx:define>
+
+    <!-- Navbar -->
     <top>
-        <VBox spacing="0">
-            <fx:include source="navbar.fxml"/>
-            <HBox alignment="CENTER_LEFT" styleClass="header-container">
-                <padding>
-                    <Insets top="30" right="30" bottom="20" left="30"/>
-                </padding>
-                <Label text="Carteira" styleClass="navbar-title"/>
-            </HBox>
-        </VBox>
+        <fx:include source="navbar.fxml"/>
     </top>
 
-    <!-- CORPO -->
+    <!-- Conteúdo principal -->
     <center>
-        <GridPane styleClass="center-hbox" hgap="20" vgap="20">
-            <padding>
-                <Insets top="20" right="20" bottom="20" left="20"/>
-            </padding>
-            <columnConstraints>
-                <ColumnConstraints percentWidth="70" hgrow="ALWAYS" minWidth="400"/>
-                <ColumnConstraints percentWidth="30" hgrow="SOMETIMES" minWidth="250"/>
-            </columnConstraints>
-            <rowConstraints>
-                <RowConstraints vgrow="ALWAYS"/>
-            </rowConstraints>
+        <VBox fx:id="mainContent" styleClass="main-content">
+            <Label text="Valor em Carteira" styleClass="section-title"/>
+            <LineChart fx:id="balanceChart" styleClass="balance-chart">
+                <xAxis>
+                    <CategoryAxis fx:id="xAxis"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis fx:id="yAxis"/>
+                </yAxis>
+            </LineChart>
 
-            <!-- ESQUERDA: Tabelas -->
-            <VBox GridPane.columnIndex="0" spacing="15" VBox.vgrow="ALWAYS">
-                <Label fx:id="totalLabel"
-                       text="Valor Total do Portfólio: € 0,00"
-                       styleClass="portfolio-display"/>
+            <Label fx:id="totalLabel" styleClass="total-label"/>
 
-                <TabPane fx:id="walletTabPane"
-                         VBox.vgrow="ALWAYS"
-                         styleClass="tab-pane container-box">
-                    <tabs>
+            <HBox styleClass="table-toggle-group">
+                <ToggleButton fx:id="btnPosicoes" text="Posições Abertas"
+                              toggleGroup="$tableToggleGroup" selected="true"
+                              styleClass="table-toggle-button"/>
+                <ToggleButton fx:id="btnOrdens" text="Ordens Pendentes"
+                              toggleGroup="$tableToggleGroup"
+                              styleClass="table-toggle-button"/>
+                <ToggleButton fx:id="btnHistorico" text="Histórico"
+                              toggleGroup="$tableToggleGroup"
+                              styleClass="table-toggle-button"/>
+            </HBox>
 
-                        <!-- Posições -->
-                        <Tab text="Posições">
-                            <AnchorPane styleClass="table-container container-box">
-                                <JFXTreeTableView fx:id="cryptoTable"
-                                                  showRoot="false"
-                                                  AnchorPane.topAnchor="0"
-                                                  AnchorPane.bottomAnchor="0"
-                                                  AnchorPane.leftAnchor="0"
-                                                  AnchorPane.rightAnchor="0"
-                                                  styleClass="jfx-tree-table-view">
-                                    <columns>
-                                        <JFXTreeTableColumn fx:id="colAtivo" text="Ativo" prefWidth="140"/>
-                                        <JFXTreeTableColumn fx:id="colTicker" text="Ticker" prefWidth="100"/>
-                                        <JFXTreeTableColumn fx:id="colQuantidade" text="Qtd" prefWidth="120"/>
-                                        <JFXTreeTableColumn fx:id="colPrecoMedio" text="Preço Médio" prefWidth="140"/>
-                                        <JFXTreeTableColumn fx:id="colValor" text="Valor (€)" prefWidth="120"/>
-                                    </columns>
-                                </JFXTreeTableView>
-                            </AnchorPane>
-                        </Tab>
-
-                        <!-- Ordens Abertas -->
-                        <Tab text="Ordens Abertas">
-                            <AnchorPane styleClass="table-container">
-                                <JFXTreeTableView fx:id="ordersTable"
-                                                  showRoot="false"
-                                                  AnchorPane.topAnchor="0"
-                                                  AnchorPane.bottomAnchor="0"
-                                                  AnchorPane.leftAnchor="0"
-                                                  AnchorPane.rightAnchor="0"
-                                                  styleClass="jfx-tree-table-view">
-                                    <columns>
-                                        <JFXTreeTableColumn fx:id="colTipoOrdem" text="Tipo" prefWidth="80"/>
-                                        <JFXTreeTableColumn fx:id="colMoedaOrdem" text="Moeda" prefWidth="80"/>
-                                        <JFXTreeTableColumn fx:id="colQuantidadeOrdem" text="Qtd" prefWidth="100"/>
-                                        <JFXTreeTableColumn fx:id="colPrecoLimiteOrdem" text="Preço (€)" prefWidth="100"/>
-                                        <JFXTreeTableColumn fx:id="colDataOrdem" text="Criação" prefWidth="120"/>
-                                    </columns>
-                                </JFXTreeTableView>
-                            </AnchorPane>
-                        </Tab>
-
-                        <!-- Histórico -->
-                        <Tab text="Histórico">
-                            <AnchorPane styleClass="table-container">
-                                <JFXTreeTableView fx:id="transactionTable"
-                                                  showRoot="false"
-                                                  AnchorPane.topAnchor="0"
-                                                  AnchorPane.bottomAnchor="0"
-                                                  AnchorPane.leftAnchor="0"
-                                                  AnchorPane.rightAnchor="0"
-                                                  styleClass="jfx-tree-table-view">
-                                    <columns>
-                                        <JFXTreeTableColumn fx:id="colData" text="Data" prefWidth="120"/>
-                                        <JFXTreeTableColumn fx:id="colTipo" text="Tipo" prefWidth="80"/>
-                                        <JFXTreeTableColumn fx:id="colAtivoTx" text="Ativo" prefWidth="80"/>
-                                        <JFXTreeTableColumn fx:id="colQuantidadeTx" text="Qtd" prefWidth="100"/>
-                                        <JFXTreeTableColumn fx:id="colValorTx" text="Valor (€)" prefWidth="120"/>
-                                    </columns>
-                                </JFXTreeTableView>
-                            </AnchorPane>
-                        </Tab>
-
-                    </tabs>
-                </TabPane>
-            </VBox>
-
-            <!-- DIREITA: Ações -->
-            <VBox GridPane.columnIndex="1" spacing="20">
-                <VBox spacing="10" styleClass="container-box wallet-actions-box">
-                    <Label text="Saldo da Carteira" styleClass="wallet-actions-title"/>
-                    <Label fx:id="balanceLabel" text="€ 0,00" styleClass="balance-display"/>
-                </VBox>
-
-                <Separator/>
-
-                <VBox spacing="15" styleClass="container-box wallet-actions-box">
-                    <Label text="Operações de Saldo" styleClass="wallet-actions-title"/>
-
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <Label text="Depositar:" styleClass="wallet-actions-label"/>
-                        <TextField fx:id="depositAmountField"
-                                   promptText="€"
-                                   styleClass="text-field"
-                                   HBox.hgrow="ALWAYS"/>
-                        <Button text="OK"
-                                styleClass="action-button deposit"
-                                onAction="#confirmarDeposito"/>
-                    </HBox>
-                    <Label fx:id="depositStatusLabel" styleClass="status-label deposit-success"/>
-
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <Label text="Levantar:" styleClass="wallet-actions-label"/>
-                        <TextField fx:id="withdrawAmountField"
-                                   promptText="€"
-                                   styleClass="text-field"
-                                   HBox.hgrow="ALWAYS"/>
-                        <Button text="OK"
-                                styleClass="action-button withdraw"
-                                onAction="#confirmarLevantamento"/>
-                    </HBox>
-                    <Label fx:id="withdrawStatusLabel" styleClass="status-label withdraw-error"/>
-                </VBox>
-            </VBox>
-        </GridPane>
+            <StackPane fx:id="tableContainer" styleClass="table-view-container">
+                <!-- Posições Abertas -->
+                <JFXTreeTableView fx:id="cryptoTable">
+                    <columns>
+                        <JFXTreeTableColumn fx:id="colAtivo"      text="Ativo"/>
+                        <JFXTreeTableColumn fx:id="colQuantidade" text="Quantidade"/>
+                        <JFXTreeTableColumn fx:id="colPrecoMedio" text="Preço Médio (€)"/>
+                        <JFXTreeTableColumn fx:id="colValorAtual" text="Valor Atual (€)"/>
+                        <JFXTreeTableColumn fx:id="colRetorno"    text="Retorno (%)"/>
+                    </columns>
+                </JFXTreeTableView>
+                <!-- Ordens Pendentes -->
+                <JFXTreeTableView fx:id="ordersTable" visible="false">
+                    <columns>
+                        <JFXTreeTableColumn fx:id="colNomeOrdem"      text="Nome"/>
+                        <JFXTreeTableColumn fx:id="colTipoOrdem"      text="Tipo"/>
+                        <JFXTreeTableColumn fx:id="colQuantidadeOrdem" text="Quantidade"/>
+                        <JFXTreeTableColumn fx:id="colPrecoOrdem"     text="Preço (€)"/>
+                        <JFXTreeTableColumn fx:id="colDataOrdem"      text="Data"/>
+                    </columns>
+                </JFXTreeTableView>
+                <!-- Histórico de Transações -->
+                <JFXTreeTableView fx:id="transactionTable" visible="false">
+                    <columns>
+                        <JFXTreeTableColumn fx:id="colNomeTx"        text="Nome"/>
+                        <JFXTreeTableColumn fx:id="colTipoTx"        text="Tipo"/>
+                        <JFXTreeTableColumn fx:id="colQuantidadeTx"  text="Quantidade"/>
+                        <JFXTreeTableColumn fx:id="colValorTx"       text="Valor (€)"/>
+                        <JFXTreeTableColumn fx:id="colDataTx"        text="Data"/>
+                    </columns>
+                </JFXTreeTableView>
+            </StackPane>
+        </VBox>
     </center>
+
+    <!-- Painel lateral de depósito / levantamento -->
+    <right>
+        <VBox fx:id="sidebar" styleClass="sidebar">
+            <Label text="Saldo Atual" styleClass="section-title-small"/>
+            <Label fx:id="balanceLabel" styleClass="balance-label"/>
+
+            <Label text="Depósito (€)" styleClass="section-label"/>
+            <HBox>
+                <TextField fx:id="depositAmountField" promptText="0.00"/>
+                <Button text="Depositar" styleClass="action-button"
+                        onAction="#confirmarDeposito"/>
+            </HBox>
+            <Label fx:id="depositStatusLabel" styleClass="status-label"/>
+
+            <Label text="Levantamento (€)" styleClass="section-label"/>
+            <HBox>
+                <TextField fx:id="withdrawAmountField" promptText="0.00"/>
+                <Button text="Levantar" styleClass="action-button"
+                        onAction="#confirmarLevantamento"/>
+            </HBox>
+            <Label fx:id="withdrawStatusLabel" styleClass="status-label"/>
+        </VBox>
+    </right>
 </BorderPane>

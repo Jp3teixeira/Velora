@@ -1,10 +1,8 @@
-/* wallet.css */
-
 /* ===========================
    NAVBAR
 =========================== */
 
-/* Botões da navbar */
+/* Botões da navbar  */
 .menu-button {
     -fx-text-fill: #e0e0e0;
     -fx-background-color: transparent;
@@ -13,25 +11,26 @@
     -fx-padding: 6 10;
     -fx-border-color: transparent;
 }
+
+/* Efeito  */
 .menu-button:hover {
     -fx-text-fill: #b892ff;
     -fx-scale-x: 1.05;
     -fx-scale-y: 1.05;
 }
 
-/* Navbar container */
+/* Navbar container  */
 .navbar {
     -fx-background-color: #1a1a1a;
     -fx-padding: 12 20;
 }
 
-/* Título */
+/* Título  */
 .navbar-title {
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-font-size: 18px;
 }
-
 /* Botão de Logout */
 .logout-button {
     -fx-text-fill: white;
@@ -44,150 +43,118 @@
     -fx-effect: dropshadow(one-pass-box, #00000033, 4, 0, 0, 2);
     -fx-border-color: transparent;
 }
+
 .logout-button:hover {
     -fx-background-color: #a679f8;
     -fx-scale-x: 1.04;
     -fx-scale-y: 1.04;
 }
 
-/* ===========================
-   ROOT & COMMON
-=========================== */
 
-/* Root */
-.root {
-    -fx-background-color: #121212;
-    -fx-font-family: "Segoe UI", sans-serif;
+/* Root layout */
+.wallet-root {
+    -fx-background-color: #0e0e0e;
 }
 
-/* Container comum */
-.container-box {
-    -fx-background-color: #1f1f1f;
-    -fx-border-color: #2a2a2a;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-padding: 15;
+/* Main content */
+.main-content {
+    -fx-padding: 20;
+    -fx-spacing: 15;
 }
 
-/* Header container */
-.header-container {
-    -fx-background-color: #1f1f1f;
-    -fx-padding: 30 30 20 30;
+/* Chart */
+.balance-chart {
+    -fx-pref-height: 200;
 }
-
-/* Portfólio display */
-.portfolio-display {
-    -fx-text-fill: #e0e0e0;
-    -fx-font-size: 14px;
-    -fx-padding: 0 0 8 0;
-}
-
-/* Center GridPane */
-.center-hbox {
+.balance-chart .chart-plot-background {
     -fx-background-color: transparent;
 }
-
-/* ===========================
-   TABLE SECTION
-=========================== */
-
-/* Container de tabela – igual a .container-box */
-.table-container {
-    -fx-background-color: #1f1f1f;
-    -fx-border-color: #2a2a2a;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-padding: 15;
+.balance-chart .axis-label,
+.balance-chart .axis {
+    -fx-text-fill: #e0e0e0;
 }
 
-/* JFXTreeTableView */
-.jfx-tree-table-view {
+/* Titles */
+.section-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+.section-title-small {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+.total-label {
+    -fx-font-size: 16px;
+    -fx-text-fill: white;
+}
+
+/* Toggle group */
+.table-toggle-group {
+    -fx-alignment: center;
+    -fx-spacing: 10;
+}
+.table-toggle-button {
+    -fx-font-size: 14px;
+    -fx-text-fill: #e0e0e0;
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+    -fx-padding: 6 10;
+}
+.table-toggle-button:hover,
+.table-toggle-button:selected {
+    -fx-text-fill: #b892ff;
+}
+
+/* Tables */
+.table-view-container {
+    -fx-pref-height: 300;
+}
+.table-view-container .jfx-tree-table-view {
     -fx-background-color: #1a1a1a;
     -fx-control-inner-background: #1a1a1a;
-    -fx-cell-hover-color: #2a2a2a;
-    -fx-selection-bar: #3a3a3a;
-    -fx-selection-bar-text: #ffffff;
+    -fx-border-color: transparent;
 }
-.jfx-tree-table-view .tree-table-row-cell {
-    -fx-background-color: transparent;
-}
-.jfx-tree-table-view .column-header-background {
+.table-view-container .column-header-background {
     -fx-background-color: #2a2a2a;
 }
-.jfx-tree-table-view .column-header .label {
+.table-view-container .cell {
     -fx-text-fill: #e0e0e0;
-    -fx-font-weight: bold;
 }
 
-/* TabPane dentro de .container-box */
-.tab-pane {
-    -fx-background-color: transparent;
+/* Sidebar */
+.sidebar {
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 20;
+    -fx-spacing: 15;
+}
+.balance-label {
+    -fx-font-size: 24px;
+    -fx-text-fill: #b892ff;
+}
+.section-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #e0e0e0;
+}
+.status-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #e0e0e0;
 }
 
-/* ===========================
-   WALLET ACTIONS
-=========================== */
-
-.wallet-actions-box { }
-
-.wallet-actions-title {
-    -fx-text-fill: #e0e0e0;
+/* Action buttons */
+.action-button {
     -fx-font-size: 13px;
     -fx-font-weight: bold;
-}
-
-.wallet-actions-label {
-    -fx-text-fill: #e0e0e0;
-    -fx-font-size: 12px;
-}
-
-/* Balance display */
-.balance-display {
-    -fx-text-fill: #b892ff;
-    -fx-font-size: 20px;
-    -fx-font-weight: bold;
-    -fx-padding: 4 0 0 0;
-}
-
-/* ===========================
-   FORM CONTROLS
-=========================== */
-
-/* Botões de ação */
-.action-button {
-    -fx-background-color: linear-gradient(to bottom right, #b892ff, #8f6fea);
-    -fx-text-fill: #fff;
-    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-background-color: #b892ff;
     -fx-background-radius: 6;
     -fx-cursor: hand;
-    -fx-padding: 6 12;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 4, 0, 0, 2);
+    -fx-padding: 6 14;
+    -fx-effect: dropshadow(one-pass-box, #00000033, 4, 0, 0, 2);
 }
 .action-button:hover {
     -fx-background-color: #a679f8;
-}
-
-/* TextFields */
-.text-field {
-    -fx-background-color: #1f1f1f;
-    -fx-text-fill: #e0e0e0;
-    -fx-prompt-text-fill: #7a7a7a;
-    -fx-border-color: #2a2a2a;
-    -fx-border-radius: 4;
-    -fx-background-radius: 4;
-    -fx-padding: 6 8;
-}
-.text-field:focused {
-    -fx-border-color: #b892ff;
-}
-
-/* Status labels */
-.status-label {
-    -fx-font-size: 12px;
-}
-.status-label.deposit-success {
-    -fx-text-fill: #4caf50;
-}
-.status-label.withdraw-error {
-    -fx-text-fill: #f44336;
+    -fx-scale-x: 1.04;
+    -fx-scale-y: 1.04;
 }

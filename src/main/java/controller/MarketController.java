@@ -13,14 +13,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
-import javafx.scene.control.ToggleButton;
-import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
@@ -60,42 +53,29 @@ public class MarketController implements Initializable {
     private Moeda moedaAtual;
     private PauseTransition pause;
 
-    // Flags de ordenação
     private boolean valorAtualAsc = false;
     private boolean variacao24hAsc = false;
-
-    // Guarda o último intervalo aplicado para reaplicar no refresh
     private String currentIntervalo = "MAX";
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Configuração de debounce na pesquisa e filtro
         pause = new PauseTransition(Duration.millis(300));
         pause.setOnFinished(e -> aplicarOrdenacao());
 
-        // Inicializar ComboBox de ordenação
-        filterField.setItems(FXCollections.observableArrayList(
-                "Valor Atual", "Variação 24h"
-        ));
+        filterField.setItems(FXCollections.observableArrayList("Valor Atual", "Variação 24h"));
         filterField.setPromptText("Ordenar por…");
         filterField.setOnAction(e -> pause.playFromStart());
 
-        // Inicializar ListView com célula customizada
         watchlistView.setItems(fullList);
         watchlistView.setCellFactory(lv -> createCell());
         watchlistView.setOnMouseClicked(e -> selecionarMoeda(
                 watchlistView.getSelectionModel().getSelectedItem()
         ));
 
-        // Listener para pesquisa em tempo real
         searchField.textProperty().addListener((o, a, b) -> pause.playFromStart());
 
-        // Configurar botões de intervalo de tempo
         setupToggleButtons();
-
-        // Primeira listagem
         aplicarOrdenacao();
-
 
         ScheduledExecutorService uiUpdater = Executors.newSingleThreadScheduledExecutor();
         uiUpdater.scheduleAtFixedRate(() -> Platform.runLater(() -> {
@@ -107,17 +87,11 @@ public class MarketController implements Initializable {
     }
 
     private void aplicarOrdenacao() {
-        String termo = Optional.ofNullable(searchField.getText())
-                .orElse("")
-                .trim()
-                .toLowerCase();
+        String termo = Optional.ofNullable(searchField.getText()).orElse("").trim().toLowerCase();
         String campo = Optional.ofNullable(filterField.getValue()).orElse("Valor Atual");
-
-        boolean asc = campo.equals("Valor Atual")
-                ? (valorAtualAsc = !valorAtualAsc)
+        boolean asc = campo.equals("Valor Atual") ? (valorAtualAsc = !valorAtualAsc)
                 : (variacao24hAsc = !variacao24hAsc);
 
-        // Lê do simulador, filtra nulos e ordena
         List<Moeda> lista = MarketSimulator.getMoedasSimuladas().values().stream()
                 .filter(m -> m.getValorAtual() != null)
                 .filter(m -> m.getNome().toLowerCase().contains(termo)
@@ -133,7 +107,6 @@ public class MarketController implements Initializable {
         fullList.setAll(lista);
     }
 
-    // Atualiza os Labels do detalhe da moeda selecionada
     private void refreshDetail() {
         if (moedaAtual == null) return;
         labelValorAtual.setText(String.format("€ %.2f", moedaAtual.getValorAtual()));
@@ -142,7 +115,8 @@ public class MarketController implements Initializable {
         labelVariacao.getStyleClass().setAll(
                 var24 >= 0 ? "label-variacao-positiva" : "label-variacao-negativa"
         );
-        labelVolume.setText(String.format("€ %,.2f", moedaAtual.getVolumeMercado()));
+        // Atualiza volume 24h
+        labelVolume.setText(String.format("€ %,.2f", moedaAtual.getVolume24h()));
     }
 
     private ListCell<Moeda> createCell() {

@@ -9,11 +9,11 @@ public class Transacao extends RecursiveTreeObject<Transacao> {
     private Integer idTransacao;
     private Utilizador utilizador;
     private Moeda moeda;
-    private String tipo;            // "compra" | "venda"
     private BigDecimal quantidade;
     private BigDecimal precoUnitarioEur;
     private BigDecimal totalEur;
     private LocalDateTime dataHora;
+    private String tipo;
 
     public Transacao() {}
     // getters & setters...
@@ -23,8 +23,6 @@ public class Transacao extends RecursiveTreeObject<Transacao> {
     public void setUtilizador(Utilizador u) { this.utilizador = u; }
     public Moeda getMoeda() { return moeda; }
     public void setMoeda(Moeda m) { this.moeda = m; }
-    public String getTipo() { return tipo; }
-    public void setTipo(String t) { this.tipo = t; }
     public BigDecimal getQuantidade() { return quantidade; }
     public void setQuantidade(BigDecimal q) { this.quantidade = q; }
     public BigDecimal getPrecoUnitarioEur() { return precoUnitarioEur; }
@@ -33,6 +31,8 @@ public class Transacao extends RecursiveTreeObject<Transacao> {
     public void setTotalEur(BigDecimal t) { this.totalEur = t; }
     public LocalDateTime getDataHora() { return dataHora; }
     public void setDataHora(LocalDateTime d) { this.dataHora = d; }
+    public String getTipo() {return tipo;}
+    public void setTipo(String tipo) {this.tipo = tipo;}
 
 
 }

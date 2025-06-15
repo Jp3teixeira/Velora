@@ -9,10 +9,12 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.math.BigDecimal;
 
 /**
- * Repositório para CRUD de ordens e métodos de consulta de ordens pendentes e ordens abertas por usuário.
+ * Repositório para CRUD de ordens e métodos de consulta de ordens.
+ * Aproveita v_OrdemDetalhada, sp_InserirOrdem e sp_ExpirarOrdens24h.
  */
 public class OrdemRepository {
 
@@ -23,108 +25,101 @@ public class OrdemRepository {
     }
 
     /**
-     * Insere uma nova ordem e retorna o ID gerado.
+     * Insere uma nova ordem via stored procedure sp_InserirOrdem e devolve o ID.
      */
-    public void inserirOrdem(Ordem ordem) throws SQLException {
-        String sql = """
-            INSERT INTO Ordem
-              (id_utilizador, id_moeda, id_tipo_ordem, id_status, id_modo,
-               quantidade, preco_unitario_eur, data_criacao, data_expiracao)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """;
-        try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setInt(1, ordem.getUtilizador().getIdUtilizador());
-            stmt.setInt(2, ordem.getMoeda().getIdMoeda());
-            stmt.setInt(3, ordem.getIdTipoOrdem());
-            stmt.setInt(4, ordem.getIdStatus());
-            stmt.setInt(5, ordem.getIdModo());
-            stmt.setBigDecimal(6, ordem.getQuantidade());
-            stmt.setBigDecimal(7, ordem.getPrecoUnitarioEur());
-            stmt.setTimestamp(8, Timestamp.valueOf(ordem.getDataCriacao()));
-            stmt.setTimestamp(9, Timestamp.valueOf(ordem.getDataExpiracao()));
-            stmt.executeUpdate();
-            try (ResultSet rs = stmt.getGeneratedKeys()) {
-                if (rs.next()) ordem.setIdOrdem(rs.getInt(1));
-            }
+    public Optional<Integer> inserirOrdem(Ordem ordem) throws SQLException {
+        String call = "{ CALL dbo.sp_InserirOrdem(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }";
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            cstmt.setInt(1, ordem.getUtilizador().getIdUtilizador());
+            cstmt.setInt(2, ordem.getMoeda().getIdMoeda());
+            cstmt.setInt(3, ordem.getIdTipoOrdem());
+            cstmt.setInt(4, ordem.getIdStatus());
+            cstmt.setInt(5, ordem.getIdModo());
+            cstmt.setBigDecimal(6, ordem.getQuantidade());
+            cstmt.setBigDecimal(7, ordem.getPrecoUnitarioEur());
+            cstmt.setTimestamp(8, Timestamp.valueOf(ordem.getDataCriacao()));
+            cstmt.setTimestamp(9, Timestamp.valueOf(ordem.getDataExpiracao()));
+            cstmt.registerOutParameter(10, Types.INTEGER);
+            cstmt.execute();
+            int newId = cstmt.getInt(10);
+            return newId > 0 ? Optional.of(newId) : Optional.empty();
         }
     }
 
     /**
-     * Busca ordens pendentes (status = 'ativa') do tipo contrario e modo especificado.
+     * Obtém id em OrdemTipo.
+     */
+    public int obterIdTipoOrdem(String tipo) throws SQLException {
+        String sql = "SELECT id_tipo_ordem FROM OrdemTipo WHERE tipo_ordem = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, tipo);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        throw new SQLException("Tipo de ordem não encontrado: " + tipo);
+    }
+
+    /**
+     * Obtém id em OrdemModo.
+     */
+    public int obterIdModo(String modo) throws SQLException {
+        String sql = "SELECT id_modo FROM OrdemModo WHERE modo = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, modo);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        throw new SQLException("Modo de ordem não encontrado: " + modo);
+    }
+
+    /**
+     * Obtém id em OrdemStatus.
+     */
+    public int obterIdStatus(String status) throws SQLException {
+        String sql = "SELECT id_status FROM OrdemStatus WHERE status = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        throw new SQLException("Status de ordem não encontrado: " + status);
+    }
+
+    /**
+     * Busca ordens pendentes do tipo e modo especificados usando view v_OrdemDetalhada.
      */
     public List<Ordem> obterOrdensPendentes(int idMoeda,
                                             String tipoContrario,
                                             String modoOrigem,
                                             BigDecimal precoLimite) throws SQLException {
         List<Ordem> ordens = new ArrayList<>();
-        String sql;
-        boolean isVenda = "venda".equalsIgnoreCase(tipoContrario);
-
-        if (isVenda) {
-            if ("limit".equalsIgnoreCase(modoOrigem)) {
-                sql = """
-                    SELECT t.*, ot.tipo_ordem, os.status, om.modo
-                      FROM Ordem t
-                      JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
-                      JOIN OrdemStatus os ON t.id_status     = os.id_status
-                      JOIN OrdemModo om   ON t.id_modo       = om.id_modo
-                     WHERE t.id_moeda = ?
-                       AND ot.tipo_ordem = 'venda'
-                       AND om.modo = 'limit'
-                       AND os.status = 'ativa'
-                         AND t.data_expiracao > CURRENT_TIMESTAMP
-                       AND t.preco_unitario_eur <= ?
-                     ORDER BY t.preco_unitario_eur ASC, t.data_criacao ASC
-                    """;
-            } else {
-                sql = """
-                    SELECT t.*, ot.tipo_ordem, os.status, om.modo
-                      FROM Ordem t
-                      JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
-                      JOIN OrdemStatus os ON t.id_status     = os.id_status
-                      JOIN OrdemModo om   ON t.id_modo       = om.id_modo
-                     WHERE t.id_moeda = ?
-                       AND ot.tipo_ordem = 'venda'
-                       AND os.status = 'ativa'
-                         AND t.data_expiracao > CURRENT_TIMESTAMP
-                     ORDER BY t.data_criacao ASC
-                    """;
-            }
+        StringBuilder sb = new StringBuilder(
+                "SELECT * FROM v_OrdemDetalhada WHERE id_moeda = ? " +
+                        "AND tipo_ordem = ? AND status = 'ativa' AND data_expiracao > CURRENT_TIMESTAMP"
+        );
+        if ("limit".equalsIgnoreCase(modoOrigem)) {
+            sb.append(" AND modo = 'limit'");
+            sb.append(" AND preco_unitario_eur ")
+                    .append("venda".equalsIgnoreCase(tipoContrario) ? "<= ?" : ">= ?");
+        }
+        sb.append(" ORDER BY ");
+        if ("limit".equalsIgnoreCase(modoOrigem)) {
+            sb.append(" preco_unitario_eur ")
+                    .append("venda".equalsIgnoreCase(tipoContrario) ? "ASC" : "DESC");
+            sb.append(", data_criacao ASC");
         } else {
-            if ("limit".equalsIgnoreCase(modoOrigem)) {
-                sql = """
-                    SELECT t.*, ot.tipo_ordem, os.status, om.modo
-                      FROM Ordem t
-                      JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
-                      JOIN OrdemStatus os ON t.id_status     = os.id_status
-                      JOIN OrdemModo om   ON t.id_modo       = om.id_modo
-                     WHERE t.id_moeda = ?
-                       AND ot.tipo_ordem = 'compra'
-                       AND om.modo = 'limit'
-                       AND os.status = 'ativa'
-                           AND t.data_expiracao > CURRENT_TIMESTAMP
-                       AND t.preco_unitario_eur >= ?
-                     ORDER BY t.preco_unitario_eur DESC, t.data_criacao ASC
-                    """;
-            } else {
-                sql = """
-                    SELECT t.*, ot.tipo_ordem, os.status, om.modo
-                      FROM Ordem t
-                      JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
-                      JOIN OrdemStatus os ON t.id_status     = os.id_status
-                      JOIN OrdemModo om   ON t.id_modo       = om.id_modo
-                     WHERE t.id_moeda = ?
-                       AND ot.tipo_ordem = 'compra'
-                       AND os.status = 'ativa'
-                         AND t.data_expiracao > CURRENT_TIMESTAMP
-                     ORDER BY t.data_criacao ASC
-                    """;
-            }
+            sb.append(" data_criacao ASC");
         }
 
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = connection.prepareStatement(sb.toString())) {
             stmt.setInt(1, idMoeda);
-            if ("limit".equalsIgnoreCase(modoOrigem)) stmt.setBigDecimal(2, precoLimite);
+            stmt.setString(2, tipoContrario);
+            if ("limit".equalsIgnoreCase(modoOrigem)) {
+                stmt.setBigDecimal(3, precoLimite);
+            }
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) ordens.add(mapearOrdem(rs));
             }
@@ -146,42 +141,26 @@ public class OrdemRepository {
     }
 
     /**
-     * Obtém uma ordem por ID.
+     * Obtém uma ordem por ID via view v_OrdemDetalhada.
      */
-    public Ordem obterOrdemPorId(int id) throws SQLException {
-        String sql = """
-            SELECT t.*, ot.tipo_ordem, os.status, om.modo
-              FROM Ordem t
-              JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
-              JOIN OrdemStatus os ON t.id_status     = os.id_status
-              JOIN OrdemModo om   ON t.id_modo       = om.id_modo
-             WHERE t.id_ordem = ?
-            """;
+    public Optional<Ordem> obterOrdemPorId(int id) throws SQLException {
+        String sql = "SELECT * FROM v_OrdemDetalhada WHERE id_ordem = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) return mapearOrdem(rs);
+                if (rs.next()) return Optional.of(mapearOrdem(rs));
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     /**
-     * Lista ordens abertas (ativa & limit) de um usuário.
+     * Lista todas as ordens ativas e não expiradas de um utilizador.
      */
     public List<Ordem> listarOrdensPendentesPorUsuario(int idUtilizador) throws SQLException {
         List<Ordem> ordens = new ArrayList<>();
-        String sql = """
-        SELECT t.*, ot.tipo_ordem, os.status, om.modo
-          FROM Ordem t
-          JOIN OrdemTipo ot   ON t.id_tipo_ordem = ot.id_tipo_ordem
-          JOIN OrdemStatus os ON t.id_status     = os.id_status
-          JOIN OrdemModo om   ON t.id_modo       = om.id_modo
-         WHERE t.id_utilizador = ?
-           AND os.status = 'ativa'
-           AND t.data_expiracao > CURRENT_TIMESTAMP
-         ORDER BY t.data_criacao DESC
-        """;
+        String sql = "SELECT * FROM v_OrdemDetalhada WHERE id_utilizador = ? " +
+                "AND status = 'ativa' AND data_expiracao > CURRENT_TIMESTAMP ORDER BY data_criacao DESC";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, idUtilizador);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -192,45 +171,12 @@ public class OrdemRepository {
     }
 
     /**
-     * Busca id em OrdemTipo.
+     * Expira ordens ativas com mais de 24h sem match, chamando sp_ExpirarOrdens24h.
      */
-    public int obterIdTipoOrdem(String tipo) throws SQLException {
-        String sql = "SELECT id_tipo_ordem FROM OrdemTipo WHERE tipo_ordem = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, tipo);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt(1);
-            }
+    public void expirarOrdens() throws SQLException {
+        try (CallableStatement cstmt = connection.prepareCall("{ CALL dbo.sp_ExpirarOrdens24h }")) {
+            cstmt.execute();
         }
-        throw new SQLException("Tipo de ordem não encontrado: " + tipo);
-    }
-
-    /**
-     * Busca id em OrdemModo.
-     */
-    public int obterIdModo(String modo) throws SQLException {
-        String sql = "SELECT id_modo FROM OrdemModo WHERE modo = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, modo);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt(1);
-            }
-        }
-        throw new SQLException("Modo (limit/market) de ordem não encontrado: " + modo);
-    }
-
-    /**
-     * Busca id em OrdemStatus.
-     */
-    public int obterIdStatus(String status) throws SQLException {
-        String sql = "SELECT id_status FROM OrdemStatus WHERE status = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, status);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt(1);
-            }
-        }
-        throw new SQLException("Status de ordem não encontrado: " + status);
     }
 
     /**
@@ -248,33 +194,17 @@ public class OrdemRepository {
         m.setIdMoeda(rs.getInt("id_moeda"));
         ordem.setMoeda(m);
 
-        ordem.setIdTipoOrdem( rs.getInt("id_tipo_ordem"));
-        ordem.setTipoOrdem(   rs.getString("tipo_ordem"));
+        ordem.setIdTipoOrdem(  rs.getInt("id_tipo_ordem"));
+        ordem.setTipoOrdem(    rs.getString("tipo_ordem"));
+        ordem.setIdStatus(     rs.getInt("id_status"));
+        ordem.setStatus(       rs.getString("status"));
+        ordem.setIdModo(       rs.getInt("id_modo"));
+        ordem.setModo(         rs.getString("modo"));
 
-        ordem.setIdStatus(    rs.getInt("id_status"));
-        ordem.setStatus(      rs.getString("status"));
-
-        ordem.setIdModo(      rs.getInt("id_modo"));
-        ordem.setModo(        rs.getString("modo"));
-
-        ordem.setQuantidade(       rs.getBigDecimal("quantidade"));
-        ordem.setPrecoUnitarioEur( rs.getBigDecimal("preco_unitario_eur"));
-        ordem.setDataCriacao(      rs.getTimestamp("data_criacao").toLocalDateTime());
-        ordem.setDataExpiracao(    rs.getTimestamp("data_expiracao").toLocalDateTime());
-
+        ordem.setQuantidade(        rs.getBigDecimal("quantidade"));
+        ordem.setPrecoUnitarioEur(  rs.getBigDecimal("preco_unitario_eur"));
+        ordem.setDataCriacao(       rs.getTimestamp("data_criacao").toLocalDateTime());
+        ordem.setDataExpiracao(     rs.getTimestamp("data_expiracao").toLocalDateTime());
         return ordem;
-    }
-    public void expirarOrdens() throws SQLException {
-        String sql = """
-        UPDATE Ordem
-           SET id_status = ?
-         WHERE id_status = ?
-           AND data_expiracao <= CURRENT_TIMESTAMP
-        """;
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, obterIdStatus("expirada"));
-            ps.setInt(2, obterIdStatus("ativa"));
-            ps.executeUpdate();
-        }
     }
 }

@@ -14,7 +14,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -22,6 +21,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 public class OrdemController {
 
@@ -55,7 +55,6 @@ public class OrdemController {
         labelTitulo.setText(this.tipoOrdem + " – " + moeda.getNome());
         labelPrecoAtual.setText("Preço atual: € " + moeda.getValorAtual());
 
-        // inicialmente market
         rbMarket.setSelected(true);
         boxPrecoLimite.setVisible(false);
         boxPrecoLimite.setManaged(false);
@@ -84,7 +83,6 @@ public class OrdemController {
 
     @FXML
     private void confirmarOrdem() {
-        // garante conexão
         if (connection == null) {
             try {
                 connection = DBConnection.getConnection();
@@ -95,23 +93,19 @@ public class OrdemController {
         }
 
         try {
-            // lê quantidade
             BigDecimal quantidade = new BigDecimal(txtQuantidade.getText().trim());
             if (quantidade.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new NumberFormatException();
             }
 
-            // determina modo e preço unitário
             String modo = rbMarket.isSelected() ? "market" : "limit";
             BigDecimal precoUnitario = rbMarket.isSelected()
                     ? moedaSelecionada.getValorAtual()
                     : new BigDecimal(txtPrecoLimite.getText().trim());
-
             if (precoUnitario.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new NumberFormatException();
             }
 
-            // reserva fundos ou cripto
             if ("COMPRA".equals(tipoOrdem)) {
                 BigDecimal custoTotal = precoUnitario.multiply(quantidade);
                 if (walletRepo.getSaldo(userId).compareTo(custoTotal) < 0
@@ -128,7 +122,6 @@ public class OrdemController {
                 }
             }
 
-            // monta objeto Ordem
             Ordem ordem = new Ordem();
             ordem.setUtilizador(new Utilizador() {{ setIdUtilizador(userId); }});
             ordem.setMoeda(moedaSelecionada);
@@ -137,20 +130,21 @@ public class OrdemController {
             ordem.setDataCriacao(LocalDateTime.now());
             ordem.setDataExpiracao(LocalDateTime.now().plusHours(24));
 
-            // busca FKs pelo repositório
             OrdemRepository repo = new OrdemRepository(connection);
-            int idTipo = repo.obterIdTipoOrdem(tipoOrdem.toLowerCase());
-            int idModo = repo.obterIdModo(modo.toLowerCase());
+            int idTipo   = repo.obterIdTipoOrdem(tipoOrdem.toLowerCase());
+            int idModo   = repo.obterIdModo(modo.toLowerCase());
             int idStatus = repo.obterIdStatus("ativa");
-
             ordem.setIdTipoOrdem(idTipo);
             ordem.setIdModo(idModo);
             ordem.setIdStatus(idStatus);
 
-            // persiste
-            repo.inserirOrdem(ordem);
+            Optional<Integer> optId = repo.inserirOrdem(ordem);
+            if (optId.isEmpty()) {
+                mostrarErro("Erro ao criar ordem no banco de dados.");
+                return;
+            }
+            ordem.setIdOrdem(optId.get());
 
-            // processa matching
             TradeService tradeService = new TradeService(connection);
             if ("COMPRA".equals(tipoOrdem)) {
                 tradeService.processarOrdemCompra(ordem);
@@ -159,7 +153,7 @@ public class OrdemController {
             }
 
             new Alert(Alert.AlertType.INFORMATION,
-                    tipoOrdem + " pedido de ordem executado com sucesso!")
+                    tipoOrdem + " executada com sucesso!")
                     .show();
             fecharJanela();
 
@@ -173,8 +167,7 @@ public class OrdemController {
         }
     }
 
-    @FXML
-    private void fecharJanela() {
+    @FXML private void fecharJanela() {
         Stage stage = (Stage) btnConfirmar.getScene().getWindow();
         stage.close();
     }
