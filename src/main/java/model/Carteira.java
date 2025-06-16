@@ -2,17 +2,18 @@ package model;
 
 import java.math.BigDecimal;
 
-public class CarteiraEuro {
-    private Integer idCarteiraEuro;
+public class Carteira {
+    private Integer idCarteira;
     private Utilizador utilizador;
     private BigDecimal saldoEur;
+    // getters/setters...
 
-    public CarteiraEuro() {}
-
-    public Integer getIdCarteiraEuro() { return idCarteiraEuro; }
-    public void setIdCarteiraEuro(Integer id) { this.idCarteiraEuro = id; }
+    public Carteira() {}
+    public Integer getIdCarteira() { return idCarteira; }
+    public void setIdCarteira(Integer id) { this.idCarteira = id; }
     public Utilizador getUtilizador() { return utilizador; }
     public void setUtilizador(Utilizador u) { this.utilizador = u; }
     public BigDecimal getSaldoEur() { return saldoEur; }
     public void setSaldoEur(BigDecimal s) { this.saldoEur = s; }
+
 }

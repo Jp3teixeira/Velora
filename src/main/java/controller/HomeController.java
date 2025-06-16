@@ -49,27 +49,19 @@ public class HomeController implements Initializable {
     @FXML private TableView<?> openOrdersTable;
     @FXML private TableView<Transacao> historyTable;
 
-    // Repositórios já existentes
+    // Repositórios
     private final PortfolioRepository portfolioRepo = new PortfolioRepository();
     private final TransacaoRepository transacaoRepo = new TransacaoRepository();
-
-    // Para exibir gráfico, usaremos o MarketRepository
     private final MarketRepository marketRepo = new MarketRepository();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // 1) Configura o comportamento dos ToggleButtons
+        // ToggleButtons
         marketToggle.setOnAction(e -> priceField.setDisable(true));
         limitToggle.setOnAction(e -> priceField.setDisable(false));
 
-        // 2) Monta o gráfico real para alguma moeda:
-        //    - termo vazio (todas)
-        //    - ordenar por Valor Atual (descendente) para pegar a maior logo à cabeça
-        List<Moeda> listaMoedas = MarketRepository.getMoedasOrdenadas(
-                "",              // termo de busca
-                "Valor Atual",   // campo de ordenação
-                false            // false = DESC (maior primeiro)
-        );
+        // Gráfico inicial
+        List<Moeda> listaMoedas = MarketRepository.getMoedasOrdenadas("", "Valor Atual", false);
         if (!listaMoedas.isEmpty()) {
             Moeda primeira = listaMoedas.get(0);
             assetLabel.setText("Ativo: " + primeira.getNome() + " (" + primeira.getSimbolo() + ")");
@@ -78,39 +70,22 @@ public class HomeController implements Initializable {
             VBox.setVgrow(chart, Priority.ALWAYS);
         }
 
-        // 3) Configura as colunas de “Posições Abertas” (Portfolio)
+        // Tabela Portfolio
         configurarTabelaPortfolio();
         carregarPortfolio();
 
-        // 4) Configura as colunas de “Histórico de Transações”
+        // Tabela Histórico
         configurarTabelaHistorico();
         carregarHistorico();
 
-        // 5) Exemplo simples para a aba “Ordens Abertas”
-        openOrdersTable.setPlaceholder(
-                new Label("Funcionalidade de Ordens Abertas ainda a implementar")
-        );
+        // Aba Ordens Abertas placeholder
+        openOrdersTable.setPlaceholder(new Label("Funcionalidade de Ordens Abertas ainda a implementar"));
 
-        // 6) “Comprar / Vender” (ainda só imprime no console)
-        buyButton.setOnAction(e -> {
-            System.out.println("Botão COMPRAR clicado para " + assetLabel.getText() +
-                    ", quantidade = " + quantityField.getText() +
-                    (limitToggle.isSelected() ? ", preço = " + priceField.getText() : " (Market)"));
-        });
-        sellButton.setOnAction(e -> {
-            System.out.println("Botão VENDER clicado para " + assetLabel.getText() +
-                    ", quantidade = " + quantityField.getText() +
-                    (limitToggle.isSelected() ? ", preço = " + priceField.getText() : " (Market)"));
-        });
+        // Comprar / Vender (a implementar)
+        buyButton.setOnAction(e -> System.out.println("COMPRAR: " + quantityField.getText()));
+        sellButton.setOnAction(e -> System.out.println("VENDER: " + quantityField.getText()));
     }
 
-
-    // =====================  MÉTODOS PARA O GRÁFICO  =====================
-
-    /**
-     * Cria um LineChart para a moeda com ID = idMoeda, usando intervalo “intervalo”
-     * e aplica fade-in (similar ao que você já faz no MarketController).
-     */
     private LineChart<String, Number> criarChartParaMoeda(int idMoeda, String intervalo) {
         CategoryAxis xAxis = new CategoryAxis();
         NumberAxis yAxis = new NumberAxis();
@@ -120,12 +95,11 @@ public class HomeController implements Initializable {
         LineChart<String, Number> chart = new LineChart<>(xAxis, yAxis);
         chart.setTitle("Preço da Moeda");
 
-        // Busca dados reais do banco:
         List<XYChart.Data<String, Number>> historico =
                 MarketRepository.getHistoricoPorMoedaFiltrado(idMoeda, intervalo);
 
         XYChart.Series<String, Number> serie = new XYChart.Series<>();
-        serie.setName("Variação");
+        serie.setName("Preço");
         serie.getData().addAll(historico);
 
         chart.getData().add(serie);
@@ -133,7 +107,6 @@ public class HomeController implements Initializable {
         chart.setLegendVisible(false);
         chart.setAnimated(false);
 
-        // Aplica fade-in:
         FadeTransition ft = new FadeTransition(Duration.millis(800), chart);
         ft.setFromValue(0);
         ft.setToValue(1);
@@ -142,17 +115,6 @@ public class HomeController implements Initializable {
         return chart;
     }
 
-    // =====================  MÉTODOS PARA A TABELA “Posições Abertas”  =====================
-
-    /**
-     * Configura as colunas da tabela openPositionsTable (Portfolio):
-     * - Ativo
-     * - Símbolo
-     * - Quantidade
-     * - Preço Médio (EUR)
-     * - Valor Atual (EUR)
-     * - Valor de Mercado (Quantidade × Preço Atual)
-     */
     private void configurarTabelaPortfolio() {
         openPositionsTable.getColumns().clear();
 
@@ -195,24 +157,12 @@ public class HomeController implements Initializable {
         );
     }
 
-    /** Carrega dados reais de PortfolioRepository e popula openPositionsTable. */
     private void carregarPortfolio() {
         int userId = SessaoAtual.utilizadorId;
         List<Portfolio> lista = portfolioRepo.listarPorUtilizador(userId);
         openPositionsTable.setItems(FXCollections.observableArrayList(lista));
     }
 
-    // =====================  MÉTODOS PARA A TABELA “Histórico de Transações”  =====================
-
-    /**
-     * Configura as colunas da tabela historyTable (Transações):
-     * - Data/Hora
-     * - Tipo (compra / venda)
-     * - Ativo
-     * - Quantidade
-     * - Preço Unitário (€)
-     * - Total (€)
-     */
     private void configurarTabelaHistorico() {
         historyTable.getColumns().clear();
 
@@ -223,21 +173,10 @@ public class HomeController implements Initializable {
             return new SimpleStringProperty(dataStr);
         });
 
-        TableColumn<Transacao, String> colTipo = new TableColumn<>("Tipo");
-        colTipo.setCellValueFactory(cell -> {
-            String tipo = cell.getValue().getTipo();
-            String texto = (tipo != null) ? tipo.toUpperCase() : "";
-            return new SimpleStringProperty(texto);
-        });
-
         TableColumn<Transacao, String> colAtivoTx = new TableColumn<>("Ativo");
-        colAtivoTx.setCellValueFactory(cell -> {
-            if (cell.getValue().getMoeda() != null) {
-                return new SimpleStringProperty(cell.getValue().getMoeda().getSimbolo());
-            } else {
-                return new SimpleStringProperty("EUR");
-            }
-        });
+        colAtivoTx.setCellValueFactory(cell ->
+                new SimpleStringProperty(cell.getValue().getMoeda().getSimbolo())
+        );
 
         TableColumn<Transacao, String> colQuantidadeTx = new TableColumn<>("Quantidade");
         colQuantidadeTx.setCellValueFactory(cell -> {
@@ -258,12 +197,10 @@ public class HomeController implements Initializable {
         });
 
         historyTable.getColumns().addAll(
-                colData, colTipo, colAtivoTx, colQuantidadeTx, colPrecoUnitario, colTotal
+                colData, colAtivoTx, colQuantidadeTx, colPrecoUnitario, colTotal
         );
     }
 
-
-    /** Carrega dados reais de TransacaoRepository e popula historyTable. */
     private void carregarHistorico() {
         int userId = SessaoAtual.utilizadorId;
         List<Transacao> lista = transacaoRepo.listarPorUsuario(userId);

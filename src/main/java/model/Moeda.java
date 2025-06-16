@@ -1,21 +1,17 @@
 package model;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+
 
 public class Moeda {
     private Integer idMoeda;
-    private String nome;
-    private String simbolo;
-    private String foto;
-    private Integer idTipo;      // FK → MoedaTipo
-    private String tipo;         // "fiat" | "crypto"
-
-    // campos de mercado (vêm do MarketRepository)
+    private String nome, simbolo, foto;
+    private Integer idTipo;
+    private String tipo;       // “fiat”|“crypto”
     private BigDecimal valorAtual;
     private BigDecimal variacao24h;
     private BigDecimal volume24h;
-    private BigDecimal volumeMercado;
+
 
     public Moeda() {}
 
@@ -30,7 +26,7 @@ public class Moeda {
         this.simbolo       = simbolo;
         this.valorAtual    = valorAtual;
         this.variacao24h   = variacao24h;
-        this.volumeMercado = volumeMercado;
+
     }
 
     // getters & setters...
@@ -52,6 +48,4 @@ public class Moeda {
     public void setVariacao24h(BigDecimal v) { this.variacao24h = v; }
     public BigDecimal getVolume24h() { return volume24h; }
     public void setVolume24h(BigDecimal v) { this.volume24h = v; }
-    public BigDecimal getVolumeMercado() { return volumeMercado; }
-    public void setVolumeMercado(BigDecimal v) { this.volumeMercado = v; }
 }

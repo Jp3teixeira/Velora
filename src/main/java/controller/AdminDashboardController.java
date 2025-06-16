@@ -164,7 +164,7 @@ public class AdminDashboardController {
 
         TableColumn<Moeda, String> volumeCol = new TableColumn<>("Volume 24h");
         volumeCol.setCellValueFactory(cd -> {
-            BigDecimal v = cd.getValue().getVolumeMercado();
+            BigDecimal v = cd.getValue().getVolume24h();
             return new SimpleStringProperty(
                     v != null ? v.toPlainString() : "—"
             );

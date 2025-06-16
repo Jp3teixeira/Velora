@@ -10,71 +10,54 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class TransacaoRepository {
 
     public TransacaoRepository() { }
 
     /**
-     * Insere nova transação (compra ou venda).
+     * Insere nova transação via stored procedure sp_InserirTransacao.
+     * Retorna Optional com novo id_transacao ou Optional.empty() se falhar.
      */
-    public void inserirTransacao(int idUtilizador,
-                                 int idMoeda,
-                                 BigDecimal quantidade,
-                                 BigDecimal precoUnitarioEur,
-                                 int idTipoOrdem) throws SQLException {
+    public Optional<Integer> inserirTransacao(int idUtilizador,
+                                              int idMoeda,
+                                              BigDecimal quantidade,
+                                              BigDecimal precoUnitarioEur,
+                                              int idTipoOrdem) throws SQLException {
 
-        String sql = """
-        INSERT INTO Transacao
-          (id_utilizador, id_moeda, quantidade, preco_unitario_eur, data_hora, id_tipo_ordem)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """;
-
+        String call = "{ CALL sp_InserirTransacao(?, ?, ?, ?, ?, ?) }";
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             CallableStatement cstmt = conn.prepareCall(call)) {
 
-            stmt.setInt(1, idUtilizador);
-            stmt.setInt(2, idMoeda);
-            stmt.setBigDecimal(3, quantidade.setScale(8, RoundingMode.HALF_UP));
-            stmt.setBigDecimal(4, precoUnitarioEur.setScale(8, RoundingMode.HALF_UP));
-            stmt.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
-            stmt.setInt(6, idTipoOrdem);
+            cstmt.setInt(1, idUtilizador);
+            cstmt.setInt(2, idMoeda);
+            cstmt.setBigDecimal(3, quantidade.setScale(8, RoundingMode.HALF_UP));
+            cstmt.setBigDecimal(4, precoUnitarioEur.setScale(8, RoundingMode.HALF_UP));
+            cstmt.setInt(5, idTipoOrdem);
+            cstmt.registerOutParameter(6, Types.INTEGER);
+            cstmt.execute();
 
-            stmt.executeUpdate();
+            int newId = cstmt.getInt(6);
+            return newId > 0 ? Optional.of(newId) : Optional.empty();
         }
     }
 
     /**
-     * Lista todas as transações de um utilizador, ordenadas por data decrescente.
+     * Lista todas as transações de um utilizador usando view v_TransacaoDetalhada.
      */
     public List<Transacao> listarPorUsuario(int idUtilizador) {
         List<Transacao> lista = new ArrayList<>();
 
         String sql = """
-            SELECT t.id_transacao,
-                   t.id_utilizador,
-                   t.id_moeda,
-                   t.quantidade,
-                   t.preco_unitario_eur,
-                   t.data_hora,
-                   m.nome,
-                   m.simbolo,
-                   m.id_tipo       AS idTipoMoeda,
-                   pm.preco_em_eur AS valor_atual
-              FROM Transacao t
-              JOIN Moeda m ON t.id_moeda = m.id_moeda
-              LEFT JOIN (
-                   SELECT p2.id_moeda, p2.preco_em_eur
-                     FROM PrecoMoeda p2
-                    WHERE p2.timestamp_hora = (
-                        SELECT MAX(x.timestamp_hora)
-                          FROM PrecoMoeda x
-                         WHERE x.id_moeda = p2.id_moeda
-                    )
-              ) pm ON pm.id_moeda = m.id_moeda
-             WHERE t.id_utilizador = ?
-             ORDER BY t.data_hora DESC
-            """;
+         SELECT id_transacao, id_utilizador, id_moeda, nome, simbolo,
+         idTipoMoeda, tipo, quantidade, preco_unitario_eur,
+         data_hora, valor_atual
+         FROM v_TransacaoDetalhada
+         WHERE id_utilizador = ?
+        ORDER BY data_hora DESC
+        """;
+
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -83,31 +66,24 @@ public class TransacaoRepository {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     Transacao tx = new Transacao();
-
                     tx.setIdTransacao(rs.getInt("id_transacao"));
 
-                    // monta o Utilizador se quiseres guardar:
-                    // Utilizador u = new Utilizador();
-                    // u.setIdUtilizador(rs.getInt("id_utilizador"));
-                    // tx.setUtilizador(u);
-
-                    // monta a Moeda
                     Moeda m = new Moeda();
                     m.setIdMoeda(rs.getInt("id_moeda"));
                     m.setNome(rs.getString("nome"));
                     m.setSimbolo(rs.getString("simbolo"));
                     m.setIdTipo(rs.getInt("idTipoMoeda"));
+                    tx.setTipo(rs.getString("tipo"));
                     m.setValorAtual(rs.getBigDecimal("valor_atual"));
                     tx.setMoeda(m);
 
-                    BigDecimal qty   = rs.getBigDecimal("quantidade");
-                    BigDecimal price = rs.getBigDecimal("preco_unitario_eur");
-                    tx.setQuantidade(qty);
-                    tx.setPrecoUnitarioEur(price);
+                    tx.setQuantidade(rs.getBigDecimal("quantidade"));
+                    tx.setPrecoUnitarioEur(rs.getBigDecimal("preco_unitario_eur"));
                     tx.setDataHora(rs.getTimestamp("data_hora").toLocalDateTime());
 
-                    // calcula total em EUR
-                    BigDecimal total = qty.multiply(price).setScale(8, RoundingMode.HALF_UP);
+                    BigDecimal total = tx.getQuantidade()
+                            .multiply(tx.getPrecoUnitarioEur())
+                            .setScale(8, RoundingMode.HALF_UP);
                     tx.setTotalEur(total);
 
                     lista.add(tx);
@@ -116,7 +92,26 @@ public class TransacaoRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return lista;
+    }
+
+    /**
+     * Obtém o preço atual de uma moeda via função fn_GetLatestPrecoMoeda.
+     */
+    public BigDecimal getLatestPrecoMoeda(int idMoeda) {
+        String sql = "SELECT dbo.fn_GetLatestPrecoMoeda(?) AS preco";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, idMoeda);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBigDecimal("preco").setScale(8, RoundingMode.HALF_UP);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return BigDecimal.ZERO;
     }
 }

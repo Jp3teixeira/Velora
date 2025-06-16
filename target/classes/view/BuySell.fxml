@@ -28,7 +28,6 @@
 
     <!-- ==================================== CENTRO ==================================== -->
     <center>
-        <!-- Container  -->
         <HBox spacing="50" alignment="TOP_CENTER" style="-fx-padding: 20 0 0 0;">
             <!-- ========== LADO DIREITO (order book + estimativas) ========== -->
             <VBox spacing="30" alignment="TOP_CENTER" prefWidth="450">
@@ -45,7 +44,7 @@
                     <Label text="📉 Bids (Compras)" GridPane.columnIndex="1" GridPane.rowIndex="0"
                            style="-fx-text-fill: #55ff55; -fx-font-size: 16px; -fx-font-weight: bold;"/>
 
-                    <!-- VBoxes -->
+                    <!-- VBoxes contendo as listas de ordens -->
                     <VBox fx:id="vboxAsks" spacing="6" GridPane.columnIndex="0" GridPane.rowIndex="1"
                           style="-fx-padding: 8 0 0 0;"/>
                     <VBox fx:id="vboxBids" spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="1"
@@ -72,7 +71,6 @@
 
             <!-- ========== LADO ESQUERDO  ========== -->
             <VBox spacing="30" alignment="TOP_CENTER" prefWidth="450">
-
                 <fx:define>
                     <ToggleGroup fx:id="toggleTipoOrdem"/>
                 </fx:define>
@@ -88,7 +86,6 @@
                 </HBox>
 
                 <!-- Quantidade -->
-
                 <VBox spacing="5" alignment="CENTER_LEFT">
                     <Label text="Quantidade:" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
                     <TextField fx:id="txtQuantidade"
@@ -103,10 +100,9 @@
                                       -fx-padding: 6 10;"/>
                 </VBox>
 
-                <!-- Preço Limite  -->
-                <VBox spacing="5" alignment="CENTER_LEFT"
-                      fx:id="boxPrecoLimite" visible="false" managed="false">
-                    <Label text="Preço Limite:" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
+                <!-- Preço Limite (invisível até “Limit” ser selecionado) -->
+                <VBox fx:id="boxPrecoLimite" spacing="5" alignment="CENTER_LEFT" visible="false" managed="false">
+                    <Label text="Preço Minimo:" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
                     <TextField fx:id="txtPrecoLimite"
                                promptText="Ex: 30.00"
                                prefWidth="200"
@@ -118,7 +114,7 @@
                                       -fx-padding: 6 10;"/>
                 </VBox>
 
-                <!-- Botão Confirmar: agora sem disable="true", pois será habilitado via listener -->
+                <!-- Botão Confirmar -->
                 <Button fx:id="btnConfirmar"
                         text="Confirmar"
                         onAction="#confirmarOrdem"

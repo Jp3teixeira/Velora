@@ -237,7 +237,7 @@
     -fx-text-fill: #cccccc;
 }
 
-
+/* reutiliza as classes existentes para cores positivas/negativas */
 .label-variacao-positiva {
     -fx-text-fill: #7bd88f;
     -fx-font-size: 0.8em;
@@ -249,44 +249,3 @@
     -fx-font-size: 0.8em;
     -fx-font-weight: bold;
 }
-/* ====================================
-   FILTER PANEL STYLES
-==================================== */
-/* Título do TitledPane */
-.titled-pane > .title {
-    -fx-background-color: #1E1C24;
-    -fx-text-fill: #e0e0e0;
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-    -fx-padding: 6 12;
-    -fx-background-radius: 6 6 0 0;
-}
-
-
-.titled-pane > .title > .arrow-button {
-    -fx-background-color: transparent;
-}
-.titled-pane > .title > .arrow-button:hover {
-    -fx-background-color: #2E2A33;
-}
-
-
-.titled-pane > .content {
-    -fx-background-color: #1A171F;
-    -fx-padding: 10;
-    -fx-border-color: #2E2A33;
-    -fx-border-width: 1;
-    -fx-border-radius: 0 0 6 6;
-    -fx-background-radius: 0 0 6 6;
-}
-
-
-.titled-pane .disclosure-node {
-    -fx-background-color: transparent;
-}
-
-.titled-pane > .title {
-    -fx-text-fill: #FFFFFF;
-}
-
-

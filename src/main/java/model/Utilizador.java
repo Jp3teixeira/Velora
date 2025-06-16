@@ -1,23 +1,17 @@
 package model;
 
+
 import java.time.LocalDateTime;
-import java.util.List;
+
 
 public class Utilizador {
     private Integer idUtilizador;
-    private String email;
-    private String nome;
-    private String password;
-    private Integer idPerfil;      // FK → Perfil
-    private String perfil;         // texto de Perfil (user/admin)
+    private String email, nome, password, foto;
     private LocalDateTime dataCriacao;
-    private String foto;
+    private Integer idPerfil;
+    private String perfil;
 
-    // relacionamentos
-    private CarteiraEuro carteiraEuro;
-    private List<Portfolio> portfolio;
-    private List<Ordem> ordens;
-    private List<Transacao> transacoes;
+
 
     public Utilizador() {}
 
@@ -39,12 +33,7 @@ public class Utilizador {
     public String getFoto() { return foto; }
     public void setFoto(String foto) { this.foto = foto; }
 
-    public CarteiraEuro getCarteiraEuro() { return carteiraEuro; }
-    public void setCarteiraEuro(CarteiraEuro carteiraEuro) { this.carteiraEuro = carteiraEuro; }
-    public List<Portfolio> getPortfolio() { return portfolio; }
-    public void setPortfolio(List<Portfolio> portfolio) { this.portfolio = portfolio; }
-    public List<Ordem> getOrdens() { return ordens; }
-    public void setOrdens(List<Ordem> ordens) { this.ordens = ordens; }
-    public List<Transacao> getTransacoes() { return transacoes; }
-    public void setTransacoes(List<Transacao> transacoes) { this.transacoes = transacoes; }
+
+
+
 }

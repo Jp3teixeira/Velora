@@ -11,7 +11,7 @@
             style="-fx-background-color: transparent;">
 
     <Rectangle fx:id="backgroundOverlay"
-               width="800" height="600"
+               width="1000" height="1000"
                fill="linear-gradient(to bottom right, #4B3F72, #232323)"
                arcWidth="20" arcHeight="20"/>
 
