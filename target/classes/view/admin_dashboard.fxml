@@ -33,6 +33,10 @@
                             style="-fx-background-color: #4B3F72; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 10 20;"
                             onAction="#handleCreateCrypto"/>
 
+                    <Button text="Gerir Utilizadores"
+                            style="-fx-background-color: #4B3F72; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 10 20;"
+                            onAction="#handleManageUsers"/>
+
                     <Button text="Todas Criptomoedas"
                             style="-fx-background-color: #4B3F72; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 10 20;"
                             onAction="#handleViewStatistics"/>

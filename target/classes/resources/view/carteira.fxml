@@ -51,32 +51,44 @@
             <StackPane fx:id="tableContainer" styleClass="table-view-container">
                 <!-- Posições Abertas -->
                 <JFXTreeTableView fx:id="cryptoTable">
+                    <!-- força colunas a preencher todo o espaço -->
+                    <columnResizePolicy>
+                        <TreeTableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
                     <columns>
                         <JFXTreeTableColumn fx:id="colAtivo"      text="Ativo"/>
                         <JFXTreeTableColumn fx:id="colQuantidade" text="Quantidade"/>
                         <JFXTreeTableColumn fx:id="colPrecoMedio" text="Preço Médio (€)"/>
-                        <JFXTreeTableColumn fx:id="colValorAtual" text="Valor Atual (€)"/>
+                        <JFXTreeTableColumn fx:id="colValorAtual" text="Preço Atual (€)"/>
                         <JFXTreeTableColumn fx:id="colRetorno"    text="Retorno (%)"/>
                     </columns>
                 </JFXTreeTableView>
+
                 <!-- Ordens Pendentes -->
                 <JFXTreeTableView fx:id="ordersTable" visible="false">
+                    <columnResizePolicy>
+                        <TreeTableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
                     <columns>
-                        <JFXTreeTableColumn fx:id="colNomeOrdem"      text="Nome"/>
-                        <JFXTreeTableColumn fx:id="colTipoOrdem"      text="Tipo"/>
-                        <JFXTreeTableColumn fx:id="colQuantidadeOrdem" text="Quantidade"/>
-                        <JFXTreeTableColumn fx:id="colPrecoOrdem"     text="Preço (€)"/>
-                        <JFXTreeTableColumn fx:id="colDataOrdem"      text="Data"/>
+                        <JFXTreeTableColumn fx:id="colNomeOrdem"        text="Nome"/>
+                        <JFXTreeTableColumn fx:id="colTipoOrdem"        text="Tipo"/>
+                        <JFXTreeTableColumn fx:id="colQuantidadeOrdem"  text="Quantidade"/>
+                        <JFXTreeTableColumn fx:id="colPrecoLimiteOrdem" text="Preço (€)"/>
+                        <JFXTreeTableColumn fx:id="colDataOrdem"        text="Data"/>
                     </columns>
                 </JFXTreeTableView>
+
                 <!-- Histórico de Transações -->
                 <JFXTreeTableView fx:id="transactionTable" visible="false">
+                    <columnResizePolicy>
+                        <TreeTableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
                     <columns>
-                        <JFXTreeTableColumn fx:id="colNomeTx"        text="Nome"/>
-                        <JFXTreeTableColumn fx:id="colTipoTx"        text="Tipo"/>
-                        <JFXTreeTableColumn fx:id="colQuantidadeTx"  text="Quantidade"/>
-                        <JFXTreeTableColumn fx:id="colValorTx"       text="Valor (€)"/>
-                        <JFXTreeTableColumn fx:id="colDataTx"        text="Data"/>
+                        <JFXTreeTableColumn fx:id="colNomeTx"       text="Nome"/>
+                        <JFXTreeTableColumn fx:id="colTipoTx"       text="Tipo"/>
+                        <JFXTreeTableColumn fx:id="colQuantidadeTx" text="Quantidade"/>
+                        <JFXTreeTableColumn fx:id="colValorTx"      text="Valor (€)"/>
+                        <JFXTreeTableColumn fx:id="colDataTx"       text="Data"/>
                     </columns>
                 </JFXTreeTableView>
             </StackPane>

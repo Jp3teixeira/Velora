@@ -1,6 +1,7 @@
 package Repository;
 
 import Database.DBConnection;
+import model.Utilizador;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -25,6 +26,43 @@ public class UserRepository {
         }
         return Optional.empty();
     }
+
+
+    public static List<Utilizador> getTodos() {
+        List<Utilizador> lista = new ArrayList<>();
+        String sql = "SELECT * FROM v_UtilizadorPerfil";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement st = conn.prepareStatement(sql);
+             ResultSet rs = st.executeQuery()) {
+
+            while (rs.next()) {
+                Utilizador u = new Utilizador();
+                u.setIdUtilizador(rs.getInt("id_utilizador"));
+                u.setNome        (rs.getString("nome"));
+                u.setEmail       (rs.getString("email"));
+                u.setPerfil      (rs.getString("tipoPerfil"));  // nome correto
+                u.setFoto        (rs.getString("foto"));
+                lista.add(u);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return lista;
+    }
+
+    public static boolean eliminarUtilizador(int idUtilizador) {
+        String sql = "DELETE FROM Utilizador WHERE id_utilizador = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, idUtilizador);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
 
     /**
      * Procura um utilizador por e-mail ou username usando a view v_UtilizadorPerfil.

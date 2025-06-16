@@ -14,6 +14,9 @@ import utils.MarketSimulator;
 import utils.NavigationHelper;
 import utils.Routes;
 import utils.SessaoAtual;
+import model.Utilizador;
+import Repository.UserRepository;
+
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -42,6 +45,136 @@ public class AdminDashboardController {
     private void handleCreateCrypto(ActionEvent event) {
         showAddCoinForm();
     }
+
+    @FXML
+    private void handleManageUsers(ActionEvent event) {
+        showUsersTable();
+    }
+
+    private void showUsersTable() {
+        TableView<Utilizador> table = new TableView<>();
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        TableColumn<Utilizador, String> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(cd -> new SimpleStringProperty(String.valueOf(cd.getValue().getIdUtilizador())));
+
+        TableColumn<Utilizador, String> nomeCol = new TableColumn<>("Nome");
+        nomeCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getNome()));
+
+        TableColumn<Utilizador, String> emailCol = new TableColumn<>("Email");
+        emailCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getEmail()));
+
+        TableColumn<Utilizador, String> perfilCol = new TableColumn<>("Perfil");
+        perfilCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getPerfil()));
+
+        TableColumn<Utilizador, Void> actionCol = new TableColumn<>("Ações");
+        actionCol.setCellFactory(col -> new TableCell<>() {
+            private final Button btnEdit = new Button("Editar");
+            private final Button btnDelete = new Button("Eliminar");
+            private final HBox actionBox = new HBox(8, btnEdit, btnDelete);
+
+            {
+                btnEdit.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white;");
+                btnDelete.setStyle("-fx-background-color: #D9534F; -fx-text-fill: white;");
+
+                btnEdit.setOnAction(e -> editUser(getIndex(), table));
+                btnDelete.setOnAction(e -> deleteUser(getIndex(), table));
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : actionBox);
+            }
+        });
+
+
+        table.getColumns().addAll(idCol, nomeCol, emailCol, perfilCol, actionCol);
+
+        List<Utilizador> lista = Repository.UserRepository.getTodos();
+        table.setItems(FXCollections.observableArrayList(lista));
+
+        contentArea.getChildren().setAll(table);
+    }
+
+    private void editUser(int index, TableView<Utilizador> table) {
+        Utilizador u = table.getItems().get(index);
+
+        Dialog<Utilizador> dialog = new Dialog<>();
+        dialog.setTitle("Editar Utilizador");
+
+        TextField nomeField = new TextField(u.getNome());
+        TextField emailField = new TextField(u.getEmail());
+
+        ComboBox<String> perfilBox = new ComboBox<>();
+        perfilBox.getItems().addAll("User", "Admin");
+        perfilBox.setValue(u.getPerfil());
+
+        VBox vb = new VBox(10,
+                new Label("Nome:"), nomeField,
+                new Label("Email:"), emailField,
+                new Label("Perfil:"), perfilBox);
+        vb.setStyle("-fx-padding: 10;");
+
+        dialog.getDialogPane().setContent(vb);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.setResultConverter(bt -> {
+            if (bt == ButtonType.OK) {
+                u.setNome(nomeField.getText().trim());
+                u.setEmail(emailField.getText().trim());
+                u.setPerfil(perfilBox.getValue());
+                return u;
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(updated -> {
+            Optional<Integer> novoIdPerfil = new Repository.UserRepository().getPerfilId(updated.getPerfil());
+            if (novoIdPerfil.isEmpty()) {
+                new Alert(Alert.AlertType.ERROR, "Perfil inválido").showAndWait();
+                return;
+            }
+
+            boolean sucesso = Repository.UserRepository.atualizarUtilizador(
+                    updated.getIdUtilizador(),
+                    updated.getNome(),
+                    updated.getEmail(),
+                    novoIdPerfil.get()
+            );
+
+            if (sucesso) {
+                showUsersTable(); // refrescar
+            } else {
+                new Alert(Alert.AlertType.ERROR, "Erro ao atualizar utilizador").showAndWait();
+            }
+        });
+    }
+
+
+    private void deleteUser(int index, TableView<Utilizador> table) {
+        Utilizador u = table.getItems().get(index);
+
+        Alert confirm = new Alert(
+                Alert.AlertType.CONFIRMATION,
+                "Tens a certeza que queres eliminar o utilizador \"" + u.getNome() + "\"?",
+                ButtonType.OK, ButtonType.CANCEL
+        );
+        confirm.setTitle("Confirmar Eliminação");
+
+        confirm.showAndWait().ifPresent(bt -> {
+            if (bt == ButtonType.OK) {
+                boolean sucesso = UserRepository.eliminarUtilizador(u.getIdUtilizador());
+                if (sucesso) {
+                    table.getItems().remove(index);
+                } else {
+                    new Alert(Alert.AlertType.ERROR, "Erro ao eliminar utilizador.").showAndWait();
+                }
+            }
+        });
+    }
+
+
 
     private void showAddCoinForm() {
         Label title = new Label("Adicionar Nova Moeda");
