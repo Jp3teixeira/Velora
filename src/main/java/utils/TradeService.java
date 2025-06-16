@@ -14,7 +14,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
+
 
 public class TradeService {
 
@@ -58,7 +58,10 @@ public class TradeService {
                 "venda",
                 novaCompra.getModo(),
                 novaCompra.getPrecoUnitarioEur()
+
+
         );
+
 
         // 2) matching
         for (Ordem venda : ordensVenda) {

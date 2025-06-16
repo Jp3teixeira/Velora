@@ -109,7 +109,13 @@ public class WalletRepository {
      */
     public List<Object[]> getSaldoHistorico(int userId) {
         List<Object[]> historico = new ArrayList<>();
-        String sql = "SELECT data_hora, saldo_acumulado FROM dbo.fnSaldoHistorico(?)";
+        String sql = """
+        SELECT 
+        GETDATE()          AS data_hora, 
+        saldo_eur          AS saldo_acumulado
+        FROM dbo.Carteira
+        WHERE id_utilizador = ?
+    """;
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);

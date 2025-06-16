@@ -49,11 +49,14 @@ public class TransacaoRepository {
     public List<Transacao> listarPorUsuario(int idUtilizador) {
         List<Transacao> lista = new ArrayList<>();
 
-        String sql = "SELECT id_transacao, id_utilizador, id_moeda, tipo, nome, simbolo, idTipoMoeda, " +
-                "quantidade, preco_unitario_eur, data_hora, valor_atual " +
-                "FROM v_TransacaoDetalhada " +
-                "WHERE id_utilizador = ? " +
-                "ORDER BY data_hora DESC";
+        String sql = """
+         SELECT id_transacao, id_utilizador, id_moeda, nome, simbolo,
+         idTipoMoeda, tipo, quantidade, preco_unitario_eur,
+         data_hora, valor_atual
+         FROM v_TransacaoDetalhada
+         WHERE id_utilizador = ?
+        ORDER BY data_hora DESC
+        """;
 
 
         try (Connection conn = DBConnection.getConnection();
@@ -70,6 +73,7 @@ public class TransacaoRepository {
                     m.setNome(rs.getString("nome"));
                     m.setSimbolo(rs.getString("simbolo"));
                     m.setIdTipo(rs.getInt("idTipoMoeda"));
+                    tx.setTipo(rs.getString("tipo"));
                     m.setValorAtual(rs.getBigDecimal("valor_atual"));
                     tx.setMoeda(m);
 

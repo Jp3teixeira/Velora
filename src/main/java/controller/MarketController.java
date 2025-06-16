@@ -17,17 +17,13 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import model.Moeda;
-import utils.MarketSimulator;
 import utils.SessaoAtual;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
@@ -36,10 +32,9 @@ import java.util.ResourceBundle;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+
 
 public class MarketController implements Initializable {
-
     @FXML private TextField searchField;
     @FXML private ComboBox<String> filterField;
     @FXML private ListView<Moeda> watchlistView;
@@ -59,51 +54,42 @@ public class MarketController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // 1) debounce de pesquisa
         pause = new PauseTransition(Duration.millis(300));
         pause.setOnFinished(e -> aplicarOrdenacao());
+        searchField.textProperty().addListener((o, a, b) -> pause.playFromStart());
 
+        // 2) filtro de coluna
         filterField.setItems(FXCollections.observableArrayList("Valor Atual", "Variação 24h"));
         filterField.setPromptText("Ordenar por…");
         filterField.setOnAction(e -> pause.playFromStart());
 
+        // 3) lista de moedas
         watchlistView.setItems(fullList);
         watchlistView.setCellFactory(lv -> createCell());
-        watchlistView.setOnMouseClicked(e -> selecionarMoeda(
-                watchlistView.getSelectionModel().getSelectedItem()
-        ));
+        watchlistView.setOnMouseClicked(e -> selecionarMoeda(watchlistView.getSelectionModel().getSelectedItem()));
 
-        searchField.textProperty().addListener((o, a, b) -> pause.playFromStart());
-
+        // 4) botões de intervalo de tempo
         setupToggleButtons();
-        aplicarOrdenacao();
 
+        // 5) carregamento inicial
+        aplicarOrdenacao();
         ScheduledExecutorService uiUpdater = Executors.newSingleThreadScheduledExecutor();
         uiUpdater.scheduleAtFixedRate(() -> Platform.runLater(() -> {
             aplicarOrdenacao();
             watchlistView.refresh();
             refreshDetail();
             aplicarFiltro(currentIntervalo);
-        }), 0, 1, TimeUnit.MINUTES);
+        }), 0, 15, TimeUnit.SECONDS);
     }
 
     private void aplicarOrdenacao() {
-        String termo = Optional.ofNullable(searchField.getText()).orElse("").trim().toLowerCase();
+        String termo = Optional.ofNullable(searchField.getText()).orElse("").trim();
         String campo = Optional.ofNullable(filterField.getValue()).orElse("Valor Atual");
         boolean asc = campo.equals("Valor Atual") ? (valorAtualAsc = !valorAtualAsc)
                 : (variacao24hAsc = !variacao24hAsc);
 
-        List<Moeda> lista = MarketSimulator.getMoedasSimuladas().values().stream()
-                .filter(m -> m.getValorAtual() != null)
-                .filter(m -> m.getNome().toLowerCase().contains(termo)
-                        || m.getSimbolo().toLowerCase().contains(termo))
-                .sorted((a, b) -> {
-                    int cmp = campo.equals("Valor Atual")
-                            ? a.getValorAtual().compareTo(b.getValorAtual())
-                            : a.getVariacao24h().compareTo(b.getVariacao24h());
-                    return asc ? cmp : -cmp;
-                })
-                .collect(Collectors.toList());
-
+        List<Moeda> lista = MarketRepository.getMoedasOrdenadas(termo, campo, asc);
         fullList.setAll(lista);
     }
 
@@ -112,29 +98,23 @@ public class MarketController implements Initializable {
         labelValorAtual.setText(String.format("€ %.2f", moedaAtual.getValorAtual()));
         double var24 = moedaAtual.getVariacao24h().doubleValue();
         labelVariacao.setText(String.format("%.2f%%", var24));
-        labelVariacao.getStyleClass().setAll(
-                var24 >= 0 ? "label-variacao-positiva" : "label-variacao-negativa"
-        );
-        // Atualiza volume 24h
-        labelVolume.setText(String.format("€ %,.2f", moedaAtual.getVolume24h()));
+        labelVariacao.getStyleClass().setAll(var24 >= 0
+                ? "label-variacao-positiva" : "label-variacao-negativa");
+        labelVolume.setText(String.format("€ %, .2f", moedaAtual.getVolume24h()));
     }
 
     private ListCell<Moeda> createCell() {
         return new ListCell<>() {
-            private final HBox hBox = new HBox(10);
-            private final ImageView img = new ImageView();
-            private final VBox vBox = new VBox(2);
-            private final Label nome = new Label();
-            private final Label valor = new Label();
-            private final Label variacao = new Label();
+            private final HBox   hBox    = new HBox(10);
+            private final ImageView img  = new ImageView();
+            private final VBox    vBox   = new VBox(2);
+            private final Label   nome   = new Label();
+            private final Label   valor  = new Label();
+            private final Label   vari   = new Label();
 
             {
-                img.setFitWidth(24);
-                img.setFitHeight(24);
-                nome.getStyleClass().add("nome-moeda");
-                valor.getStyleClass().add("valor-moeda");
-                variacao.getStyleClass().add("label-variacao-pequena");
-                vBox.getChildren().setAll(nome, valor, variacao);
+                img.setFitWidth(24); img.setFitHeight(24);
+                vBox.getChildren().setAll(nome, valor, vari);
                 hBox.getChildren().setAll(img, vBox);
             }
 
@@ -147,15 +127,13 @@ public class MarketController implements Initializable {
                     nome.setText(m.getNome());
                     valor.setText(String.format("€ %.2f", m.getValorAtual()));
                     double v = m.getVariacao24h().doubleValue();
-                    variacao.setText(String.format("%.2f%%", v));
-                    variacao.getStyleClass().setAll(
-                            v >= 0 ? "label-variacao-positiva" : "label-variacao-negativa"
-                    );
+                    vari.setText(String.format("%.2f%%", v));
+                    vari.getStyleClass().setAll(v >= 0
+                            ? "label-variacao-positiva"
+                            : "label-variacao-negativa");
                     try {
                         img.setImage(new Image(
-                                getClass().getResourceAsStream(
-                                        "/icons/" + m.getSimbolo().toLowerCase() + ".png"
-                                )
+                                getClass().getResourceAsStream("/icons/" + m.getSimbolo().toLowerCase() + ".png")
                         ));
                     } catch (Exception ex) {
                         img.setImage(null);
@@ -175,17 +153,11 @@ public class MarketController implements Initializable {
     }
 
     private void setupToggleButtons() {
-        ToggleGroup tg = new ToggleGroup();
-        for (ToggleButton b : List.of(btn1D, btn1W, btn1M, btn3M, btn1Y, btnMAX)) {
-            b.setToggleGroup(tg);
+        ToggleButton[] btns = {btn1D, btn1W, btn1M, btn3M, btn1Y, btnMAX};
+        for (ToggleButton b : btns) {
+            b.setOnAction(e -> aplicarFiltro(b.getText().startsWith("Últimas") ? btn1D.getText().substring(7) : b.getText()));
         }
         btnMAX.setSelected(true);
-        btn1D.setOnAction(e -> aplicarFiltro("1D"));
-        btn1W.setOnAction(e -> aplicarFiltro("1W"));
-        btn1M.setOnAction(e -> aplicarFiltro("1M"));
-        btn3M.setOnAction(e -> aplicarFiltro("3M"));
-        btn1Y.setOnAction(e -> aplicarFiltro("1Y"));
-        btnMAX.setOnAction(e -> aplicarFiltro("MAX"));
     }
 
     private void aplicarFiltro(String intervalo) {
@@ -194,9 +166,9 @@ public class MarketController implements Initializable {
         marketChart.getData().clear();
         XYChart.Series<String, Number> serie = new XYChart.Series<>();
         serie.setName(intervalo);
-        MarketRepository.getHistoricoPorMoedaFiltrado(
-                moedaAtual.getIdMoeda(), intervalo
-        ).forEach(serie.getData()::add);
+        MarketRepository
+                .getHistoricoPorMoedaFiltrado(moedaAtual.getIdMoeda(), intervalo)
+                .forEach(serie.getData()::add);
         marketChart.getData().add(serie);
 
         Platform.runLater(() -> {
@@ -228,9 +200,7 @@ public class MarketController implements Initializable {
     private void abrirModalOrdem(String tipo) {
         if (moedaAtual == null) return;
         try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/view/BuySell.fxml")
-            );
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/BuySell.fxml"));
             Parent root = loader.load();
             controller.OrdemController ctrl = loader.getController();
             ctrl.configurar(tipo, moedaAtual, SessaoAtual.utilizadorId, null);
@@ -238,11 +208,7 @@ public class MarketController implements Initializable {
             modal.initOwner(marketChart.getScene().getWindow());
             modal.initModality(Modality.APPLICATION_MODAL);
             modal.initStyle(StageStyle.TRANSPARENT);
-            Scene sc = new Scene(root);
-            sc.setFill(Color.TRANSPARENT);
-            modal.setScene(sc);
-            modal.setTitle(tipo + " " + moedaAtual.getNome());
-            modal.setResizable(false);
+            modal.setScene(new Scene(root));
             modal.showAndWait();
         } catch (IOException ex) {
             ex.printStackTrace();

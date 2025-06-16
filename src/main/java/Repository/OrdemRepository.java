@@ -96,22 +96,29 @@ public class OrdemRepository {
                                             String modoOrigem,
                                             BigDecimal precoLimite) throws SQLException {
         List<Ordem> ordens = new ArrayList<>();
+
         StringBuilder sb = new StringBuilder(
-                "SELECT * FROM v_OrdemDetalhada WHERE id_moeda = ? " +
-                        "AND tipo_ordem = ? AND status = 'ativa' AND data_expiracao > CURRENT_TIMESTAMP"
+                "SELECT * FROM v_OrdemDetalhada " +
+                        "WHERE id_moeda = ? " +
+                        "AND tipo_ordem = ? " +
+                        "AND status = 'ativa' " +
+                        "AND data_expiracao > CURRENT_TIMESTAMP"
         );
+
+        // se for LIMIT, aplicamos só o filtro de preço — nunca o filtro de modo!
         if ("limit".equalsIgnoreCase(modoOrigem)) {
-            sb.append(" AND modo = 'limit'");
             sb.append(" AND preco_unitario_eur ")
-                    .append("venda".equalsIgnoreCase(tipoContrario) ? "<= ?" : ">= ?");
+                    .append(tipoContrario.equalsIgnoreCase("venda") ? "<= ?" : ">= ?");
         }
+
+        // ordenação: sempre pela melhor cotação, depois antiguidade
         sb.append(" ORDER BY ");
-        if ("limit".equalsIgnoreCase(modoOrigem)) {
-            sb.append(" preco_unitario_eur ")
-                    .append("venda".equalsIgnoreCase(tipoContrario) ? "ASC" : "DESC");
-            sb.append(", data_criacao ASC");
+        if (tipoContrario.equalsIgnoreCase("venda")) {
+            // estamos a comprar: vendas mais baratas primeiro
+            sb.append(" preco_unitario_eur ASC, data_criacao ASC");
         } else {
-            sb.append(" data_criacao ASC");
+            // estamos a vender: compras mais caras primeiro
+            sb.append(" preco_unitario_eur DESC, data_criacao ASC");
         }
 
         try (PreparedStatement stmt = connection.prepareStatement(sb.toString())) {
@@ -121,9 +128,12 @@ public class OrdemRepository {
                 stmt.setBigDecimal(3, precoLimite);
             }
             try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) ordens.add(mapearOrdem(rs));
+                while (rs.next()) {
+                    ordens.add(mapearOrdem(rs));
+                }
             }
         }
+
         return ordens;
     }
 

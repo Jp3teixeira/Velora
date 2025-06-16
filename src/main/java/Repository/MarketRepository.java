@@ -19,14 +19,12 @@ public class MarketRepository {
     /**
      * Procura pelo nome/símbolo e ordena por Valor Atual ou Variação 24h,
      * crescente ou decrescente, usando a view v_MoedaResumo24h.
-
      */
     public static List<Moeda> getMoedasOrdenadas(String termo,
                                                  String campo,
                                                  boolean asc) {
         List<Moeda> moedas = new ArrayList<>();
         String coluna = colunaParaCampo(campo);
-        String order = asc ? "ASC" : "DESC";
 
         String sql = """
         SELECT r.id_moeda, r.nome, r.simbolo,
@@ -34,12 +32,12 @@ public class MarketRepository {
           FROM dbo.v_MoedaResumo24h r
          WHERE LOWER(r.nome)   LIKE ?
             OR LOWER(r.simbolo) LIKE ?
-         ORDER BY r.""" + colunaParaCampo(campo) + " " + (asc ? "ASC" : "DESC") + ", r.nome";
+         ORDER BY r.""" + coluna + " " + (asc ? "ASC" : "DESC") + ", r.nome";
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            String like = "%" + termo + "%";
+            String like = "%" + termo.toLowerCase() + "%";
             ps.setString(1, like);
             ps.setString(2, like);
 
@@ -63,7 +61,7 @@ public class MarketRepository {
     }
 
     /**
-     * Insere snapshot de preços na tabelaPrecoMoeda e processa ordens market pendentes.
+     * Insere snapshot de preços na tabela PrecoMoeda e dispara matching pendentes.
      */
     public static void gravarSnapshot(java.util.Map<Integer, Moeda> moedas) {
         String sql = "INSERT INTO PrecoMoeda (id_moeda, preco_em_eur, timestamp_hora) VALUES (?, ?, ?)";
@@ -78,6 +76,7 @@ public class MarketRepository {
                 ps.addBatch();
             }
             ps.executeBatch();
+
 
             TradeService ts = new TradeService(conn);
             for (Integer id : moedas.keySet()) {

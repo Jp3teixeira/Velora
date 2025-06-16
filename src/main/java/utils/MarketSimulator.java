@@ -51,7 +51,7 @@ public class MarketSimulator {
                 BigDecimal novo = aplicarRandomWalk(anterior);
                 m.setValorAtual(novo);
             });
-            System.out.println("🔄 Preços simulados em memória.");
+
         }, 0, 1, MINUTES);
 
         // 3) Agendamento hora a hora (persistência em batch)
