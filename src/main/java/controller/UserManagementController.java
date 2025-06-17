@@ -67,9 +67,23 @@ public class UserManagementController {
             return;
         }
 
-        var user = userOpt.get();
-        int id = Integer.parseInt(user.get("id_utilizador"));
-        String hashed = user.get("password");
+        int id = Integer.parseInt(userOpt.get().get("id_utilizador"));
+        String nome = userOpt.get().get("nome");
+        String email = userOpt.get().get("email");
+        String tipo = userOpt.get().get("tipoPerfil");
+        String hashed = userOpt.get().get("password");
+
+        // Obtem info completa do utilizador
+        Optional<Utilizador> infoCompleta = userRepository.getTodos()
+                .stream()
+                .filter(u -> u.getIdUtilizador() == id)
+                .findFirst();
+
+        // Verifica se está desativado
+        if (infoCompleta.isPresent() && !infoCompleta.get().isAtivo()) {
+            showAlert("Conta desativada. Contacte o administrador.", Alert.AlertType.WARNING);
+            return;
+        }
 
         if (!userRepository.isContaVerificada(id)) {
             showAlert("A conta ainda não foi verificada.", Alert.AlertType.WARNING);
@@ -81,26 +95,24 @@ public class UserManagementController {
             return;
         }
 
-        SessaoAtual.utilizadorId    = id;
-        SessaoAtual.nome            = user.get("nome");
-        SessaoAtual.email           = user.get("email");
-        SessaoAtual.tipo = user.get("tipoPerfil");  // "user" ou "admin"
-        SessaoAtual.saldoCarteira   = WalletRepository.getInstance().getSaldo(id);
-
-        SessaoAtual.setUtilizador(
-                new Utilizador() {{
-                    setIdUtilizador(id);
-                    setNome(user.get("nome"));
-                    setEmail(user.get("email"));
-                    setPerfil(user.get("tipoPerfil"));
-                    setAtivo(true);
-                }}
-        );
-
-
+        SessaoAtual.utilizadorId = id;
+        SessaoAtual.nome = nome;
+        SessaoAtual.email = email;
+        SessaoAtual.tipo = tipo;
+        SessaoAtual.saldoCarteira = WalletRepository.getInstance().getSaldo(id);
+        SessaoAtual.setUtilizador(infoCompleta.orElse(new Utilizador() {{
+            setIdUtilizador(id);
+            setNome(nome);
+            setEmail(email);
+            setPerfil(tipo);
+            setAtivo(true);
+        }}));
 
         NavigationHelper.goTo(Routes.HOMEPAGE, true);
     }
+
+
+
 
     // ================= REGISTO =================
     @FXML

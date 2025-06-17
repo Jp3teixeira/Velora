@@ -107,7 +107,8 @@ public class UserRepository {
 
     public static List<Utilizador> getTodos() {
         List<Utilizador> lista = new ArrayList<>();
-        String sql = "SELECT * FROM v_UtilizadorPerfil WHERE ativo = 1"; // <== alterado aqui
+        String sql = "SELECT * FROM v_UtilizadorPerfil"; // <-- sem filtro ativo = 1
+
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement st = conn.prepareStatement(sql);
              ResultSet rs = st.executeQuery()) {
@@ -115,10 +116,11 @@ public class UserRepository {
             while (rs.next()) {
                 Utilizador u = new Utilizador();
                 u.setIdUtilizador(rs.getInt("id_utilizador"));
-                u.setNome        (rs.getString("nome"));
-                u.setEmail       (rs.getString("email"));
-                u.setPerfil      (rs.getString("tipoPerfil"));
-                u.setFoto        (rs.getString("foto"));
+                u.setNome(rs.getString("nome"));
+                u.setEmail(rs.getString("email"));
+                u.setPerfil(rs.getString("tipoPerfil"));
+                u.setFoto(rs.getString("foto"));
+                u.setAtivo(rs.getBoolean("ativo")); // <-- essencial
                 lista.add(u);
             }
         } catch (SQLException e) {
@@ -126,6 +128,8 @@ public class UserRepository {
         }
         return lista;
     }
+
+
 
 
     public static boolean ativarUtilizador(int id) {
@@ -368,6 +372,8 @@ public class UserRepository {
         return false;
     }
 
+
+
     /**
      * Obtém o ID do utilizador a partir do e-mail.
      */
@@ -473,4 +479,29 @@ public class UserRepository {
             return false;
         }
     }
+
+    public Optional<Utilizador> findByEmail(String email) {
+        String sql = "SELECT id_utilizador, nome, email, password, tipoPerfil, ativo FROM v_UtilizadorPerfil WHERE email = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, email);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                Utilizador u = new Utilizador();
+                u.setIdUtilizador(rs.getInt("id_utilizador"));
+                u.setNome(rs.getString("nome"));
+                u.setEmail(rs.getString("email"));
+                u.setPerfil(rs.getString("tipoPerfil"));
+                u.setHashPwd(rs.getString("password"));
+                u.setAtivo(rs.getBoolean("ativo"));
+                return Optional.of(u);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+
 }

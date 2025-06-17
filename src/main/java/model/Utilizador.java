@@ -11,6 +11,8 @@ public class Utilizador {
     private Integer idPerfil;
     private String perfil;
     private boolean ativo;
+    private String hashPwd;
+
 
 
     public Utilizador() {}
@@ -34,7 +36,15 @@ public class Utilizador {
     public void setFoto(String foto) { this.foto = foto; }
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
-    
+    public String getHashPwd() {
+        return hashPwd;
+    }
+
+    public void setHashPwd(String hashPwd) {
+        this.hashPwd = hashPwd;
+    }
+
+
 
 
 

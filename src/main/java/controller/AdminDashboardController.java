@@ -1,5 +1,6 @@
 package controller;
 
+import Database.DBConnection;
 import Repository.MarketRepository;
 import Repository.TransacaoRepository;
 import javafx.beans.property.SimpleStringProperty;
@@ -26,11 +27,12 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalInt;
+import java.util.*;
 
 import static utils.SessaoAtual.limparSessao;
 
@@ -56,7 +58,43 @@ public class AdminDashboardController {
 
     private final UserManagementController userManagement = new UserManagementController();
 
+    public Optional<Map<String, String>> findUserByEmailOrUsername(String input) {
 
+        String sql = """
+        SELECT id_utilizador ,
+               nome          ,
+               email         ,
+               password      ,
+               tipoPerfil    ,
+               ativo         ,   -- <-- AQUI!
+               foto
+        FROM   v_UtilizadorPerfil
+        WHERE  email = ? OR nome = ?""";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, input);
+            stmt.setString(2, input);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Map<String, String> user = new HashMap<>();
+                    user.put("id_utilizador", String.valueOf(rs.getInt   ("id_utilizador")));
+                    user.put("nome"         , rs.getString("nome"));
+                    user.put("email"        , rs.getString("email"));
+                    user.put("password"     , rs.getString("password"));
+                    user.put("tipoPerfil"   , rs.getString("tipoPerfil"));
+                    user.put("ativo"        , rs.getString("ativo"));   // <-- NOVO
+                    user.put("foto"         , rs.getString("foto"));
+                    return Optional.of(user);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
 
 
 
