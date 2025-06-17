@@ -20,6 +20,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -27,7 +28,9 @@ import javafx.util.Duration;
 import model.Moeda;
 import utils.SessaoAtual;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URL;
 import java.util.List;
 import java.util.Optional;
@@ -151,6 +154,40 @@ public class MarketController implements Initializable {
             }
         };
     }
+
+    @FXML
+    private void exportarHistoricoAtualCSV() {
+        if (moedaAtual == null) return;
+
+        List<String[]> dados = MarketRepository.getHistoricoCompletoParaCSV(moedaAtual.getIdMoeda());
+        if (dados.isEmpty()) {
+            new Alert(Alert.AlertType.INFORMATION, "Não há histórico disponível para esta moeda.").showAndWait();
+            return;
+        }
+
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Exportar Histórico – " + moedaAtual.getNome());
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ficheiros CSV", "*.csv"));
+        fc.setInitialFileName("historico_" + moedaAtual.getSimbolo().toLowerCase() + ".csv");
+
+        File file = fc.showSaveDialog(marketChart.getScene().getWindow());
+        if (file == null) return;
+
+        try (PrintWriter w = new PrintWriter(file, "UTF-8")) {
+            w.println("Data,Valor (€)");
+            for (String[] linha : dados) {
+                w.printf("\"%s\",\"%s\"%n", linha[0], linha[1]);
+            }
+
+            new Alert(Alert.AlertType.INFORMATION,
+                    "Histórico exportado para:\n" + file.getAbsolutePath()).showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            new Alert(Alert.AlertType.ERROR, "Erro ao exportar CSV:\n" + e.getMessage()).showAndWait();
+        }
+    }
+
 
     private void selecionarMoeda(Moeda m) {
         if (m == null || m.equals(moedaAtual)) return;

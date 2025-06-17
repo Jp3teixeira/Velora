@@ -1,6 +1,7 @@
 package controller;
 
 import Repository.MarketRepository;
+import Repository.TransacaoRepository;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -10,7 +11,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import model.Moeda;
+import model.Transacao;
 import utils.MarketSimulator;
 import utils.NavigationHelper;
 import utils.Routes;
@@ -19,10 +22,12 @@ import model.Utilizador;
 import Repository.UserRepository;
 
 
-
+import java.io.File;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.SQLException;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -88,12 +93,35 @@ public class AdminDashboardController {
         TableColumn<Utilizador, String> colEmail = new TableColumn<>("Email");
         TableColumn<Utilizador, String> colPerfil = new TableColumn<>("Perfil");
 
+        TableColumn<Utilizador, Void> colCsv = new TableColumn<>("CSV");
+
+        colCsv.setCellFactory(tc -> new TableCell<>() {
+            private final Button btn = new Button("CSV");
+
+            {
+                btn.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white; -fx-font-size: 11;");
+                btn.setOnAction(e -> {
+                    Utilizador u = getTableView().getItems().get(getIndex());
+                    exportarTransacoesUsuarioCSV(u); // <-- usa a função acima
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : btn);
+            }
+        });
+
+
+
         colId.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdUtilizador())));
         colNome.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNome()));
         colEmail.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEmail()));
         colPerfil.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getPerfil()));
 
-        tabela.getColumns().addAll(colId, colNome, colEmail, colPerfil);
+        tabela.getColumns().addAll(colId, colNome, colEmail, colPerfil, colCsv);
+
         tabela.getItems().setAll(new UserRepository().obterTodosUtilizadores());
 
         tabela.setMinHeight(400);
@@ -514,6 +542,56 @@ public class AdminDashboardController {
             }
         });
     }
+
+    private void exportarTransacoesUsuarioCSV(Utilizador user) {
+        try {
+            TransacaoRepository repo = new TransacaoRepository();
+            List<Transacao> transacoes = repo.listarPorUsuario(user.getIdUtilizador());
+
+            if (transacoes == null || transacoes.isEmpty()) {
+                new Alert(Alert.AlertType.INFORMATION,
+                        "O utilizador \"" + user.getNome() + "\" não tem transações.")
+                        .showAndWait();
+                return;
+            }
+
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Exportar Transações para CSV");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ficheiros CSV", "*.csv"));
+            fileChooser.setInitialFileName("transacoes_" + user.getNome().replaceAll("\\s+", "_") + ".csv");
+
+            File selectedFile = fileChooser.showSaveDialog(contentArea.getScene().getWindow());
+
+            if (selectedFile != null) {
+                try (PrintWriter writer = new PrintWriter(selectedFile, "UTF-8")) {
+                    writer.println("Data,Moeda,Tipo,Quantidade,Total (€)");
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+                    for (Transacao tx : transacoes) {
+                        writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                                tx.getDataHora().format(formatter),
+                                tx.getMoeda().getNome(),
+                                tx.getTipo(),
+                                tx.getQuantidade().setScale(8, RoundingMode.HALF_UP).toPlainString(),
+                                tx.getTotalEur().setScale(2, RoundingMode.HALF_UP).toPlainString()
+                        );
+                    }
+                }
+
+                new Alert(Alert.AlertType.INFORMATION,
+                        "Transações exportadas com sucesso para:\n" + selectedFile.getAbsolutePath())
+                        .showAndWait();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            new Alert(Alert.AlertType.ERROR,
+                    "Erro ao exportar transações:\n" + e.getMessage())
+                    .showAndWait();
+        }
+    }
+
+
 
     @FXML
     private void handleLogOut() {

@@ -108,6 +108,9 @@
                 <Button text="Vender"
                         styleClass="btn-vender"
                         onAction="#abrirModalVenda"/>
+
+                <Button fx:id="btnExportarCSV" text="Exportar CSV" onAction="#exportarHistoricoAtualCSV"/>
+
             </HBox>
         </VBox>
     </center>

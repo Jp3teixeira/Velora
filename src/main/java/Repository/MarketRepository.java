@@ -88,6 +88,38 @@ public class MarketRepository {
         }
     }
 
+    public static List<String[]> getHistoricoCompletoParaCSV(int idMoeda) {
+        List<String[]> dados = new ArrayList<>();
+        String sql = """
+        SELECT timestamp_hora, preco_em_eur
+        FROM PrecoMoeda
+        WHERE id_moeda = ?
+        ORDER BY timestamp_hora ASC
+    """;
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idMoeda);
+            ResultSet rs = ps.executeQuery();
+
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+            while (rs.next()) {
+                String data = rs.getTimestamp("timestamp_hora").toLocalDateTime().format(fmt);
+                String valor = rs.getBigDecimal("preco_em_eur")
+                        .setScale(8, RoundingMode.HALF_UP).toPlainString();
+                dados.add(new String[]{data, valor});
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return dados;
+    }
+
+
     /**
      * Adiciona nova criptomoeda via stored procedure sp_AddNewCoin e retorna novo ID.
      */
