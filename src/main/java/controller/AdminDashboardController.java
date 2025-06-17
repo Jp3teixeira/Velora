@@ -7,6 +7,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import model.Moeda;
@@ -16,6 +17,7 @@ import utils.Routes;
 import utils.SessaoAtual;
 import model.Utilizador;
 import Repository.UserRepository;
+
 
 
 import java.math.BigDecimal;
@@ -31,6 +33,28 @@ public class AdminDashboardController {
 
     @FXML private Button adminButton;
     @FXML private StackPane contentArea;
+    @FXML private TextField inputIdUser;
+    @FXML private TextField inputNomeUser;
+    @FXML private TextField inputEmailUser;
+    @FXML private TextField inputPerfilUser;
+
+    @FXML private TableView<Utilizador> tabelaUtilizadores;
+    @FXML private TableColumn<Utilizador, String> colId;
+    @FXML private TableColumn<Utilizador, String> colNome;
+    @FXML private TableColumn<Utilizador, String> colEmail;
+    @FXML private TableColumn<Utilizador, String> colPerfil;
+    @FXML private TableColumn<Utilizador, String> colAtivo;
+    private ComboBox<String> perfilBox;
+
+
+
+
+    private final UserManagementController userManagement = new UserManagementController();
+
+
+
+
+
 
     @FXML
     public void initialize() {
@@ -48,54 +72,168 @@ public class AdminDashboardController {
 
     @FXML
     private void handleManageUsers(ActionEvent event) {
-        showUsersTable();
-    }
+        VBox painel = new VBox(15);
+        painel.setStyle("-fx-padding: 20");
+        VBox.setVgrow(painel, Priority.ALWAYS);
 
-    private void showUsersTable() {
-        TableView<Utilizador> table = new TableView<>();
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        Label titulo = new Label("Gestão de Utilizadores");
+        titulo.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
 
-        TableColumn<Utilizador, String> idCol = new TableColumn<>("ID");
-        idCol.setCellValueFactory(cd -> new SimpleStringProperty(String.valueOf(cd.getValue().getIdUtilizador())));
+        // ----- TABELA -----
+        TableView<Utilizador> tabela = new TableView<>();
+        tabela.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        TableColumn<Utilizador, String> nomeCol = new TableColumn<>("Nome");
-        nomeCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getNome()));
+        TableColumn<Utilizador, String> colId = new TableColumn<>("ID");
+        TableColumn<Utilizador, String> colNome = new TableColumn<>("Nome");
+        TableColumn<Utilizador, String> colEmail = new TableColumn<>("Email");
+        TableColumn<Utilizador, String> colPerfil = new TableColumn<>("Perfil");
 
-        TableColumn<Utilizador, String> emailCol = new TableColumn<>("Email");
-        emailCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getEmail()));
+        colId.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdUtilizador())));
+        colNome.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNome()));
+        colEmail.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEmail()));
+        colPerfil.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getPerfil()));
 
-        TableColumn<Utilizador, String> perfilCol = new TableColumn<>("Perfil");
-        perfilCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getPerfil()));
+        tabela.getColumns().addAll(colId, colNome, colEmail, colPerfil);
+        tabela.getItems().setAll(new UserRepository().obterTodosUtilizadores());
 
-        TableColumn<Utilizador, Void> actionCol = new TableColumn<>("Ações");
-        actionCol.setCellFactory(col -> new TableCell<>() {
-            private final Button btnEdit = new Button("Editar");
-            private final Button btnDelete = new Button("Eliminar");
-            private final HBox actionBox = new HBox(8, btnEdit, btnDelete);
+        tabela.setMinHeight(400);
+        tabela.setMaxHeight(Double.MAX_VALUE);
+        VBox.setVgrow(tabela, Priority.ALWAYS);
 
-            {
-                btnEdit.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white;");
-                btnDelete.setStyle("-fx-background-color: #D9534F; -fx-text-fill: white;");
+        ScrollPane scrollPane = new ScrollPane(tabela);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setFitToHeight(true);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
-                btnEdit.setOnAction(e -> editUser(getIndex(), table));
-                btnDelete.setOnAction(e -> deleteUser(getIndex(), table));
+        // ----- BOTÕES -----
+        Button editarBtn    = new Button("Editar");
+        Button desativarBtn = new Button("Desativar");   // só estes dois
+        Button ativarBtn = new Button("Ativar");
+        ativarBtn.setDisable(true);
+        editarBtn.setDisable(true);
+        desativarBtn.setDisable(true);
+
+        HBox botoes = new HBox(10, editarBtn, desativarBtn, ativarBtn);
+
+
+
+
+        // ----- FORMULÁRIO DE EDIÇÃO -----
+        VBox formEdicao = new VBox(8);
+        formEdicao.setVisible(false);
+
+        TextField nomeField = new TextField();
+        TextField emailField = new TextField();
+
+        perfilBox = new ComboBox<>();
+        perfilBox.getItems().addAll("user", "admin");
+        perfilBox.setPromptText("Selecionar perfil");
+
+        Button guardarBtn = new Button("Guardar Alterações");
+
+        formEdicao.getChildren().addAll(
+                new Label("Nome:"), nomeField,
+                new Label("Email:"), emailField,
+                new Label("Perfil:"), perfilBox,
+                guardarBtn
+        );
+
+        final Utilizador[] sel = new Utilizador[1];
+
+        tabela.getSelectionModel().selectedItemProperty().addListener((obs, oldU, newU) -> {
+            if (newU != null) {
+                sel[0] = newU;
+                editarBtn.setDisable(false);
+                formEdicao.setVisible(false);
+
+                if (newU.isAtivo()) {
+                    desativarBtn.setDisable(false);
+                    ativarBtn.setDisable(true);
+                } else {
+                    desativarBtn.setDisable(true);
+                    ativarBtn.setDisable(false);
+                }
             }
+        });
 
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty ? null : actionBox);
+        editarBtn.setOnAction(e -> {
+            if (sel[0] != null) {
+                nomeField.setText(sel[0].getNome());
+                emailField.setText(sel[0].getEmail());
+                perfilBox.setValue(sel[0].getPerfil().toLowerCase());
+                formEdicao.setVisible(true);
+            }
+        });
+
+        guardarBtn.setOnAction(e -> {
+            try {
+                String perfilSelecionado = perfilBox.getValue();
+                if (perfilSelecionado == null || perfilSelecionado.isBlank()) {
+                    new Alert(Alert.AlertType.ERROR, "Seleciona um perfil válido.").showAndWait();
+                    return;
+                }
+
+                Optional<Integer> optId = new UserRepository().getPerfilId(perfilSelecionado);
+                if (optId.isEmpty()) {
+                    new Alert(Alert.AlertType.ERROR, "Perfil inválido.").showAndWait();
+                    return;
+                }
+
+                new UserManagementController().editarUtilizadorSemPassword(
+                        sel[0].getIdUtilizador(),
+                        nomeField.getText(),
+                        emailField.getText(),
+                        optId.get()
+                );
+
+                tabela.getItems().setAll(new UserRepository().obterTodosUtilizadores());
+                formEdicao.setVisible(false);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                new Alert(Alert.AlertType.ERROR, "Erro ao atualizar utilizador:\n" + ex.getMessage()).showAndWait();
+            }
+        });
+
+        desativarBtn.setOnAction(e -> {
+            if (sel[0] != null) {
+                // soft-delete (ativo = 0)
+                new UserManagementController().desativarUtilizadorPorId(sel[0].getIdUtilizador());
+                tabela.getItems().setAll(new UserRepository().obterTodosUtilizadores());
+            }
+        });
+
+        ativarBtn.setOnAction(e -> {
+            if (sel[0] != null) {
+                new UserManagementController().ativarUtilizador(sel[0].getIdUtilizador());
+                tabela.getItems().setAll(new UserRepository().obterTodosUtilizadores());
             }
         });
 
 
-        table.getColumns().addAll(idCol, nomeCol, emailCol, perfilCol, actionCol);
 
-        List<Utilizador> lista = Repository.UserRepository.getTodos();
-        table.setItems(FXCollections.observableArrayList(lista));
+        tabela.setRowFactory(tv -> new TableRow<>() {
+            @Override
+            protected void updateItem(Utilizador item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setStyle("");
+                } else if (!item.isAtivo()) {
+                    setStyle("-fx-background-color: #dcdcdc; -fx-text-fill: gray;"); // cinzento claro
+                } else {
+                    setStyle("");
+                }
+            }
+        });
 
-        contentArea.getChildren().setAll(table);
+
+        painel.getChildren().addAll(titulo, scrollPane, botoes, formEdicao);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        contentArea.getChildren().setAll(painel);
     }
+
+
+
+
 
     private void editUser(int index, TableView<Utilizador> table) {
         Utilizador u = table.getItems().get(index);
@@ -106,7 +244,7 @@ public class AdminDashboardController {
         TextField nomeField = new TextField(u.getNome());
         TextField emailField = new TextField(u.getEmail());
 
-        ComboBox<String> perfilBox = new ComboBox<>();
+        perfilBox = new ComboBox<>();
         perfilBox.getItems().addAll("User", "Admin");
         perfilBox.setValue(u.getPerfil());
 
@@ -143,36 +281,12 @@ public class AdminDashboardController {
                     novoIdPerfil.get()
             );
 
-            if (sucesso) {
-                showUsersTable(); // refrescar
-            } else {
-                new Alert(Alert.AlertType.ERROR, "Erro ao atualizar utilizador").showAndWait();
-            }
+            handleManageUsers(null);
         });
     }
 
 
-    private void deleteUser(int index, TableView<Utilizador> table) {
-        Utilizador u = table.getItems().get(index);
 
-        Alert confirm = new Alert(
-                Alert.AlertType.CONFIRMATION,
-                "Tens a certeza que queres eliminar o utilizador \"" + u.getNome() + "\"?",
-                ButtonType.OK, ButtonType.CANCEL
-        );
-        confirm.setTitle("Confirmar Eliminação");
-
-        confirm.showAndWait().ifPresent(bt -> {
-            if (bt == ButtonType.OK) {
-                boolean sucesso = UserRepository.eliminarUtilizador(u.getIdUtilizador());
-                if (sucesso) {
-                    table.getItems().remove(index);
-                } else {
-                    new Alert(Alert.AlertType.ERROR, "Erro ao eliminar utilizador.").showAndWait();
-                }
-            }
-        });
-    }
 
 
 

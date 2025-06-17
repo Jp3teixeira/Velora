@@ -10,7 +10,7 @@ public class Utilizador {
     private LocalDateTime dataCriacao;
     private Integer idPerfil;
     private String perfil;
-
+    private boolean ativo;
 
 
     public Utilizador() {}
@@ -32,6 +32,10 @@ public class Utilizador {
     public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
     public String getFoto() { return foto; }
     public void setFoto(String foto) { this.foto = foto; }
+    public boolean isAtivo() { return ativo; }
+    public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    
+
 
 
 

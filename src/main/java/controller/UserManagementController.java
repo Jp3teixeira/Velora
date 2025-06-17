@@ -331,4 +331,54 @@ public class UserManagementController {
         ativo.setVisible(true);
         ativo.setManaged(true);
     }
+
+
+    public void desativarUtilizadorPorId(int id) {
+        boolean sucesso = userRepository.desativarUtilizador(id);
+        mostrarMensagem(sucesso, "Utilizador desativado com sucesso.", "Erro ao desativar utilizador.");
+    }
+
+    public void ativarUtilizador(int id) {
+        boolean sucesso = userRepository.ativarUtilizador(id);
+        mostrarMensagem(sucesso, "Utilizador ativado com sucesso.", "Erro ao ativar utilizador.");
+    }
+
+
+    public void editarUtilizadorSemPassword(int id, String nome, String email, int idPerfil) {
+        boolean sucesso = userRepository.atualizarUtilizadorSemPassword(id, nome, email, idPerfil);
+        mostrarMensagem(sucesso, "Dados atualizados com sucesso.", "Erro ao atualizar utilizador.");
+    }
+
+
+
+    public void atribuirPerfilAdminSeValido(int id) {
+        if (userRepository.podeSerAdmin(id)) {
+            Optional<Integer> perfilAdmin = userRepository.getPerfilId("admin");
+            if (perfilAdmin.isPresent()) {
+                boolean sucesso = userRepository.atualizarUtilizadorSemPassword(id, "Admin", "admin@exemplo.com", perfilAdmin.get());
+                mostrarMensagem(sucesso, "Utilizador promovido a admin com sucesso.", "Erro ao promover utilizador.");
+            } else {
+                mostrarAlertaErro("Perfil 'admin' não encontrado.");
+            }
+        } else {
+            mostrarAlertaErro("O utilizador tem carteira com saldo ou moedas e não pode ser admin.");
+        }
+    }
+
+    private void mostrarMensagem(boolean sucesso, String msgSucesso, String msgErro) {
+        Alert alert = new Alert(sucesso ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
+        alert.setTitle(sucesso ? "Sucesso" : "Erro");
+        alert.setHeaderText(null);
+        alert.setContentText(sucesso ? msgSucesso : msgErro);
+        alert.showAndWait();
+    }
+
+    private void mostrarAlertaErro(String mensagem) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Erro");
+        alert.setHeaderText(null);
+        alert.setContentText(mensagem);
+        alert.showAndWait();
+    }
+
 }

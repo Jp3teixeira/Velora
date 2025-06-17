@@ -47,7 +47,6 @@
                 </HBox>
 
                 <StackPane fx:id="contentArea"
-                           prefHeight="400"
                            style="-fx-background-color: #F5F5F5; -fx-background-radius: 10;"
                            VBox.vgrow="ALWAYS"/>
             </VBox>

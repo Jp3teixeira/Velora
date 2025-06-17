@@ -28,9 +28,86 @@ public class UserRepository {
     }
 
 
+    public boolean desativarUtilizador(int id) {
+        String sql = "UPDATE Utilizador SET ativo = 0 WHERE id_utilizador = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+
+
+    public boolean atualizarUtilizadorSemPassword(int id, String nome, String email, int idPerfil) {
+        String sql = "UPDATE Utilizador SET nome = ?, email = ?, id_perfil = ? WHERE id_utilizador = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, nome);
+            stmt.setString(2, email);
+            stmt.setInt(3, idPerfil);
+            stmt.setInt(4, id);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean podeSerAdmin(int id) {
+        String sql = """
+        SELECT COUNT(*) AS total
+        FROM Carteira c
+        LEFT JOIN CarteiraMoeda cm ON c.id_carteira = cm.id_carteira
+        WHERE c.id_utilizador = ? AND (c.saldo > 0 OR cm.quantidade > 0)
+    """;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("total") == 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public List<Utilizador> obterTodosUtilizadores() {
+        List<Utilizador> utilizadores = new ArrayList<>();
+        String sql = "SELECT id_utilizador, nome, email, tipoPerfil, ativo FROM v_UtilizadorPerfil";
+
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Utilizador u = new Utilizador();
+                u.setIdUtilizador(rs.getInt("id_utilizador"));
+                u.setNome(rs.getString("nome"));
+                u.setEmail(rs.getString("email"));
+                u.setPerfil(rs.getString("tipoPerfil"));  // Aqui está correto agora
+                u.setAtivo(rs.getBoolean("ativo")); // Adiciona esta linha
+                utilizadores.add(u);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return utilizadores;
+    }
+
+
+
+
     public static List<Utilizador> getTodos() {
         List<Utilizador> lista = new ArrayList<>();
-        String sql = "SELECT * FROM v_UtilizadorPerfil";
+        String sql = "SELECT * FROM v_UtilizadorPerfil WHERE ativo = 1"; // <== alterado aqui
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement st = conn.prepareStatement(sql);
              ResultSet rs = st.executeQuery()) {
@@ -40,7 +117,7 @@ public class UserRepository {
                 u.setIdUtilizador(rs.getInt("id_utilizador"));
                 u.setNome        (rs.getString("nome"));
                 u.setEmail       (rs.getString("email"));
-                u.setPerfil      (rs.getString("tipoPerfil"));  // nome correto
+                u.setPerfil      (rs.getString("tipoPerfil"));
                 u.setFoto        (rs.getString("foto"));
                 lista.add(u);
             }
@@ -50,17 +127,21 @@ public class UserRepository {
         return lista;
     }
 
-    public static boolean eliminarUtilizador(int idUtilizador) {
-        String sql = "DELETE FROM Utilizador WHERE id_utilizador = ?";
+
+    public static boolean ativarUtilizador(int id) {
+        String sql = "UPDATE Utilizador SET ativo = 1 WHERE id_utilizador = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, idUtilizador);
-            return stmt.executeUpdate() > 0;
+            stmt.setInt(1, id);
+            return stmt.executeUpdate() == 1;
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
         }
+        return false;
     }
+
+
+
 
 
 
