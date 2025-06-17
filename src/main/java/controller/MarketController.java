@@ -12,6 +12,8 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.chart.LineChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -24,6 +26,7 @@ import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import model.Moeda;
 import utils.SessaoAtual;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
@@ -32,7 +35,6 @@ import java.util.ResourceBundle;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 
 public class MarketController implements Initializable {
     @FXML private TextField searchField;
@@ -69,18 +71,23 @@ public class MarketController implements Initializable {
         watchlistView.setCellFactory(lv -> createCell());
         watchlistView.setOnMouseClicked(e -> selecionarMoeda(watchlistView.getSelectionModel().getSelectedItem()));
 
-        // 4) botões de intervalo de tempo
-        setupToggleButtons();
+        // 4) filtros de intervalo com ToggleGroup
+        setupIntervalToggleGroup();
 
-        // 5) carregamento inicial
+        // 5) carregamento inicial e atualização periódica (apenas labels e ordenação)
         aplicarOrdenacao();
         ScheduledExecutorService uiUpdater = Executors.newSingleThreadScheduledExecutor();
         uiUpdater.scheduleAtFixedRate(() -> Platform.runLater(() -> {
             aplicarOrdenacao();
             watchlistView.refresh();
             refreshDetail();
-            aplicarFiltro(currentIntervalo);
-        }), 0, 15, TimeUnit.SECONDS);
+        }), 0, 1, TimeUnit.MINUTES);
+
+        // esconde eixo X (tick labels e marcas)
+        CategoryAxis xAxis = (CategoryAxis) marketChart.getXAxis();
+        xAxis.setTickLabelsVisible(false);
+        xAxis.setTickMarkVisible(false);
+        xAxis.setOpacity(0);
     }
 
     private void aplicarOrdenacao() {
@@ -100,20 +107,21 @@ public class MarketController implements Initializable {
         labelVariacao.setText(String.format("%.2f%%", var24));
         labelVariacao.getStyleClass().setAll(var24 >= 0
                 ? "label-variacao-positiva" : "label-variacao-negativa");
-        labelVolume.setText(String.format("€ %, .2f", moedaAtual.getVolume24h()));
+        labelVolume.setText(String.format("€ %,.2f", moedaAtual.getVolume24h()));
     }
 
     private ListCell<Moeda> createCell() {
         return new ListCell<>() {
-            private final HBox   hBox    = new HBox(10);
-            private final ImageView img  = new ImageView();
-            private final VBox    vBox   = new VBox(2);
-            private final Label   nome   = new Label();
-            private final Label   valor  = new Label();
-            private final Label   vari   = new Label();
+            private final HBox hBox = new HBox(10);
+            private final ImageView img = new ImageView();
+            private final VBox vBox = new VBox(2);
+            private final Label nome = new Label();
+            private final Label valor = new Label();
+            private final Label vari = new Label();
 
             {
-                img.setFitWidth(24); img.setFitHeight(24);
+                img.setFitWidth(24);
+                img.setFitHeight(24);
                 vBox.getChildren().setAll(nome, valor, vari);
                 hBox.getChildren().setAll(img, vBox);
             }
@@ -148,22 +156,57 @@ public class MarketController implements Initializable {
         if (m == null || m.equals(moedaAtual)) return;
         moedaAtual = m;
         marketTitle.setText(m.getNome() + " (" + m.getSimbolo() + ")");
-        refreshDetail();
-        aplicarFiltro(currentIntervalo);
+        refreshDetail();               // atualiza valor em tempo real
+        aplicarFiltro(currentIntervalo); // carrega histórico (snapshots)
     }
 
-    private void setupToggleButtons() {
-        ToggleButton[] btns = {btn1D, btn1W, btn1M, btn3M, btn1Y, btnMAX};
-        for (ToggleButton b : btns) {
-            b.setOnAction(e -> aplicarFiltro(b.getText().startsWith("Últimas") ? btn1D.getText().substring(7) : b.getText()));
-        }
+    private void setupIntervalToggleGroup() {
+        ToggleGroup tg = new ToggleGroup();
+        btn1D.setUserData("1D");
+        btn1W.setUserData("1W");
+        btn1M.setUserData("1M");
+        btn3M.setUserData("3M");
+        btn1Y.setUserData("1Y");
+        btnMAX.setUserData("MAX");
+
+        btn1D.setToggleGroup(tg);
+        btn1W.setToggleGroup(tg);
+        btn1M.setToggleGroup(tg);
+        btn3M.setToggleGroup(tg);
+        btn1Y.setToggleGroup(tg);
+        btnMAX.setToggleGroup(tg);
+
+        tg.selectedToggleProperty().addListener((obs, oldT, newT) -> {
+            if (newT != null) {
+                String intervalo = newT.getUserData().toString();
+                aplicarFiltro(intervalo);
+            }
+        });
+
         btnMAX.setSelected(true);
+    }
+
+    private void configurarEixos(String intervalo) {
+        CategoryAxis xAxis = (CategoryAxis) marketChart.getXAxis();
+        NumberAxis yAxis = (NumberAxis) marketChart.getYAxis();
+
+        xAxis.setAutoRanging(true);
+        yAxis.setAutoRanging(true);
+
+        switch (intervalo) {
+            case "1D" -> xAxis.setLabel("Hora (HH:mm)");
+            default   -> xAxis.setLabel("Data e Hora");
+        }
+        yAxis.setLabel("Valor (EUR)");
     }
 
     private void aplicarFiltro(String intervalo) {
         currentIntervalo = intervalo;
         if (moedaAtual == null) return;
+
         marketChart.getData().clear();
+        configurarEixos(intervalo);
+
         XYChart.Series<String, Number> serie = new XYChart.Series<>();
         serie.setName(intervalo);
         MarketRepository
@@ -171,27 +214,23 @@ public class MarketController implements Initializable {
                 .forEach(serie.getData()::add);
         marketChart.getData().add(serie);
 
+        // styling dos pontos
         Platform.runLater(() -> {
             for (XYChart.Data<String, Number> d : serie.getData()) {
                 Node node = d.getNode();
                 if (node != null) {
                     Tooltip tp = new Tooltip(
                             d.getXValue() + ": € " + d.getYValue().doubleValue()
-                                    + "\nVariação 24h: "
-                                    + String.format("%.2f%%", moedaAtual.getVariacao24h())
+                                    + "\nVariação 24h: " + String.format("%.2f%%", moedaAtual.getVariacao24h())
                     );
                     tp.setShowDelay(Duration.millis(50));
                     Tooltip.install(node, tp);
                     node.setStyle(
-                            "-fx-background-color: white, #b892ff; " +
-                                    "-fx-background-radius: 6px;"
+                            "-fx-background-color: white, #b892ff; -fx-background-radius: 6px;"
                     );
                 }
             }
         });
-        if ("1D".equals(intervalo)) {
-            refreshDetail();
-        }
     }
 
     @FXML private void abrirModalCompra() { abrirModalOrdem("COMPRA"); }
