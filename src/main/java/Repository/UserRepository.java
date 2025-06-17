@@ -355,6 +355,19 @@ public class UserRepository {
         }
     }
 
+    public boolean atualizarNome(int id, String nome) {
+        String sql = "UPDATE Utilizador SET nome = ? WHERE id_utilizador = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, nome);
+            stmt.setInt(2, id);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     /**
      * Obtém o ID do utilizador a partir do e-mail.
      */

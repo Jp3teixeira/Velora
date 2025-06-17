@@ -5,6 +5,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import model.Utilizador;
 import org.mindrot.jbcrypt.BCrypt;
 import Repository.UserRepository;
 import Repository.WalletRepository;
@@ -85,6 +86,17 @@ public class UserManagementController {
         SessaoAtual.email           = user.get("email");
         SessaoAtual.tipo = user.get("tipoPerfil");  // "user" ou "admin"
         SessaoAtual.saldoCarteira   = WalletRepository.getInstance().getSaldo(id);
+
+        SessaoAtual.setUtilizador(
+                new Utilizador() {{
+                    setIdUtilizador(id);
+                    setNome(user.get("nome"));
+                    setEmail(user.get("email"));
+                    setPerfil(user.get("tipoPerfil"));
+                    setAtivo(true);
+                }}
+        );
+
 
 
         NavigationHelper.goTo(Routes.HOMEPAGE, true);

@@ -116,6 +116,9 @@
                         onAction="#confirmarLevantamento"/>
             </HBox>
             <Label fx:id="withdrawStatusLabel" styleClass="status-label"/>
+
+            <Button fx:id="btnExportarCSV" text="Exportar CSV" onAction="#exportarTransacoesParaCSV" />
+
         </VBox>
     </right>
 </BorderPane>

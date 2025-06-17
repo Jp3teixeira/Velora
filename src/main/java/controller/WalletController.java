@@ -19,11 +19,14 @@ import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.stage.FileChooser;
 import model.Ordem;
 import model.Portfolio;
 import model.Transacao;
 import utils.SessaoAtual;
 
+import java.io.File;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.SQLException;
@@ -40,6 +43,8 @@ public class WalletController {
     @FXML private javafx.scene.control.Label depositStatusLabel;
     @FXML private javafx.scene.control.TextField withdrawAmountField;
     @FXML private javafx.scene.control.Label withdrawStatusLabel;
+    @FXML private javafx.scene.control.Button btnExportarCSV;
+
 
     @FXML private LineChart<String, Number> balanceChart;
     @FXML private CategoryAxis xAxis;
@@ -95,6 +100,47 @@ public class WalletController {
             }
         });
     }
+
+    @FXML
+    public void exportarTransacoesParaCSV() {
+        List<Transacao> transacoes = transacaoRepo.listarPorUsuario(SessaoAtual.utilizadorId);
+
+        if (transacoes.isEmpty()) {
+            showAlert("Sem transações para exportar.", Alert.AlertType.INFORMATION);
+            return;
+        }
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Guardar Histórico de Transações");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ficheiros CSV", "*.csv"));
+        File ficheiro = fileChooser.showSaveDialog(btnExportarCSV.getScene().getWindow());
+
+        if (ficheiro != null) {
+            try (PrintWriter writer = new PrintWriter(ficheiro)) {
+                writer.println("Data,Moeda,Tipo,Quantidade,Total (€)");
+
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+                for (Transacao tx : transacoes) {
+                    String linha = String.format(
+                            "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"",
+                            tx.getDataHora().format(formatter),
+                            tx.getMoeda().getNome(),
+                            tx.getTipo(),
+                            tx.getQuantidade().setScale(8, RoundingMode.HALF_UP).toPlainString(),
+                            tx.getTotalEur().setScale(2, RoundingMode.HALF_UP).toPlainString()
+                    );
+                    writer.println(linha);
+                }
+
+                showAlert("Exportado com sucesso para: " + ficheiro.getAbsolutePath(), Alert.AlertType.INFORMATION);
+            } catch (Exception e) {
+                e.printStackTrace();
+                showAlert("Erro ao exportar transações.", Alert.AlertType.ERROR);
+            }
+        }
+    }
+
 
     private void configurarBalanceChart() {
         balanceChart.getData().clear();
