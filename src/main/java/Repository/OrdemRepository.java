@@ -202,8 +202,8 @@ public class OrdemRepository {
 
         Moeda m = new Moeda();
         m.setIdMoeda(rs.getInt("id_moeda"));
+        m.setNome(rs.getString("nome_moeda")); // <--- essencial
         ordem.setMoeda(m);
-
         ordem.setIdTipoOrdem(  rs.getInt("id_tipo_ordem"));
         ordem.setTipoOrdem(    rs.getString("tipo_ordem"));
         ordem.setIdStatus(     rs.getInt("id_status"));

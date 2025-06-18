@@ -26,6 +26,7 @@ public class Moeda {
         this.simbolo       = simbolo;
         this.valorAtual    = valorAtual;
         this.variacao24h   = variacao24h;
+        this.volume24h     = volumeMercado;
 
     }
 

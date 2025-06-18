@@ -9,7 +9,7 @@
             prefHeight="1000" prefWidth="1000"
             style="-fx-background-color: linear-gradient(to bottom, #4B3F72, #232323);">
 
-    <StackPane prefWidth="1000" prefHeight="1000" alignment="CENTER">
+    <StackPane prefWidth="800" prefHeight="800" alignment="CENTER">
 
         <!-- Painel 1: Introduzir email -->
         <VBox fx:id="painelEmail"

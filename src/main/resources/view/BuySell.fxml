@@ -19,7 +19,11 @@
 
     <!-- Cabeçalho -->
     <top>
-        <VBox spacing="4" alignment="CENTER">
+        <VBox spacing="8" alignment="CENTER">
+            <Label fx:id="lblMensagem"
+                   text=""
+                   visible="false" managed="false"
+                   style="-fx-text-fill: #b892ff; -fx-font-size: 13px; -fx-font-weight: bold;"/>
             <Label fx:id="labelTitulo"
                    style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
             <Label fx:id="labelPrecoAtual"
@@ -28,6 +32,7 @@
                    style="-fx-text-fill: #cccccc; -fx-font-size: 14px;"/>
         </VBox>
     </top>
+
 
     <!-- Corpo -->
     <center>

@@ -12,6 +12,8 @@ public class Routes {
     public static final String ADMIN_DASHBOARD = "/view/admin_dashboard.fxml";
     public static final String LOGIN = "/view/login.fxml";
     public static final String USER_PROFILE = "/view/user_profile.fxml";
-
+    public static final String REGISTER = "/view/register.fxml";
+    public static final String RECOVER = "/view/recover_account.fxml";
+    public static final String VERIFICATION = "/view/verification.fxml";
 
 }
