@@ -25,6 +25,8 @@ import model.Transacao;
 import utils.MarketSimulator;
 import utils.SessaoAtual;
 import utils.TradeService;
+import utils.NotificationUtil;
+
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

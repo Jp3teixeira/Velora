@@ -1,97 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.*?>
-<?import java.lang.String?>
+<?import com.jfoenix.controls.*?>
 
-<VBox xmlns="http://javafx.com/javafx"
-      xmlns:fx="http://javafx.com/fxml"
+<?import java.net.URL?>
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
       fx:controller="controller.HomeController"
-      spacing="10"
-      VBox.vgrow="ALWAYS"
-      style="-fx-background-color: #000000;">
+      spacing="10" style="-fx-background-color:#000;">
 
     <stylesheets>
-        <String fx:value="/view/css/homepage.css"/>
+        <URL value="@/view/css/homepage.css"/>
     </stylesheets>
 
     <fx:define>
-        <ToggleGroup fx:id="orderTypeGroup"/>
+        <ToggleGroup fx:id="tableToggleGroup"/>
     </fx:define>
 
     <fx:include source="/view/navbar.fxml"/>
 
-    <VBox spacing="20" VBox.vgrow="ALWAYS" style="-fx-padding: 10 20;">
-
-        <HBox spacing="20" VBox.vgrow="NEVER" HBox.hgrow="ALWAYS">
-
-            <!-- Gráfico -->
-            <VBox fx:id="chartSection"
-                  VBox.vgrow="ALWAYS"
-                  HBox.hgrow="ALWAYS"
-                  prefWidth="800" prefHeight="400" />
-
-            <!-- Formulário de Ordem -->
-            <VBox fx:id="orderPane"
-                  spacing="10"
-                  VBox.vgrow="ALWAYS"
-                  HBox.hgrow="ALWAYS"
-                  prefWidth="400" prefHeight="400">
-
-                <HBox spacing="10">
-                    <ToggleButton fx:id="marketToggle"
-                                  text="Mercado"
-                                  toggleGroup="$orderTypeGroup"
-                                  selected="true"/>
-                    <ToggleButton fx:id="limitToggle"
-                                  text="Limit"
-                                  toggleGroup="$orderTypeGroup"/>
-                </HBox>
-
-                <Label fx:id="assetLabel" text="Ativo: —" styleClass="section-title"/>
-
-                <TextField fx:id="priceField"
-                           promptText="Preço (só se Limit)"
-                           disable="true"/>
-
-                <TextField fx:id="quantityField"
-                           promptText="Quantidade"/>
-
-                <Button fx:id="buyButton" text="Comprar"/>
-                <Button fx:id="sellButton" text="Vender"/>
-
-            </VBox>
-        </HBox>
-
-        <VBox VBox.vgrow="ALWAYS">
-            <TabPane fx:id="portfolioTabPane" VBox.vgrow="ALWAYS">
-
-                <Tab text="Posições Abertas">
-                    <TableView fx:id="openPositionsTable" VBox.vgrow="ALWAYS">
-                        <placeholder>
-                            <Label text="Sem posições abertas"/>
-                        </placeholder>
-                    </TableView>
-                </Tab>
-
-                <Tab text="Ordens Abertas">
-                    <TableView fx:id="openOrdersTable" VBox.vgrow="ALWAYS">
-                        <placeholder>
-                            <Label text="Sem ordens abertas"/>
-                        </placeholder>
-                    </TableView>
-                </Tab>
-
-                <Tab text="Histórico">
-                    <TableView fx:id="historyTable" VBox.vgrow="ALWAYS">
-                        <placeholder>
-                            <Label text="Sem histórico de transações"/>
-                        </placeholder>
-                    </TableView>
-                </Tab>
-
-            </TabPane>
+    <HBox spacing="20" style="-fx-padding:10;">
+        <VBox fx:id="chartSection" HBox.hgrow="ALWAYS"/>
+        <VBox spacing="10" prefWidth="300">
+            <HBox spacing="10">
+                <ToggleButton fx:id="marketToggle" text="Mercado" toggleGroup="$tableToggleGroup" selected="true"/>
+                <ToggleButton fx:id="limitToggle" text="Limit"  toggleGroup="$tableToggleGroup"/>
+            </HBox>
+            <Label fx:id="assetLabel" text="Ativo: —" styleClass="section-title"/>
+            <TextField fx:id="priceField"    promptText="Preço (Limit)" disable="true"/>
+            <TextField fx:id="quantityField" promptText="Quantidade"/>
+            <HBox spacing="10">
+                <Button fx:id="buyButton" text="Comprar" styleClass="action-button"/>
+                <Button fx:id="sellButton" text="Vender"  styleClass="action-button"/>
+            </HBox>
         </VBox>
-    </VBox>
+    </HBox>
+
+    <HBox spacing="10" style="-fx-padding:0 10;">
+        <ToggleButton fx:id="btnPosicoes" text="Posições Abertas" toggleGroup="$tableToggleGroup" selected="true" styleClass="table-toggle-button"/>
+        <ToggleButton fx:id="btnOrdens"   text="Ordens Pendentes" toggleGroup="$tableToggleGroup" styleClass="table-toggle-button"/>
+        <ToggleButton fx:id="btnHistorico" text="Histórico"        toggleGroup="$tableToggleGroup" styleClass="table-toggle-button"/>
+    </HBox>
+
+    <StackPane fx:id="tableContainer" VBox.vgrow="ALWAYS" styleClass="table-view-container">
+        <!-- Posições -->
+        <TableView fx:id="openPositionsTable" visible="true">
+            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
+            <placeholder><Label text="Sem posições abertas" style="-fx-text-fill:#888;"/></placeholder>
+        </TableView>
+        <!-- Ordens -->
+        <TableView fx:id="openOrdersTable" visible="false">
+            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
+            <placeholder><Label text="Sem ordens pendentes" style="-fx-text-fill:#888;"/></placeholder>
+        </TableView>
+        <!-- Histórico -->
+        <TableView fx:id="historyTable" visible="false">
+            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
+            <placeholder><Label text="Sem histórico" style="-fx-text-fill:#888;"/></placeholder>
+        </TableView>
+    </StackPane>
 </VBox>

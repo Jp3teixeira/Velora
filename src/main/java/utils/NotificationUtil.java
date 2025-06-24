@@ -12,6 +12,11 @@ import javafx.util.Duration;
 
 public class NotificationUtil {
 
+    public static final String VERIFICATION = "verification";
+    public static final String REGISTER     = "register";
+    public static final String RECOVER      = "recover";
+
+
     public static void show(String message, Stage stage, boolean isSuccess) {
         Platform.runLater(() -> {
             Label label = new Label(message);
