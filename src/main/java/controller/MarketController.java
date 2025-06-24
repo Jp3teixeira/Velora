@@ -158,7 +158,7 @@ public class MarketController implements Initializable {
     private void exportarHistoricoAtualCSV() {
         if (moedaAtual == null) return;
 
-        List<String[]> dados = MarketRepository.getHistoricoCompletoParaCSV(moedaAtual.getIdMoeda());
+        List<String[]> dados = MarketRepository.getHistoricoCompletoParaCSV(moedaAtual.getId());
         if (dados.isEmpty()) {
             new Alert(Alert.AlertType.INFORMATION, "Não há histórico disponível para esta moeda.").showAndWait();
             return;
@@ -246,7 +246,7 @@ public class MarketController implements Initializable {
         XYChart.Series<String, Number> serie = new XYChart.Series<>();
         serie.setName(intervalo);
         MarketRepository
-                .getHistoricoPorMoedaFiltrado(moedaAtual.getIdMoeda(), intervalo)
+                .getHistoricoPorMoedaFiltrado(moedaAtual.getId(), intervalo)
                 .forEach(serie.getData()::add);
         marketChart.getData().add(serie);
 

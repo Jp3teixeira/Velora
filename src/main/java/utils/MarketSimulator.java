@@ -41,7 +41,7 @@ public class MarketSimulator {
         List<Moeda> lista = MarketRepository.getMoedasOrdenadas(
                 "", "Valor Atual", false);
         for (Moeda m : lista) {
-            moedasAtuais.put(m.getIdMoeda(), m);
+            moedasAtuais.put(m.getId(), m);
         }
 
         // 2) Agendamento minuto a minuto (simulação em memória)

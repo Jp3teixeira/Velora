@@ -1,5 +1,7 @@
+// src/controller/WalletController.java
 package controller;
 
+import Database.DBConnection;
 import Repository.OrdemRepository;
 import Repository.PortfolioRepository;
 import Repository.TransacaoRepository;
@@ -21,6 +23,7 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.stage.FileChooser;
 import model.Ordem;
+import model.OrdemStatus;
 import model.Portfolio;
 import model.Transacao;
 import utils.SessaoAtual;
@@ -29,10 +32,11 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.SQLException;
+import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class WalletController {
 
@@ -45,7 +49,6 @@ public class WalletController {
     @FXML private javafx.scene.control.Label withdrawStatusLabel;
     @FXML private javafx.scene.control.Button btnExportarCSV;
 
-
     @FXML private LineChart<String, Number> balanceChart;
     @FXML private CategoryAxis xAxis;
     @FXML private NumberAxis yAxis;
@@ -55,7 +58,6 @@ public class WalletController {
     @FXML private ToggleButton btnOrdens;
     @FXML private ToggleButton btnHistorico;
 
-    // Posições Abertas
     @FXML private JFXTreeTableView<Portfolio> cryptoTable;
     @FXML private JFXTreeTableColumn<Portfolio, String> colAtivo;
     @FXML private JFXTreeTableColumn<Portfolio, String> colQuantidade;
@@ -63,7 +65,6 @@ public class WalletController {
     @FXML private JFXTreeTableColumn<Portfolio, String> colValorAtual;
     @FXML private JFXTreeTableColumn<Portfolio, String> colRetorno;
 
-    // Ordens Pendentes
     @FXML private JFXTreeTableView<Ordem> ordersTable;
     @FXML private JFXTreeTableColumn<Ordem, String> colNomeOrdem;
     @FXML private JFXTreeTableColumn<Ordem, String> colTipoOrdem;
@@ -71,7 +72,6 @@ public class WalletController {
     @FXML private JFXTreeTableColumn<Ordem, String> colPrecoLimiteOrdem;
     @FXML private JFXTreeTableColumn<Ordem, String> colDataOrdem;
 
-    // Histórico de Transações
     @FXML private JFXTreeTableView<Transacao> transactionTable;
     @FXML private JFXTreeTableColumn<Transacao, String> colNomeTx;
     @FXML private JFXTreeTableColumn<Transacao, String> colTipoTx;
@@ -112,35 +112,29 @@ public class WalletController {
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Guardar Histórico de Transações");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ficheiros CSV", "*.csv"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV", "*.csv"));
         File ficheiro = fileChooser.showSaveDialog(btnExportarCSV.getScene().getWindow());
 
         if (ficheiro != null) {
             try (PrintWriter writer = new PrintWriter(ficheiro)) {
                 writer.println("Data,Moeda,Tipo,Quantidade,Total (€)");
-
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
                 for (Transacao tx : transacoes) {
-                    String linha = String.format(
-                            "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"",
-                            tx.getDataHora().format(formatter),
+                    writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                            tx.getDataHora().format(fmt),
                             tx.getMoeda().getNome(),
                             tx.getTipo(),
-                            tx.getQuantidade().setScale(8, RoundingMode.HALF_UP).toPlainString(),
-                            tx.getTotalEur().setScale(2, RoundingMode.HALF_UP).toPlainString()
+                            tx.getQuantidade().setScale(8, RoundingMode.HALF_UP),
+                            tx.getTotalEur().setScale(2, RoundingMode.HALF_UP)
                     );
-                    writer.println(linha);
                 }
-
-                showAlert("Exportado com sucesso para: " + ficheiro.getAbsolutePath(), Alert.AlertType.INFORMATION);
+                showAlert("Exportado para: " + ficheiro.getAbsolutePath(), Alert.AlertType.INFORMATION);
             } catch (Exception e) {
                 e.printStackTrace();
                 showAlert("Erro ao exportar transações.", Alert.AlertType.ERROR);
             }
         }
     }
-
 
     private void configurarBalanceChart() {
         balanceChart.getData().clear();
@@ -208,7 +202,7 @@ public class WalletController {
                 new SimpleStringProperty(c.getValue().getValue().getMoeda().getNome())
         );
         colTipoOrdem.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getValue().getTipoOrdem().toUpperCase())
+                new SimpleStringProperty(c.getValue().getValue().getTipoOrdem().name())
         );
         colQuantidadeOrdem.setCellValueFactory(c ->
                 new SimpleStringProperty(
@@ -271,12 +265,16 @@ public class WalletController {
 
     private void carregarOrdensPendentes() {
         try {
-            OrdemRepository repo = new OrdemRepository(walletRepo.getConnection());
-            List<Ordem> lista = repo.listarOrdensPendentesPorUsuario(SessaoAtual.utilizadorId);
+            Connection conn = DBConnection.getConnection();
+            OrdemRepository repo = new OrdemRepository(conn);
+            List<Ordem> lista = repo.getAll().stream()
+                    .filter(o -> o.getUtilizador().getId() == SessaoAtual.utilizadorId)
+                    .filter(o -> o.getStatus() == OrdemStatus.ATIVA)
+                    .collect(Collectors.toList());
             ObservableList<Ordem> obs = FXCollections.observableArrayList(lista);
             ordersTable.setRoot(new RecursiveTreeItem<>(obs, RecursiveTreeObject::getChildren));
             ordersTable.setShowRoot(false);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -290,7 +288,7 @@ public class WalletController {
 
     private void atualizarSaldo() {
         try {
-            BigDecimal s = walletRepo.getSaldo(SessaoAtual.utilizadorId);
+            BigDecimal s = walletRepo.getSaldoPorUtilizador(SessaoAtual.utilizadorId);
             SessaoAtual.saldoCarteira = s;
             balanceLabel.setText(String.format("€ %.2f", s));
         } catch (Exception ex) {
@@ -322,53 +320,33 @@ public class WalletController {
 
     @FXML
     public void confirmarDeposito() {
-        String txt = depositAmountField.getText();
         try {
-            BigDecimal amount = new BigDecimal(txt);
+            BigDecimal amount = new BigDecimal(depositAmountField.getText());
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
                 depositStatusLabel.setText("Insira valor positivo");
-                depositStatusLabel.setStyle("-fx-text-fill: #ff4d4d;");
                 return;
             }
             boolean ok = walletRepo.deposit(SessaoAtual.utilizadorId, amount);
-            if (ok) {
-                depositStatusLabel.setText("Depositado com sucesso");
-                depositStatusLabel.setStyle("-fx-text-fill: #b892ff;");
-                depositAmountField.clear();
-                atualizarTudo();
-            } else {
-                depositStatusLabel.setText("Falha no depósito");
-                depositStatusLabel.setStyle("-fx-text-fill: #ff4d4d;");
-            }
+            depositStatusLabel.setText(ok ? "Depositado com sucesso" : "Falha no depósito");
+            atualizarTudo();
         } catch (NumberFormatException e) {
             depositStatusLabel.setText("Valor inválido");
-            depositStatusLabel.setStyle("-fx-text-fill: #ff4d4d;");
         }
     }
 
     @FXML
     public void confirmarLevantamento() {
-        String txt = withdrawAmountField.getText();
         try {
-            BigDecimal amount = new BigDecimal(txt);
+            BigDecimal amount = new BigDecimal(withdrawAmountField.getText());
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
                 withdrawStatusLabel.setText("Insira valor positivo");
-                withdrawStatusLabel.setStyle("-fx-text-fill: #ff4d4d;");
                 return;
             }
             boolean ok = walletRepo.withdraw(SessaoAtual.utilizadorId, amount);
-            if (ok) {
-                withdrawStatusLabel.setText("Levantado com sucesso");
-                withdrawStatusLabel.setStyle("-fx-text-fill: #b892ff;");
-                withdrawAmountField.clear();
-                atualizarTudo();
-            } else {
-                withdrawStatusLabel.setText("Saldo insuficiente");
-                withdrawStatusLabel.setStyle("-fx-text-fill: #ff4d4d;");
-            }
+            withdrawStatusLabel.setText(ok ? "Levantado com sucesso" : "Saldo insuficiente");
+            atualizarTudo();
         } catch (NumberFormatException e) {
             withdrawStatusLabel.setText("Valor inválido");
-            withdrawStatusLabel.setStyle("-fx-text-fill: #ff4d4d;");
         }
     }
 

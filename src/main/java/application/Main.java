@@ -38,16 +38,7 @@ public class Main extends Application {
         primaryStage.centerOnScreen();
         primaryStage.show();
 
-        // Ao iniciar a aplicação expira as ordens que nas ultimas 24h nao deram "match"
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleAtFixedRate(() -> {
-            try {
-                new OrdemRepository(DBConnection.getConnection())
-                        .expirarOrdens();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }, 0, 1, TimeUnit.MINUTES);
+
 
     }
 }

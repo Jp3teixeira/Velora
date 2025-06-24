@@ -1,0 +1,97 @@
+
+@startuml
+'==================== CORE ENTITIES ====================
+class Utilizador {
+    + idUtilizador: Integer
+    + nome: String
+    + email: String
+    + ativo: Boolean
+}
+
+class Carteira {
+    + idCarteira: Integer
+    + saldoEur: BigDecimal
+}
+
+'==================== MARKET DATA ====================
+class Moeda {
+    + idMoeda: Integer
+    + nome: String
+    + simbolo: String
+}
+
+'==================== TRADING DOMAIN ====================
+class Ordem {
+    + idOrdem: Integer
+    + quantidade: BigDecimal
+    + precoUnitarioEur: BigDecimal
+    + dataCriacao: LocalDateTime
+    + dataExpiracao: LocalDateTime
+}
+
+class Portfolio {
+    + idPortfolio: Integer
+    + quantidade: BigDecimal
+    + precoMedioCompra: BigDecimal
+}
+
+class Transacao {
+    + idTransacao: Integer
+    + quantidade: BigDecimal
+    + precoUnitarioEur: BigDecimal
+    + totalEur: BigDecimal
+    + dataHora: LocalDateTime
+}
+
+class Perfil  {
+    * ADMIN
+    * USER
+}
+
+class OrdemModo <<Enum>> {
+    * MARKET
+    * LIMIT
+}
+
+class OrdemStatus <<Enum>> {
+    * ATIVA
+    * EXECUTADA
+    * EXPIRADA
+}
+class OrdemTipo <<Enum>> {
+    * COMPRA
+    * VENDA
+}
+class MoedaTipo <<Enum>> {
+    * FIAT
+    * CRYPTO
+}
+class PriceSnapshot {
+    + timestamp: LocalDateTime
+    + valor: Money
+}
+
+
+
+
+
+
+
+'==================== RELATIONSHIPS ====================
+Utilizador "1" -- "1" Carteira : owns
+Utilizador "1" -- "1" Perfil : has
+Utilizador "1" -- "0..*" Ordem : places
+Utilizador "1" -- "1" Portfolio : owns
+Utilizador "1" -- "0..*" Transacao : records
+
+Ordem "1" --> "1" OrdemModo : has
+Ordem "1" --> "1" OrdemStatus : has
+Ordem "1" --> "1" OrdemTipo  : has
+Transacao "1" --> "1" OrdemTipo  : has
+Moeda "1" --> "0..*" PriceSnapshot
+
+
+Moeda "1 "-->"1"  MoedaTipo : has
+Transacao --> Moeda : has
+Portfolio "1" --> "0..*" Moeda : has
+@enduml

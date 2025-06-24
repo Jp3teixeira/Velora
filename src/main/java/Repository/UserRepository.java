@@ -1,507 +1,298 @@
+// src/Repository/UserRepository.java
 package Repository;
 
-import Database.DBConnection;
+import Database.DataAccessException;
+import model.Perfil;
 import model.Utilizador;
-
+import model.Carteira;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
-public class UserRepository {
+/**
+ * DAO para Utilizador, implementa operações CRUD e métodos de negócio.
+ */
+public class UserRepository implements DAO<Utilizador, Integer> {
 
-    /**
-     * Obtém o id_perfil a partir do texto a partir da função fn_GetPerfilId.
-     */
-    public Optional<Integer> getPerfilId(String perfilNome) {
-        String sql = "SELECT dbo.fn_GetPerfilId(?) AS id_perfil";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, perfilNome);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return Optional.of(rs.getInt("id_perfil"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return Optional.empty();
-    }
+    public UserRepository() {}
 
-
-    public boolean desativarUtilizador(int id) {
-        String sql = "UPDATE Utilizador SET ativo = 0 WHERE id_utilizador = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-
-
-    public boolean atualizarUtilizadorSemPassword(int id, String nome, String email, int idPerfil) {
-        String sql = "UPDATE Utilizador SET nome = ?, email = ?, id_perfil = ? WHERE id_utilizador = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, nome);
-            stmt.setString(2, email);
-            stmt.setInt(3, idPerfil);
-            stmt.setInt(4, id);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean podeSerAdmin(int id) {
+    @Override
+    public Optional<Utilizador> get(Integer id) {
         String sql = """
-        SELECT COUNT(*) AS total
-        FROM Carteira c
-        LEFT JOIN CarteiraMoeda cm ON c.id_carteira = cm.id_carteira
-        WHERE c.id_utilizador = ? AND (c.saldo > 0 OR cm.quantidade > 0)
-    """;
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("total") == 0;
+            SELECT id_utilizador, nome, email, tipoPerfil, ativo, foto, password
+              FROM v_UtilizadorPerfil
+             WHERE id_utilizador = ?
+        """;
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
             }
+            return Optional.empty();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DataAccessException("Erro ao buscar Utilizador ID " + id, e);
         }
-        return false;
     }
 
-    public List<Utilizador> obterTodosUtilizadores() {
-        List<Utilizador> utilizadores = new ArrayList<>();
-        String sql = "SELECT id_utilizador, nome, email, tipoPerfil, ativo FROM v_UtilizadorPerfil";
-
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                Utilizador u = new Utilizador();
-                u.setIdUtilizador(rs.getInt("id_utilizador"));
-                u.setNome(rs.getString("nome"));
-                u.setEmail(rs.getString("email"));
-                u.setPerfil(rs.getString("tipoPerfil"));  // Aqui está correto agora
-                u.setAtivo(rs.getBoolean("ativo")); // Adiciona esta linha
-                utilizadores.add(u);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return utilizadores;
-    }
-
-
-
-
-    public static List<Utilizador> getTodos() {
+    @Override
+    public List<Utilizador> getAll() {
+        String sql = """
+            SELECT id_utilizador, nome, email, tipoPerfil, ativo, foto, password
+              FROM v_UtilizadorPerfil
+        """;
         List<Utilizador> lista = new ArrayList<>();
-        String sql = "SELECT * FROM v_UtilizadorPerfil"; // <-- sem filtro ativo = 1
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement st = conn.prepareStatement(sql);
-             ResultSet rs = st.executeQuery()) {
-
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                Utilizador u = new Utilizador();
-                u.setIdUtilizador(rs.getInt("id_utilizador"));
-                u.setNome(rs.getString("nome"));
-                u.setEmail(rs.getString("email"));
-                u.setPerfil(rs.getString("tipoPerfil"));
-                u.setFoto(rs.getString("foto"));
-                u.setAtivo(rs.getBoolean("ativo")); // <-- essencial
-                lista.add(u);
+                lista.add(mapRow(rs));
             }
+            return lista;
         } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return lista;
-    }
-
-
-
-
-    public static boolean ativarUtilizador(int id) {
-        String sql = "UPDATE Utilizador SET ativo = 1 WHERE id_utilizador = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            return stmt.executeUpdate() == 1;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-
-
-
-
-
-    /**
-     * Procura um utilizador por e-mail ou username usando a view v_UtilizadorPerfil.
-     */
-    public Optional<Map<String, String>> findUserByEmailOrUsername(String input) {
-        String sql = "SELECT * FROM v_UtilizadorPerfil WHERE email = ? OR nome = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, input);
-            stmt.setString(2, input);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                Map<String, String> user = new HashMap<>();
-                user.put("id_utilizador",  String.valueOf(rs.getInt("id_utilizador")));
-                user.put("nome",            rs.getString("nome"));
-                user.put("email",           rs.getString("email"));
-                user.put("password",        rs.getString("password"));
-                user.put("tipoPerfil",      rs.getString("tipoPerfil"));
-                user.put("foto",            rs.getString("foto"));
-                return Optional.of(user);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * Verifica existência de email usando função fn_UserExistsByEmail.
-     */
-    public boolean existsByEmail(String email) {
-        String sql = "SELECT dbo.fn_UserExistsByEmail(?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, email);
-            ResultSet rs = stmt.executeQuery();
-            return rs.next() && rs.getBoolean(1);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+            throw new DataAccessException("Erro ao listar todos os Utilizadores", e);
         }
     }
 
-    /**
-     * Verifica existência de username usando função fn_UserExistsByUsername.
-     */
-    public boolean existsByUsername(String username) {
-        String sql = "SELECT dbo.fn_UserExistsByUsername(?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, username);
-            ResultSet rs = stmt.executeQuery();
-            return rs.next() && rs.getBoolean(1);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
-     * Verifica se a conta do utilizador (por ID) está validada em VerificacaoEmail.
-     */
-    public boolean isContaVerificada(int utilizadorId) {
-        String sql = "SELECT verificado FROM VerificacaoEmail WHERE id_utilizador = ? AND tipo = 'REGISTO'";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, utilizadorId);
-            ResultSet rs = stmt.executeQuery();
-            return rs.next() && rs.getBoolean("verificado");
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
-     * Regista um novo utilizador via stored procedure sp_RegistarNovoUtilizador.
-     */
-    public Optional<Integer> registarNovoUtilizador(String nome, String email, String senhaHashed) {
+    @Override
+    public boolean save(Utilizador u) {
         String call = "{ call sp_RegistarNovoUtilizador(?, ?, ?, ?) }";
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = Database.DBConnection.getConnection();
              CallableStatement cstmt = conn.prepareCall(call)) {
-            cstmt.setString(1, nome);
-            cstmt.setString(2, email);
-            cstmt.setString(3, senhaHashed);
+            cstmt.setString(1, u.getNome());
+            cstmt.setString(2, u.getEmail());
+            cstmt.setString(3, u.getHashPwd());
             cstmt.registerOutParameter(4, Types.INTEGER);
             cstmt.execute();
             int newId = cstmt.getInt(4);
-            return newId > 0 ? Optional.of(newId) : Optional.empty();
+            if (newId > 0) {
+                u.setId(newId);
+                return true;
+            }
+            return false;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DataAccessException("Erro ao registar novo Utilizador", e);
+        }
+    }
+
+    @Override
+    public boolean update(Utilizador u) {
+        String sql = """
+            UPDATE Utilizador
+               SET nome = ?, email = ?, id_perfil = ?, foto = ?
+             WHERE id_utilizador = ?
+        """;
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, u.getNome());
+            ps.setString(2, u.getEmail());
+            ps.setInt(3, u.getIdPerfil());
+            ps.setString(4, u.getFoto());
+            ps.setInt(5, u.getId());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new DataAccessException("Erro ao atualizar Utilizador ID " + u.getId(), e);
+        }
+    }
+
+    @Override
+    public boolean delete(Integer id) {
+        String sql = "UPDATE Utilizador SET ativo = 0 WHERE id_utilizador = ?";
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new DataAccessException("Erro ao desativar Utilizador ID " + id, e);
+        }
+    }
+
+    // --- Métodos de negócio adicionais ---
+
+    public Optional<Integer> getPerfilId(String perfilNome) {
+        String sql = "SELECT dbo.fn_GetPerfilId(?) AS id_perfil";
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, perfilNome);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(rs.getInt("id_perfil"));
+                }
+            }
             return Optional.empty();
+        } catch (SQLException e) {
+            throw new DataAccessException("Erro ao obter perfil ID para '" + perfilNome + "'", e);
+        }
+    }
+
+    public Optional<Utilizador> findByEmailOrUsername(String input) {
+        String sql = "SELECT * FROM v_UtilizadorPerfil WHERE email = ? OR nome = ?";
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, input);
+            ps.setString(2, input);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+            }
+            return Optional.empty();
+        } catch (SQLException e) {
+            throw new DataAccessException("Erro ao procurar Utilizador por '" + input + "'", e);
         }
     }
 
     /**
-     * Insere (ou atualiza) um código de verificação em VerificacaoEmail.
-     * Usa MERGE para SQL Server.
+     * Verifica existência de email diretamente na tabela Utilizador.
      */
-    public boolean inserirCodigoVerificacao(int utilizadorId,
-                                            String codigo,
-                                            LocalDateTime expira,
-                                            String tipo) {
+    public boolean existsByEmail(String email) {
+        String sql = "SELECT COUNT(*) FROM Utilizador WHERE email = ?";
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Erro ao verificar existência de email '" + email + "'", e);
+        }
+    }
+
+    /**
+     * Verifica existência de username (nome) diretamente na tabela Utilizador.
+     */
+    public boolean existsByUsername(String username) {
+        String sql = "SELECT COUNT(*) FROM Utilizador WHERE nome = ?";
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Erro ao verificar existência de username '" + username + "'", e);
+        }
+    }
+
+    private Utilizador mapRow(ResultSet rs) throws SQLException {
+        Utilizador user = new Utilizador();
+        user.setId(rs.getInt("id_utilizador"));
+        user.setNome(rs.getString("nome"));
+        user.setEmail(rs.getString("email"));
+        user.setPerfil(Perfil.valueOf(rs.getString("tipoPerfil").toUpperCase()));
+        user.setAtivo(rs.getBoolean("ativo"));
+        user.setFoto(rs.getString("foto"));
+        user.setHashPwd(rs.getString("password"));
+        return user;
+    }
+
+    // --- Verificação por código ---
+
+
+    /**
+     * Insere código de verificação para registro ou recuperação.
+     */
+    public boolean inserirCodigoVerificacao(int userId, String code, LocalDateTime expiry, String tipo) {
+        // note: we write INTO VerificacaoEmail (not CodigoVerificacao)
         String sql = """
-            MERGE VerificacaoEmail AS alvo
-            USING (SELECT ? AS id_utilizador, ? AS tipo) AS fonte
-            ON alvo.id_utilizador = fonte.id_utilizador
-               AND alvo.tipo = fonte.tipo
-               AND alvo.verificado = 0
-            WHEN MATCHED THEN
-              UPDATE SET codigo        = ?,
-                         criado_em     = GETDATE(),
-                         expira_em     = ?,
-                         verificado    = 0,
-                         verificado_em = NULL
-            WHEN NOT MATCHED THEN
-              INSERT (id_utilizador, codigo, criado_em, expira_em, verificado, tipo)
-              VALUES (?, ?, GETDATE(), ?, 0, ?);
-            """;
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, utilizadorId);
-            stmt.setString(2, tipo);
-            stmt.setString(3, codigo);
-            stmt.setTimestamp(4, Timestamp.valueOf(expira));
-            stmt.setInt(5, utilizadorId);
-            stmt.setString(6, codigo);
-            stmt.setTimestamp(7, Timestamp.valueOf(expira));
-            stmt.setString(8, tipo);
-
-            stmt.executeUpdate();
-            return true;
+        INSERT INTO VerificacaoEmail
+            (id_utilizador, codigo, expira_em, tipo)
+        VALUES (?, ?, ?, ?)
+        """;
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setString(2, code);
+            ps.setTimestamp(3, Timestamp.valueOf(expiry));
+            ps.setString(4, tipo);
+            return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+            throw new DataAccessException("Erro ao inserir código de verificação", e);
         }
     }
 
     /**
-     * Valida um código de verificação para um utilizador e tipo específico.
-     * Marca como verificado se for válido e não expirado.
+     * Valida um código de verificação: correta, não expirado e não utilizado.
      */
-    public boolean validarCodigo(int utilizadorId, String tipo, String codigo) {
-        String sqlBusca = """
-            SELECT codigo, expira_em
-              FROM VerificacaoEmail
-             WHERE id_utilizador = ?
-               AND tipo = ?
-               AND verificado = 0
-            """;
-
-        String sqlUpdate = """
-            UPDATE VerificacaoEmail
-               SET verificado     = 1,
-                   verificado_em  = GETDATE()
-             WHERE id_utilizador = ?
-               AND tipo = ?
-            """;
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmtBusca = conn.prepareStatement(sqlBusca)) {
-
-            stmtBusca.setInt(1, utilizadorId);
-            stmtBusca.setString(2, tipo);
-            ResultSet rs = stmtBusca.executeQuery();
-
-            if (!rs.next()) {
-                return false;
+    public boolean validarCodigo(int userId, String code) {
+        String select = """
+        SELECT COUNT(*) 
+          FROM dbo.VerificacaoEmail
+         WHERE id_utilizador = ?
+           AND codigo        = ?
+           AND expira_em     >= GETDATE()
+           AND verificado    = 0
+        """;
+        String update = """
+        UPDATE dbo.VerificacaoEmail
+           SET verificado = 1, verificado_em = GETDATE()
+         WHERE id_utilizador = ? AND codigo = ?
+        """;
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(select)) {
+            ps.setInt(1, userId);
+            ps.setString(2, code);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                int count = rs.getInt(1);
+                if (count > 0) {
+                    try (PreparedStatement pu = conn.prepareStatement(update)) {
+                        pu.setInt(1, userId);
+                        pu.setString(2, code);
+                        pu.executeUpdate();
+                    }
+                    return true;
+                }
             }
-            String codigoBD = rs.getString("codigo");
-            Timestamp expira  = rs.getTimestamp("expira_em");
-
-            if (expira != null && LocalDateTime.now().isAfter(expira.toLocalDateTime())) {
-                return false;
-            }
-            if (!codigo.equals(codigoBD)) {
-                return false;
-            }
-
-            try (PreparedStatement stmtUpd = conn.prepareStatement(sqlUpdate)) {
-                stmtUpd.setInt(1, utilizadorId);
-                stmtUpd.setString(2, tipo);
-                stmtUpd.executeUpdate();
-            }
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
             return false;
+        } catch (SQLException e) {
+            throw new DataAccessException("Erro ao validar código de verificação", e);
         }
     }
 
     /**
-     * Atualiza a password de um utilizador.
+     * Atualiza a password do utilizador.
      */
-    public boolean atualizarSenha(int utilizadorId, String novaSenhaHashed) {
+    public boolean atualizarSenha(int userId, String hashedPassword) {
         String sql = "UPDATE Utilizador SET password = ? WHERE id_utilizador = ?";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, novaSenhaHashed);
-            stmt.setInt(2, utilizadorId);
-            return stmt.executeUpdate() > 0;
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, hashedPassword);
+            ps.setInt(2, userId);
+            return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+            throw new DataAccessException("Erro ao atualizar senha do utilizador", e);
         }
     }
 
-    public boolean atualizarNome(int id, String nome) {
-        String sql = "UPDATE Utilizador SET nome = ? WHERE id_utilizador = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, nome);
-            stmt.setInt(2, id);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
+    public boolean isContaVerificada(int userId) {
+        return get(userId).map(Utilizador::isAtivo).orElse(false);
     }
 
-
-
-    /**
-     * Obtém o ID do utilizador a partir do e-mail.
-     */
-    public Optional<Integer> getUserIdByEmail(String email) {
-        String sql = "SELECT id_utilizador FROM Utilizador WHERE email = ?";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, email);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return Optional.of(rs.getInt("id_utilizador"));
-            }
+    public boolean ativarUtilizador(int userId) {
+        String sql = "UPDATE Utilizador SET ativo = 1 WHERE id_utilizador = ?";
+        try (Connection conn = Database.DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * Verifica se existe um código de verificação não expirado para este utilizador e tipo.
-     */
-    public boolean existeCodigoValido(int utilizadorId, String tipo) {
-        String sql = """
-            SELECT expira_em
-              FROM VerificacaoEmail
-             WHERE id_utilizador = ?
-               AND tipo = ?
-               AND verificado = 0
-            """;
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, utilizadorId);
-            stmt.setString(2, tipo);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                Timestamp expira = rs.getTimestamp("expira_em");
-                return expira != null && LocalDateTime.now().isBefore(expira.toLocalDateTime());
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    /**
-     * Marca um código já existente como verificado.
-     */
-    public boolean marcarCodigoComoVerificado(int utilizadorId, String tipo) {
-        String sql = """
-            UPDATE VerificacaoEmail
-               SET verificado     = 1,
-                   verificado_em  = GETDATE()
-             WHERE id_utilizador = ?
-               AND tipo = ?
-            """;
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, utilizadorId);
-            stmt.setString(2, tipo);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+            throw new DataAccessException("Erro ao ativar utilizador ID " + userId, e);
         }
     }
 
-    /**
-     * Actualiza nome, email e perfil de um utilizador.
-     */
-    public static boolean atualizarUtilizador(int id, String nome, String email, int idPerfil) {
-        String sql = "UPDATE Utilizador SET nome = ?, email = ?, id_perfil = ? WHERE id_utilizador = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, nome);
-            stmt.setString(2, email);
-            stmt.setInt   (3, idPerfil);
-            stmt.setInt   (4, id);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+    public boolean podeSerAdmin(int userId) {
+        BigDecimal saldo = WalletRepository.getInstance().getSaldoPorUtilizador(userId);
+        if (saldo.compareTo(BigDecimal.ZERO) > 0) return false;
+        boolean temPosicoes = new PortfolioRepository()
+                .listarPorUtilizador(userId).stream()
+                .anyMatch(p -> p.getQuantidade().compareTo(BigDecimal.ZERO) > 0);
+        return !temPosicoes;
     }
-
-    /**
-     * Atualiza apenas o caminho da foto de perfil.
-     */
-    public static boolean atualizarFoto(int id, String fotoPath) {
-        String sql = "UPDATE Utilizador SET foto = ? WHERE id_utilizador = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, fotoPath);
-            stmt.setInt   (2, id);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public Optional<Utilizador> findByEmail(String email) {
-        String sql = "SELECT id_utilizador, nome, email, password, tipoPerfil, ativo FROM v_UtilizadorPerfil WHERE email = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, email);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                Utilizador u = new Utilizador();
-                u.setIdUtilizador(rs.getInt("id_utilizador"));
-                u.setNome(rs.getString("nome"));
-                u.setEmail(rs.getString("email"));
-                u.setPerfil(rs.getString("tipoPerfil"));
-                u.setHashPwd(rs.getString("password"));
-                u.setAtivo(rs.getBoolean("ativo"));
-                return Optional.of(u);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return Optional.empty();
-    }
-
-
 }

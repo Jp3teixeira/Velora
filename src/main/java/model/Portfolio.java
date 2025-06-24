@@ -1,9 +1,10 @@
 package model;
 
-import java.math.BigDecimal;
 import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
+import java.math.BigDecimal;
 
-public class Portfolio extends RecursiveTreeObject<Portfolio> {
+public class Portfolio extends RecursiveTreeObject<Portfolio>
+        implements Identifiable<Integer> {
     private Integer idPortfolio;
     private Utilizador utilizador;
     private Moeda moeda;
@@ -11,15 +12,27 @@ public class Portfolio extends RecursiveTreeObject<Portfolio> {
     private BigDecimal precoMedioCompra;
 
     public Portfolio() {}
-    // getters & setters...
-    public Integer getIdPortfolio() { return idPortfolio; }
-    public void setIdPortfolio(Integer i) { this.idPortfolio = i; }
+
+    @Override
+    public Integer getId() {
+        return idPortfolio;
+    }
+
+    @Override
+    public void setId(Integer id) {
+        this.idPortfolio = id;
+    }
+
+    // Getters & Setters...
     public Utilizador getUtilizador() { return utilizador; }
-    public void setUtilizador(Utilizador u) { this.utilizador = u; }
+    public void setUtilizador(Utilizador utilizador) { this.utilizador = utilizador; }
+
     public Moeda getMoeda() { return moeda; }
-    public void setMoeda(Moeda m) { this.moeda = m; }
+    public void setMoeda(Moeda moeda) { this.moeda = moeda; }
+
     public BigDecimal getQuantidade() { return quantidade; }
-    public void setQuantidade(BigDecimal q) { this.quantidade = q; }
+    public void setQuantidade(BigDecimal quantidade) { this.quantidade = quantidade; }
+
     public BigDecimal getPrecoMedioCompra() { return precoMedioCompra; }
-    public void setPrecoMedioCompra(BigDecimal p) { this.precoMedioCompra = p; }
+    public void setPrecoMedioCompra(BigDecimal precoMedioCompra) { this.precoMedioCompra = precoMedioCompra; }
 }

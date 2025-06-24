@@ -1,0 +1,40 @@
+@startuml UseCaseDiagram
+
+left to right direction
+
+' Atores
+actor Cliente
+actor Administrador
+
+' Casos de Uso do Cliente
+Cliente --> (Registar conta)
+Cliente --> (Login)
+Cliente --> (Logout)
+Cliente --> (Recuperar password)
+Cliente --> (Consultar moedas)
+Cliente --> (Ver saldo e carteira)
+Cliente --> (Levantar fundos)
+Cliente --> (Comprar criptomoeda)
+Cliente --> (Vender criptomoeda)
+Cliente --> (Consultar histórico de transações)
+
+' Casos de Uso do Administrador
+Administrador --> (Gerir utilizadores)
+Administrador --> (Gerir criptomoedas)
+Administrador --> (Filtrar histórico de transações)
+
+' Relações de inclusão e extensão
+(Comprar criptomoeda) --> (Depositar fundos) : <<include>>
+(Comprar criptomoeda) --> (Validar fundos) : <<include>>
+(Comprar criptomoeda) --> (Matching de ordens) : <<include>>
+
+(Vender criptomoeda) --> (Matching de ordens) : <<include>>
+(Registar conta) --> (Confirmar verificação) : <<include>>
+(Recuperar password) --> (Confirmar verificação) : <<include>>
+(Consultar moedas) --> (Atualizar valor de moedas) : <<include>>
+
+
+
+(Consultar moedas) .> (Ver detalhes de moeda) : <<extend>>
+(Ver detalhes de moeda) .> (Filtrar Moedas) : <<extend>>
+@enduml

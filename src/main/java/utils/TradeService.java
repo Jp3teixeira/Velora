@@ -1,4 +1,4 @@
-// utils/TradeService.java
+// src/utils/TradeService.java
 package utils;
 
 import Repository.OrdemRepository;
@@ -6,41 +6,42 @@ import Repository.PortfolioRepository;
 import Repository.TransacaoRepository;
 import Repository.WalletRepository;
 import model.Ordem;
+import model.OrdemModo;
+import model.OrdemStatus;
+import model.OrdemTipo;
+import model.Transacao;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
-
+import java.util.stream.Collectors;
 
 public class TradeService {
 
-    private final OrdemRepository ordemRepo;
-    private final TransacaoRepository transacaoRepo;
-    private final PortfolioRepository portfolioRepo;
-    private final WalletRepository walletRepo;
-    private final Connection conn;
+    private final OrdemRepository       ordemRepo;
+    private final TransacaoRepository   transacaoRepo;
+    private final PortfolioRepository   portfolioRepo;
+    private final WalletRepository      walletRepo;
 
-    public TradeService(Connection connection) {
-        this.conn            = connection;
-        this.ordemRepo       = new OrdemRepository(connection);
-        this.transacaoRepo   = new TransacaoRepository();
-        this.portfolioRepo   = new PortfolioRepository();
-        this.walletRepo      = WalletRepository.getInstance();
+    public TradeService(java.sql.Connection connection) {
+        this.ordemRepo     = new OrdemRepository(connection);
+        this.transacaoRepo = new TransacaoRepository();
+        this.portfolioRepo = new PortfolioRepository();
+        this.walletRepo    = WalletRepository.getInstance();
     }
 
-    private int getStatusId(String status) throws SQLException {
-        String sql = "SELECT id_status FROM OrdemStatus WHERE status = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, status);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt(1);
-                throw new SQLException("Status não encontrado: " + status);
-            }
-        }
+    private int getStatusId(OrdemStatus status) throws SQLException {
+        return ordemRepo.obterIdStatus(status.name());
+    }
+
+    private int getModoId(OrdemModo modo) throws SQLException {
+        return ordemRepo.obterIdModo(modo.name());
+    }
+
+    private int getTipoId(OrdemTipo tipo) throws SQLException {
+        return ordemRepo.obterIdTipoOrdem(tipo.name());
     }
 
     /**
@@ -48,29 +49,27 @@ public class TradeService {
      */
     public void processarOrdemCompra(Ordem novaCompra) throws SQLException {
         BigDecimal restante    = novaCompra.getQuantidade();
-        boolean   compraMarket = "market".equalsIgnoreCase(novaCompra.getModo());
-        int       idStatusExec = getStatusId("executada");
-        int       idStatusAtv  = getStatusId("ativa");
+        boolean   compraMarket = novaCompra.getModo() == OrdemModo.MARKET;
+        int       idExec       = getStatusId(OrdemStatus.EXECUTADA);
+        int       idAtiva      = getStatusId(OrdemStatus.ATIVA);
 
-        // 1) busca ordens de venda compatíveis
-        List<Ordem> ordensVenda = ordemRepo.obterOrdensPendentes(
-                novaCompra.getMoeda().getIdMoeda(),
-                "venda",
-                novaCompra.getModo(),
-                novaCompra.getPrecoUnitarioEur()
+        // 1) obter todas e filtrar vendas pendentes compatíveis
+        List<Ordem> ordensVenda = ordemRepo.getAll().stream()
+                .filter(o -> o.getMoeda().getId().equals(novaCompra.getMoeda().getId()))
+                .filter(o -> o.getTipoOrdem() == OrdemTipo.VENDA)
+                .filter(o -> o.getStatus() == OrdemStatus.ATIVA)
+                .filter(o -> compraMarket
+                        || o.getModo() == OrdemModo.MARKET
+                        || o.getPrecoUnitarioEur().compareTo(novaCompra.getPrecoUnitarioEur()) <= 0
+                )
+                .collect(Collectors.toList());
 
-
-        );
-
-
-        // 2) matching
         for (Ordem venda : ordensVenda) {
             if (restante.signum() <= 0) break;
-
             BigDecimal disponivel = venda.getQuantidade();
             BigDecimal qtdeMatch  = restante.min(disponivel);
 
-            boolean vendaMarket = "market".equalsIgnoreCase(venda.getModo());
+            boolean vendaMarket = venda.getModo() == OrdemModo.MARKET;
             BigDecimal precoExec;
             if (!compraMarket && !vendaMarket) {
                 precoExec = novaCompra.getPrecoUnitarioEur()
@@ -83,42 +82,42 @@ public class TradeService {
             }
             precoExec = precoExec.setScale(8, RoundingMode.HALF_UP);
 
-            // regista transações
-            transacaoRepo.inserirTransacao(
-                    novaCompra.getUtilizador().getIdUtilizador(),
-                    novaCompra.getMoeda().getIdMoeda(),
-                    qtdeMatch,
-                    precoExec,
-                    novaCompra.getIdTipoOrdem()
-            );
-            transacaoRepo.inserirTransacao(
-                    venda.getUtilizador().getIdUtilizador(),
-                    venda.getMoeda().getIdMoeda(),
-                    qtdeMatch,
-                    precoExec,
-                    venda.getIdTipoOrdem()
-            );
+            // registra transações
+            Transacao txC = new Transacao();
+            txC.setUtilizador(novaCompra.getUtilizador());
+            txC.setMoeda(novaCompra.getMoeda());
+            txC.setQuantidade(qtdeMatch);
+            txC.setPrecoUnitarioEur(precoExec);
+            txC.setTipo(novaCompra.getTipoOrdem().name());
+            transacaoRepo.save(txC);
+
+            Transacao txV = new Transacao();
+            txV.setUtilizador(venda.getUtilizador());
+            txV.setMoeda(venda.getMoeda());
+            txV.setQuantidade(qtdeMatch);
+            txV.setPrecoUnitarioEur(precoExec);
+            txV.setTipo(venda.getTipoOrdem().name());
+            transacaoRepo.save(txV);
 
             // atualiza venda
-            BigDecimal remVenda = disponivel.subtract(qtdeMatch);
-            venda.setQuantidade(remVenda);
-            if (remVenda.signum() == 0) {
-                venda.setIdStatus(idStatusExec);
-                venda.setStatus("executada");
+            venda.setQuantidade(disponivel.subtract(qtdeMatch));
+            if (venda.getQuantidade().signum() == 0) {
+                venda.setStatus(OrdemStatus.EXECUTADA);
+                venda.setIdStatus(idExec);
             } else {
-                venda.setIdStatus(idStatusAtv);
-                venda.setStatus("ativa");
+                venda.setStatus(OrdemStatus.ATIVA);
+                venda.setIdStatus(idAtiva);
             }
-            ordemRepo.atualizarOrdem(venda);
+            ordemRepo.update(venda);
 
-            // mover ativos
+            // mover ativos e fundos
             portfolioRepo.aumentarQuantidade(
-                    novaCompra.getUtilizador().getIdUtilizador(),
-                    novaCompra.getMoeda().getIdMoeda(),
+                    novaCompra.getUtilizador().getId(),
+                    novaCompra.getMoeda().getId(),
                     qtdeMatch
             );
             walletRepo.deposit(
-                    venda.getUtilizador().getIdUtilizador(),
+                    venda.getUtilizador().getId(),
                     qtdeMatch.multiply(precoExec)
             );
 
@@ -128,13 +127,13 @@ public class TradeService {
         // 3) atualiza ordem de compra
         novaCompra.setQuantidade(restante);
         if (restante.signum() == 0) {
-            novaCompra.setIdStatus(idStatusExec);
-            novaCompra.setStatus("executada");
+            novaCompra.setStatus(OrdemStatus.EXECUTADA);
+            novaCompra.setIdStatus(idExec);
         } else {
-            novaCompra.setIdStatus(idStatusAtv);
-            novaCompra.setStatus("ativa");
+            novaCompra.setStatus(OrdemStatus.ATIVA);
+            novaCompra.setIdStatus(idAtiva);
         }
-        ordemRepo.atualizarOrdem(novaCompra);
+        ordemRepo.update(novaCompra);
     }
 
     /**
@@ -142,24 +141,26 @@ public class TradeService {
      */
     public void processarOrdemVenda(Ordem novaVenda) throws SQLException {
         BigDecimal restante    = novaVenda.getQuantidade();
-        boolean   vendaMarket  = "market".equalsIgnoreCase(novaVenda.getModo());
-        int       idStatusExec = getStatusId("executada");
-        int       idStatusAtv  = getStatusId("ativa");
+        boolean   vendaMarket  = novaVenda.getModo() == OrdemModo.MARKET;
+        int       idExec       = getStatusId(OrdemStatus.EXECUTADA);
+        int       idAtiva      = getStatusId(OrdemStatus.ATIVA);
 
-        List<Ordem> ordensCompra = ordemRepo.obterOrdensPendentes(
-                novaVenda.getMoeda().getIdMoeda(),
-                "compra",
-                novaVenda.getModo(),
-                novaVenda.getPrecoUnitarioEur()
-        );
+        List<Ordem> ordensCompra = ordemRepo.getAll().stream()
+                .filter(o -> o.getMoeda().getId().equals(novaVenda.getMoeda().getId()))
+                .filter(o -> o.getTipoOrdem() == OrdemTipo.COMPRA)
+                .filter(o -> o.getStatus() == OrdemStatus.ATIVA)
+                .filter(o -> vendaMarket
+                        || o.getModo() == OrdemModo.MARKET
+                        || o.getPrecoUnitarioEur().compareTo(novaVenda.getPrecoUnitarioEur()) >= 0
+                )
+                .collect(Collectors.toList());
 
         for (Ordem compra : ordensCompra) {
             if (restante.signum() <= 0) break;
-
             BigDecimal disponivel = compra.getQuantidade();
             BigDecimal qtdeMatch  = restante.min(disponivel);
 
-            boolean compraMarket = "market".equalsIgnoreCase(compra.getModo());
+            boolean compraMarket = compra.getModo() == OrdemModo.MARKET;
             BigDecimal precoExec;
             if (!vendaMarket && !compraMarket) {
                 precoExec = novaVenda.getPrecoUnitarioEur()
@@ -172,39 +173,39 @@ public class TradeService {
             }
             precoExec = precoExec.setScale(8, RoundingMode.HALF_UP);
 
-            transacaoRepo.inserirTransacao(
-                    novaVenda.getUtilizador().getIdUtilizador(),
-                    novaVenda.getMoeda().getIdMoeda(),
-                    qtdeMatch,
-                    precoExec,
-                    novaVenda.getIdTipoOrdem()
-            );
-            transacaoRepo.inserirTransacao(
-                    compra.getUtilizador().getIdUtilizador(),
-                    compra.getMoeda().getIdMoeda(),
-                    qtdeMatch,
-                    precoExec,
-                    compra.getIdTipoOrdem()
-            );
+            Transacao txV = new Transacao();
+            txV.setUtilizador(novaVenda.getUtilizador());
+            txV.setMoeda(novaVenda.getMoeda());
+            txV.setQuantidade(qtdeMatch);
+            txV.setPrecoUnitarioEur(precoExec);
+            txV.setTipo(novaVenda.getTipoOrdem().name());
+            transacaoRepo.save(txV);
 
-            BigDecimal remCompra = disponivel.subtract(qtdeMatch);
-            compra.setQuantidade(remCompra);
-            if (remCompra.signum() == 0) {
-                compra.setIdStatus(idStatusExec);
-                compra.setStatus("executada");
+            Transacao txC = new Transacao();
+            txC.setUtilizador(compra.getUtilizador());
+            txC.setMoeda(compra.getMoeda());
+            txC.setQuantidade(qtdeMatch);
+            txC.setPrecoUnitarioEur(precoExec);
+            txC.setTipo(compra.getTipoOrdem().name());
+            transacaoRepo.save(txC);
+
+            compra.setQuantidade(disponivel.subtract(qtdeMatch));
+            if (compra.getQuantidade().signum() == 0) {
+                compra.setStatus(OrdemStatus.EXECUTADA);
+                compra.setIdStatus(idExec);
             } else {
-                compra.setIdStatus(idStatusAtv);
-                compra.setStatus("ativa");
+                compra.setStatus(OrdemStatus.ATIVA);
+                compra.setIdStatus(idAtiva);
             }
-            ordemRepo.atualizarOrdem(compra);
+            ordemRepo.update(compra);
 
             walletRepo.deposit(
-                    compra.getUtilizador().getIdUtilizador(),
+                    compra.getUtilizador().getId(),
                     qtdeMatch.multiply(precoExec)
             );
             portfolioRepo.aumentarQuantidade(
-                    compra.getUtilizador().getIdUtilizador(),
-                    compra.getMoeda().getIdMoeda(),
+                    compra.getUtilizador().getId(),
+                    compra.getMoeda().getId(),
                     qtdeMatch
             );
 
@@ -213,25 +214,49 @@ public class TradeService {
 
         novaVenda.setQuantidade(restante);
         if (restante.signum() == 0) {
-            novaVenda.setIdStatus(idStatusExec);
-            novaVenda.setStatus("executada");
+            novaVenda.setStatus(OrdemStatus.EXECUTADA);
+            novaVenda.setIdStatus(idExec);
         } else {
-            novaVenda.setIdStatus(idStatusAtv);
-            novaVenda.setStatus("ativa");
+            novaVenda.setStatus(OrdemStatus.ATIVA);
+            novaVenda.setIdStatus(idAtiva);
         }
-        ordemRepo.atualizarOrdem(novaVenda);
+        ordemRepo.update(novaVenda);
+    }
+    /**
+     * Processa todas as market-sell pendentes para uma moeda.
+     */
+    public void processarOrdensVendaMarketPendentes(int idMoeda) throws SQLException {
+        List<Ordem> pendentes = ordemRepo.getAll().stream()
+                .filter(o -> o.getMoeda().getId().equals(idMoeda))
+                .filter(o -> o.getTipoOrdem() == OrdemTipo.VENDA)
+                .filter(o -> o.getModo() == OrdemModo.MARKET)
+                .filter(o -> o.getStatus() == OrdemStatus.ATIVA)
+                .collect(Collectors.toList());
+        for (Ordem o : pendentes) {
+            processarOrdemVenda(o);
+        }
     }
 
     /**
-     * Re-processa todas as ordens market pendentes para um ativo.
+     * Processa todas as market-buy pendentes para uma moeda.
      */
     public void processarOrdensCompraMarketPendentes(int idMoeda) throws SQLException {
-        List<Ordem> compras = ordemRepo.obterOrdensPendentes(idMoeda, "compra", "market", null);
-        for (Ordem c : compras) processarOrdemCompra(c);
-    }
-
-    public void processarOrdensVendaMarketPendentes(int idMoeda) throws SQLException {
-        List<Ordem> vendas = ordemRepo.obterOrdensPendentes(idMoeda, "venda", "market", null);
-        for (Ordem v : vendas) processarOrdemVenda(v);
+        List<Ordem> pendentes = ordemRepo.getAll().stream()
+                .filter(o -> o.getMoeda().getId().equals(idMoeda))
+                .filter(o -> o.getTipoOrdem() == OrdemTipo.COMPRA)
+                .filter(o -> o.getModo() == OrdemModo.MARKET)
+                .filter(o -> o.getStatus() == OrdemStatus.ATIVA)
+                .collect(Collectors.toList());
+        for (Ordem o : pendentes) {
+            processarOrdemCompra(o);
+        }
     }
 }
+
+
+
+
+
+
+
+

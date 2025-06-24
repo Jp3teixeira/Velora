@@ -2,18 +2,27 @@ package model;
 
 import java.math.BigDecimal;
 
-public class Carteira {
+public class Carteira implements Identifiable<Integer> {
     private Integer idCarteira;
     private Utilizador utilizador;
     private BigDecimal saldoEur;
-    // getters/setters...
 
     public Carteira() {}
-    public Integer getIdCarteira() { return idCarteira; }
-    public void setIdCarteira(Integer id) { this.idCarteira = id; }
-    public Utilizador getUtilizador() { return utilizador; }
-    public void setUtilizador(Utilizador u) { this.utilizador = u; }
-    public BigDecimal getSaldoEur() { return saldoEur; }
-    public void setSaldoEur(BigDecimal s) { this.saldoEur = s; }
 
+    @Override
+    public Integer getId() {
+        return idCarteira;
+    }
+
+    @Override
+    public void setId(Integer id) {
+        this.idCarteira = id;
+    }
+
+    // Getters & Setters
+    public Utilizador getUtilizador() { return utilizador; }
+    public void setUtilizador(Utilizador utilizador) { this.utilizador = utilizador; }
+
+    public BigDecimal getSaldoEur() { return saldoEur; }
+    public void setSaldoEur(BigDecimal saldoEur) { this.saldoEur = saldoEur; }
 }

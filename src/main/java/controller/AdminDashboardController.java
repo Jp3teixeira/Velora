@@ -1,108 +1,55 @@
 package controller;
 
-import Database.DBConnection;
+
 import Repository.MarketRepository;
 import Repository.TransacaoRepository;
+import Repository.UserRepository;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import model.Moeda;
 import model.Transacao;
+import model.Utilizador;
+import model.Perfil;
 import utils.MarketSimulator;
 import utils.NavigationHelper;
 import utils.Routes;
 import utils.SessaoAtual;
-import model.Utilizador;
-import Repository.UserRepository;
-
-
 import java.io.File;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-
-import static utils.SessaoAtual.limparSessao;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 
 public class AdminDashboardController {
 
     @FXML private Button adminButton;
     @FXML private StackPane contentArea;
-    @FXML private TextField inputIdUser;
-    @FXML private TextField inputNomeUser;
-    @FXML private TextField inputEmailUser;
-    @FXML private TextField inputPerfilUser;
 
+    // Usuários
     @FXML private TableView<Utilizador> tabelaUtilizadores;
     @FXML private TableColumn<Utilizador, String> colId;
     @FXML private TableColumn<Utilizador, String> colNome;
     @FXML private TableColumn<Utilizador, String> colEmail;
     @FXML private TableColumn<Utilizador, String> colPerfil;
-    @FXML private TableColumn<Utilizador, String> colAtivo;
-    private ComboBox<String> perfilBox;
+    @FXML private TableColumn<Utilizador, Void> colCsv;
 
-
-
+    private ComboBox<Perfil> perfilBox;
 
     private final UserManagementController userManagement = new UserManagementController();
-
-    public Optional<Map<String, String>> findUserByEmailOrUsername(String input) {
-
-        String sql = """
-        SELECT id_utilizador ,
-               nome          ,
-               email         ,
-               password      ,
-               tipoPerfil    ,
-               ativo         ,   -- <-- AQUI!
-               foto
-        FROM   v_UtilizadorPerfil
-        WHERE  email = ? OR nome = ?""";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, input);
-            stmt.setString(2, input);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    Map<String, String> user = new HashMap<>();
-                    user.put("id_utilizador", String.valueOf(rs.getInt   ("id_utilizador")));
-                    user.put("nome"         , rs.getString("nome"));
-                    user.put("email"        , rs.getString("email"));
-                    user.put("password"     , rs.getString("password"));
-                    user.put("tipoPerfil"   , rs.getString("tipoPerfil"));
-                    user.put("ativo"        , rs.getString("ativo"));   // <-- NOVO
-                    user.put("foto"         , rs.getString("foto"));
-                    return Optional.of(user);
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return Optional.empty();
-    }
-
-
-
 
     @FXML
     public void initialize() {
         boolean hasPermission = SessaoAtual.tipo != null &&
-                (SessaoAtual.tipo.equalsIgnoreCase("admin") || SessaoAtual.isSuperAdmin);
+                (SessaoAtual.tipo.equalsIgnoreCase(Perfil.ADMIN.name()) || SessaoAtual.isSuperAdmin);
         if (!hasPermission) {
             NavigationHelper.goTo(Routes.HOMEPAGE, true);
         }
@@ -122,28 +69,28 @@ public class AdminDashboardController {
         Label titulo = new Label("Gestão de Utilizadores");
         titulo.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
 
-        // ----- TABELA -----
-        TableView<Utilizador> tabela = new TableView<>();
-        tabela.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-
-        TableColumn<Utilizador, String> colId = new TableColumn<>("ID");
-        TableColumn<Utilizador, String> colNome = new TableColumn<>("Nome");
-        TableColumn<Utilizador, String> colEmail = new TableColumn<>("Email");
-        TableColumn<Utilizador, String> colPerfil = new TableColumn<>("Perfil");
-
-        TableColumn<Utilizador, Void> colCsv = new TableColumn<>("CSV");
-
+        // Configura colunas
+        colId.setCellValueFactory(d ->
+                new SimpleStringProperty(String.valueOf(d.getValue().getId()))
+        );
+        colNome.setCellValueFactory(d ->
+                new SimpleStringProperty(d.getValue().getNome())
+        );
+        colEmail.setCellValueFactory(d ->
+                new SimpleStringProperty(d.getValue().getEmail())
+        );
+        colPerfil.setCellValueFactory(d ->
+                new SimpleStringProperty(d.getValue().getPerfil().name())
+        );
         colCsv.setCellFactory(tc -> new TableCell<>() {
             private final Button btn = new Button("CSV");
-
             {
                 btn.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white; -fx-font-size: 11;");
                 btn.setOnAction(e -> {
                     Utilizador u = getTableView().getItems().get(getIndex());
-                    exportarTransacoesUsuarioCSV(u); // <-- usa a função acima
+                    exportarTransacoesUsuarioCSV(u);
                 });
             }
-
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -151,52 +98,32 @@ public class AdminDashboardController {
             }
         });
 
+        tabelaUtilizadores.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tabelaUtilizadores.getColumns().setAll(colId, colNome, colEmail, colPerfil, colCsv);
+        tabelaUtilizadores.setItems(FXCollections.observableArrayList(
+                new UserRepository().getAll()
+        ));
+        tabelaUtilizadores.setMinHeight(400);
+        VBox.setVgrow(tabelaUtilizadores, Priority.ALWAYS);
 
-
-        colId.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdUtilizador())));
-        colNome.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNome()));
-        colEmail.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEmail()));
-        colPerfil.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getPerfil()));
-
-        tabela.getColumns().addAll(colId, colNome, colEmail, colPerfil, colCsv);
-
-        tabela.getItems().setAll(new UserRepository().obterTodosUtilizadores());
-
-        tabela.setMinHeight(400);
-        tabela.setMaxHeight(Double.MAX_VALUE);
-        VBox.setVgrow(tabela, Priority.ALWAYS);
-
-        ScrollPane scrollPane = new ScrollPane(tabela);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setFitToHeight(true);
-        VBox.setVgrow(scrollPane, Priority.ALWAYS);
-
-        // ----- BOTÕES -----
+        // Botões
         Button editarBtn    = new Button("Editar");
-        Button desativarBtn = new Button("Desativar");   // só estes dois
-        Button ativarBtn = new Button("Ativar");
-        ativarBtn.setDisable(true);
+        Button desativarBtn = new Button("Desativar");
+        Button ativarBtn   = new Button("Ativar");
         editarBtn.setDisable(true);
         desativarBtn.setDisable(true);
-
+        ativarBtn.setDisable(true);
         HBox botoes = new HBox(10, editarBtn, desativarBtn, ativarBtn);
 
-
-
-
-        // ----- FORMULÁRIO DE EDIÇÃO -----
+        // Formulário de edição
         VBox formEdicao = new VBox(8);
         formEdicao.setVisible(false);
-
-        TextField nomeField = new TextField();
+        TextField nomeField  = new TextField();
         TextField emailField = new TextField();
-
         perfilBox = new ComboBox<>();
-        perfilBox.getItems().addAll("user", "admin");
+        perfilBox.getItems().setAll(Perfil.values());
         perfilBox.setPromptText("Selecionar perfil");
-
         Button guardarBtn = new Button("Guardar Alterações");
-
         formEdicao.getChildren().addAll(
                 new Label("Nome:"), nomeField,
                 new Label("Email:"), emailField,
@@ -205,156 +132,76 @@ public class AdminDashboardController {
         );
 
         final Utilizador[] sel = new Utilizador[1];
-
-        tabela.getSelectionModel().selectedItemProperty().addListener((obs, oldU, newU) -> {
-            if (newU != null) {
-                sel[0] = newU;
-                editarBtn.setDisable(false);
-                formEdicao.setVisible(false);
-
-                if (newU.isAtivo()) {
-                    desativarBtn.setDisable(false);
-                    ativarBtn.setDisable(true);
-                } else {
-                    desativarBtn.setDisable(true);
-                    ativarBtn.setDisable(false);
-                }
-            }
-        });
+        tabelaUtilizadores.getSelectionModel().selectedItemProperty()
+                .addListener((obs, oldU, newU) -> {
+                    editarBtn.setDisable(newU == null);
+                    if (newU != null) {
+                        sel[0] = newU;
+                        desativarBtn.setDisable(!newU.isAtivo());
+                        ativarBtn.setDisable(newU.isAtivo());
+                        formEdicao.setVisible(false);
+                    }
+                });
 
         editarBtn.setOnAction(e -> {
-            if (sel[0] != null) {
-                nomeField.setText(sel[0].getNome());
-                emailField.setText(sel[0].getEmail());
-                perfilBox.setValue(sel[0].getPerfil().toLowerCase());
-                formEdicao.setVisible(true);
-            }
+            nomeField.setText(sel[0].getNome());
+            emailField.setText(sel[0].getEmail());
+            perfilBox.setValue(sel[0].getPerfil());
+            formEdicao.setVisible(true);
         });
 
         guardarBtn.setOnAction(e -> {
-            try {
-                String perfilSelecionado = perfilBox.getValue();
-                if (perfilSelecionado == null || perfilSelecionado.isBlank()) {
-                    new Alert(Alert.AlertType.ERROR, "Seleciona um perfil válido.").showAndWait();
-                    return;
-                }
-
-                Optional<Integer> optId = new UserRepository().getPerfilId(perfilSelecionado);
-                if (optId.isEmpty()) {
-                    new Alert(Alert.AlertType.ERROR, "Perfil inválido.").showAndWait();
-                    return;
-                }
-
-                new UserManagementController().editarUtilizadorSemPassword(
-                        sel[0].getIdUtilizador(),
-                        nomeField.getText(),
-                        emailField.getText(),
-                        optId.get()
-                );
-
-                tabela.getItems().setAll(new UserRepository().obterTodosUtilizadores());
-                formEdicao.setVisible(false);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                new Alert(Alert.AlertType.ERROR, "Erro ao atualizar utilizador:\n" + ex.getMessage()).showAndWait();
+            Perfil escolhido = perfilBox.getValue();
+            if (escolhido == null) {
+                new Alert(Alert.AlertType.ERROR, "Seleciona um perfil válido.").showAndWait();
+                return;
             }
+            Optional<Integer> optId = new UserRepository().getPerfilId(escolhido.name());
+            if (optId.isEmpty()) {
+                new Alert(Alert.AlertType.ERROR, "Perfil inválido.").showAndWait();
+                return;
+            }
+            userManagement.editarUtilizadorSemPassword(
+                    sel[0].getId(),
+                    nomeField.getText().trim(),
+                    emailField.getText().trim(),
+                    optId.get()
+            );
+            tabelaUtilizadores.setItems(FXCollections.observableArrayList(
+                    new UserRepository().getAll()
+            ));
+            formEdicao.setVisible(false);
         });
 
         desativarBtn.setOnAction(e -> {
-            if (sel[0] != null) {
-                // soft-delete (ativo = 0)
-                new UserManagementController().desativarUtilizadorPorId(sel[0].getIdUtilizador());
-                tabela.getItems().setAll(new UserRepository().obterTodosUtilizadores());
-            }
+            userManagement.desativarUtilizadorPorId(sel[0].getId());
+            tabelaUtilizadores.setItems(FXCollections.observableArrayList(
+                    new UserRepository().getAll()
+            ));
         });
 
         ativarBtn.setOnAction(e -> {
-            if (sel[0] != null) {
-                new UserManagementController().ativarUtilizador(sel[0].getIdUtilizador());
-                tabela.getItems().setAll(new UserRepository().obterTodosUtilizadores());
-            }
+            userManagement.ativarUtilizador(sel[0].getId());
+            tabelaUtilizadores.setItems(FXCollections.observableArrayList(
+                    new UserRepository().getAll()
+            ));
         });
 
-
-
-        tabela.setRowFactory(tv -> new TableRow<>() {
+        tabelaUtilizadores.setRowFactory(tv -> new TableRow<>() {
             @Override
             protected void updateItem(Utilizador item, boolean empty) {
                 super.updateItem(item, empty);
-                if (item == null || empty) {
-                    setStyle("");
-                } else if (!item.isAtivo()) {
-                    setStyle("-fx-background-color: #dcdcdc; -fx-text-fill: gray;"); // cinzento claro
+                if (item != null && !item.isAtivo()) {
+                    setStyle("-fx-background-color: #dcdcdc; -fx-text-fill: gray;");
                 } else {
                     setStyle("");
                 }
             }
         });
 
-
-        painel.getChildren().addAll(titulo, scrollPane, botoes, formEdicao);
-        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        painel.getChildren().setAll(titulo, tabelaUtilizadores, botoes, formEdicao);
         contentArea.getChildren().setAll(painel);
     }
-
-
-
-
-
-    private void editUser(int index, TableView<Utilizador> table) {
-        Utilizador u = table.getItems().get(index);
-
-        Dialog<Utilizador> dialog = new Dialog<>();
-        dialog.setTitle("Editar Utilizador");
-
-        TextField nomeField = new TextField(u.getNome());
-        TextField emailField = new TextField(u.getEmail());
-
-        perfilBox = new ComboBox<>();
-        perfilBox.getItems().addAll("User", "Admin");
-        perfilBox.setValue(u.getPerfil());
-
-        VBox vb = new VBox(10,
-                new Label("Nome:"), nomeField,
-                new Label("Email:"), emailField,
-                new Label("Perfil:"), perfilBox);
-        vb.setStyle("-fx-padding: 10;");
-
-        dialog.getDialogPane().setContent(vb);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-        dialog.setResultConverter(bt -> {
-            if (bt == ButtonType.OK) {
-                u.setNome(nomeField.getText().trim());
-                u.setEmail(emailField.getText().trim());
-                u.setPerfil(perfilBox.getValue());
-                return u;
-            }
-            return null;
-        });
-
-        dialog.showAndWait().ifPresent(updated -> {
-            Optional<Integer> novoIdPerfil = new Repository.UserRepository().getPerfilId(updated.getPerfil());
-            if (novoIdPerfil.isEmpty()) {
-                new Alert(Alert.AlertType.ERROR, "Perfil inválido").showAndWait();
-                return;
-            }
-
-            boolean sucesso = Repository.UserRepository.atualizarUtilizador(
-                    updated.getIdUtilizador(),
-                    updated.getNome(),
-                    updated.getEmail(),
-                    novoIdPerfil.get()
-            );
-
-            handleManageUsers(null);
-        });
-    }
-
-
-
-
-
 
     private void showAddCoinForm() {
         Label title = new Label("Adicionar Nova Moeda");
@@ -374,26 +221,20 @@ public class AdminDashboardController {
         Label statusLabel   = new Label();
 
         submitButton.setOnAction(e -> {
-            String nome    = nameField.getText().trim();
-            String simbolo = symbolField.getText().trim().toUpperCase();
-            String foto    = imageField.getText().trim();
-
             try {
+                String nome    = nameField.getText().trim();
+                String simbolo = symbolField.getText().trim().toUpperCase();
+                String foto    = imageField.getText().trim();
                 if (nome.isEmpty() || simbolo.isEmpty() || foto.isEmpty()) {
                     throw new IllegalArgumentException("Preencha todos os campos!");
                 }
                 BigDecimal valorInicial = new BigDecimal(initialValueField.getText().trim());
 
-                // Insere e recebe o novo ID
                 OptionalInt optId = MarketRepository.addNewCoinReturnId(
                         nome, simbolo, foto, valorInicial
-
                 );
-
                 if (optId.isPresent()) {
                     int novoId = optId.getAsInt();
-
-                    // Injeta no simulador
                     Moeda m = new Moeda(
                             novoId,
                             nome,
@@ -403,7 +244,6 @@ public class AdminDashboardController {
                             BigDecimal.ZERO
                     );
                     MarketSimulator.getMoedasSimuladas().put(novoId, m);
-
                     statusLabel.setText("Moeda adicionada com sucesso!");
                     statusLabel.setStyle("-fx-text-fill: green;");
                     nameField.clear(); symbolField.clear();
@@ -447,56 +287,38 @@ public class AdminDashboardController {
 
         TableColumn<Moeda, String> nomeCol = new TableColumn<>("Nome");
         nomeCol.setCellValueFactory(cd ->
-                new SimpleStringProperty(
-                        Optional.ofNullable(cd.getValue().getNome()).orElse("—")
-                )
+                new SimpleStringProperty(Optional.ofNullable(cd.getValue().getNome()).orElse("—"))
         );
-
         TableColumn<Moeda, String> simboloCol = new TableColumn<>("Símbolo");
         simboloCol.setCellValueFactory(cd ->
-                new SimpleStringProperty(
-                        Optional.ofNullable(cd.getValue().getSimbolo()).orElse("—")
-                )
+                new SimpleStringProperty(Optional.ofNullable(cd.getValue().getSimbolo()).orElse("—"))
         );
-
         TableColumn<Moeda, String> valorCol = new TableColumn<>("Valor Atual (€)");
         valorCol.setCellValueFactory(cd -> {
             BigDecimal v = cd.getValue().getValorAtual();
-            return new SimpleStringProperty(
-                    v != null ? v.toPlainString() : "—"
-            );
+            return new SimpleStringProperty(v != null ? v.toPlainString() : "—");
         });
-
         TableColumn<Moeda, String> variacaoCol = new TableColumn<>("Variação 24h (%)");
         variacaoCol.setCellValueFactory(cd -> {
             BigDecimal v = cd.getValue().getVariacao24h();
-            return new SimpleStringProperty(
-                    v != null ? v.toPlainString() : "—"
-            );
+            return new SimpleStringProperty(v != null ? v.toPlainString() : "—");
         });
-
         TableColumn<Moeda, String> volumeCol = new TableColumn<>("Volume 24h");
         volumeCol.setCellValueFactory(cd -> {
             BigDecimal v = cd.getValue().getVolume24h();
-            return new SimpleStringProperty(
-                    v != null ? v.toPlainString() : "—"
-            );
+            return new SimpleStringProperty(v != null ? v.toPlainString() : "—");
         });
-
         TableColumn<Moeda, Void> actionCol = new TableColumn<>("Ações");
         actionCol.setCellFactory(col -> new TableCell<>() {
             private final Button btnEditar   = new Button("Editar");
             private final Button btnEliminar = new Button("Eliminar");
             private final HBox pane = new HBox(8, btnEditar, btnEliminar);
-
             {
                 btnEditar.setStyle("-fx-background-color: #4B3F72; -fx-text-fill: white;");
                 btnEliminar.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
-
                 btnEditar.setOnAction(e -> editarMoeda(getIndex(), tableView));
                 btnEliminar.setOnAction(e -> eliminarMoeda(getIndex(), tableView));
             }
-
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -504,15 +326,12 @@ public class AdminDashboardController {
             }
         });
 
-        tableView.getColumns().addAll(
+        tableView.getColumns().setAll(
                 nomeCol, simboloCol, valorCol, variacaoCol, volumeCol, actionCol
         );
-
-        List<Moeda> lista = MarketRepository.getMoedasOrdenadas(
-                "", "Valor Atual", false
-        );
-        tableView.setItems(FXCollections.observableArrayList(lista));
-
+        tableView.setItems(FXCollections.observableArrayList(
+                MarketRepository.getMoedasOrdenadas("", "Valor Atual", false)
+        ));
         contentArea.getChildren().setAll(tableView);
     }
 
@@ -523,9 +342,7 @@ public class AdminDashboardController {
 
         TextField nomeField    = new TextField(m.getNome());
         TextField simboloField = new TextField(m.getSimbolo());
-        TextField valorField   = new TextField(
-                m.getValorAtual() != null ? m.getValorAtual().toPlainString() : ""
-        );
+        TextField valorField   = new TextField(m.getValorAtual().toPlainString());
 
         VBox vb = new VBox(8,
                 new Label("Nome:"), nomeField,
@@ -533,9 +350,7 @@ public class AdminDashboardController {
                 new Label("Valor Atual:"), valorField
         );
         dialog.getDialogPane().setContent(vb);
-        dialog.getDialogPane().getButtonTypes().addAll(
-                ButtonType.OK, ButtonType.CANCEL
-        );
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         dialog.setResultConverter(bt -> {
             if (bt == ButtonType.OK) {
                 m.setNome(nomeField.getText().trim());
@@ -548,15 +363,14 @@ public class AdminDashboardController {
             return null;
         });
 
-        Optional<Moeda> result = dialog.showAndWait();
-        result.ifPresent(updated -> {
+        dialog.showAndWait().ifPresent(updated -> {
             try {
                 MarketRepository.updateMoeda(updated);
                 handleViewStatistics();
             } catch (SQLException ex) {
                 new Alert(Alert.AlertType.ERROR,
-                        "Erro ao atualizar moeda: " + ex.getMessage())
-                        .showAndWait();
+                        "Erro ao atualizar moeda: " + ex.getMessage()
+                ).showAndWait();
             }
         });
     }
@@ -565,17 +379,18 @@ public class AdminDashboardController {
         Moeda m = tableView.getItems().get(index);
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
                 "Deseja realmente eliminar " + m.getNome() + "?",
-                ButtonType.OK, ButtonType.CANCEL);
+                ButtonType.OK, ButtonType.CANCEL
+        );
         confirm.setTitle("Confirmar exclusão");
         confirm.showAndWait().ifPresent(bt -> {
             if (bt == ButtonType.OK) {
                 try {
-                    MarketRepository.deleteMoeda(m.getIdMoeda());
+                    MarketRepository.deleteMoeda(m.getId());
                     tableView.getItems().remove(index);
                 } catch (SQLException ex) {
                     new Alert(Alert.AlertType.ERROR,
-                            "Erro ao eliminar moeda: " + ex.getMessage())
-                            .showAndWait();
+                            "Erro ao eliminar moeda: " + ex.getMessage()
+                    ).showAndWait();
                 }
             }
         });
@@ -584,52 +399,49 @@ public class AdminDashboardController {
     private void exportarTransacoesUsuarioCSV(Utilizador user) {
         try {
             TransacaoRepository repo = new TransacaoRepository();
-            List<Transacao> transacoes = repo.listarPorUsuario(user.getIdUtilizador());
-
-            if (transacoes == null || transacoes.isEmpty()) {
+            List<Transacao> transacoes = repo.listarPorUsuario(user.getId());
+            if (transacoes.isEmpty()) {
                 new Alert(Alert.AlertType.INFORMATION,
-                        "O utilizador \"" + user.getNome() + "\" não tem transações.")
-                        .showAndWait();
+                        "O utilizador \"" + user.getNome() + "\" não tem transações."
+                ).showAndWait();
                 return;
             }
 
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Exportar Transações para CSV");
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ficheiros CSV", "*.csv"));
-            fileChooser.setInitialFileName("transacoes_" + user.getNome().replaceAll("\\s+", "_") + ".csv");
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle("Exportar Transações para CSV");
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("CSV", "*.csv")
+            );
+            chooser.setInitialFileName("transacoes_" +
+                    user.getNome().replaceAll("\\s+", "_") + ".csv"
+            );
+            File file = chooser.showSaveDialog(contentArea.getScene().getWindow());
+            if (file == null) return;
 
-            File selectedFile = fileChooser.showSaveDialog(contentArea.getScene().getWindow());
-
-            if (selectedFile != null) {
-                try (PrintWriter writer = new PrintWriter(selectedFile, "UTF-8")) {
-                    writer.println("Data,Moeda,Tipo,Quantidade,Total (€)");
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-
-                    for (Transacao tx : transacoes) {
-                        writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
-                                tx.getDataHora().format(formatter),
-                                tx.getMoeda().getNome(),
-                                tx.getTipo(),
-                                tx.getQuantidade().setScale(8, RoundingMode.HALF_UP).toPlainString(),
-                                tx.getTotalEur().setScale(2, RoundingMode.HALF_UP).toPlainString()
-                        );
-                    }
+            try (PrintWriter writer = new PrintWriter(file, "UTF-8")) {
+                writer.println("Data,Moeda,Tipo,Quantidade,Total (€)");
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                for (Transacao tx : transacoes) {
+                    writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                            tx.getDataHora().format(fmt),
+                            tx.getMoeda().getNome(),
+                            tx.getTipo(),
+                            tx.getQuantidade().setScale(8, RoundingMode.HALF_UP),
+                            tx.getTotalEur().setScale(2, RoundingMode.HALF_UP)
+                    );
                 }
-
-                new Alert(Alert.AlertType.INFORMATION,
-                        "Transações exportadas com sucesso para:\n" + selectedFile.getAbsolutePath())
-                        .showAndWait();
             }
+            new Alert(Alert.AlertType.INFORMATION,
+                    "Transações exportadas para:\n" + file.getAbsolutePath()
+            ).showAndWait();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ex) {
+            ex.printStackTrace();
             new Alert(Alert.AlertType.ERROR,
-                    "Erro ao exportar transações:\n" + e.getMessage())
-                    .showAndWait();
+                    "Erro ao exportar transações:\n" + ex.getMessage()
+            ).showAndWait();
         }
     }
-
-
 
     @FXML
     private void handleLogOut() {

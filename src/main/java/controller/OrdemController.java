@@ -6,6 +6,9 @@ import Repository.PortfolioRepository;
 import Repository.WalletRepository;
 import model.Moeda;
 import model.Ordem;
+import model.OrdemModo;
+import model.OrdemStatus;
+import model.OrdemTipo;
 import model.Utilizador;
 import utils.TradeService;
 import javafx.fxml.FXML;
@@ -17,7 +20,6 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 public class OrdemController {
 
@@ -47,7 +49,8 @@ public class OrdemController {
 
         labelTitulo.setText(this.tipoOrdem + " – " + moeda.getNome());
         labelPrecoAtual.setText("Preço atual: € " + moeda.getValorAtual());
-        labelSaldo.setText("Saldo disponível: € " + walletRepo.getSaldo(userId));
+        // usa getSaldoPorUtilizador em vez de getSaldo
+        labelSaldo.setText("Saldo disponível: € " + walletRepo.getSaldoPorUtilizador(userId));
 
         rbMarket.setSelected(true);
         toggleLimit(false);
@@ -70,18 +73,12 @@ public class OrdemController {
         clearErro();
         boolean ok = true;
         try {
-            new BigDecimal(txtQuantidade.getText().trim())
-                    .compareTo(BigDecimal.ZERO);
+            new BigDecimal(txtQuantidade.getText().trim()).compareTo(BigDecimal.ZERO);
+            if (rbLimit.isSelected()) {
+                new BigDecimal(txtPrecoLimite.getText().trim()).compareTo(BigDecimal.ZERO);
+            }
         } catch (Exception e) {
             ok = false;
-        }
-        if (rbLimit.isSelected()) {
-            try {
-                new BigDecimal(txtPrecoLimite.getText().trim())
-                        .compareTo(BigDecimal.ZERO);
-            } catch (Exception e) {
-                ok = false;
-            }
         }
         btnConfirmar.setDisable(!ok);
     }
@@ -92,12 +89,12 @@ public class OrdemController {
         try {
             if (conn == null) conn = DBConnection.getConnection();
 
-            BigDecimal qtd = new BigDecimal(txtQuantidade.getText().trim());
+            BigDecimal qtd   = new BigDecimal(txtQuantidade.getText().trim());
             BigDecimal price = rbMarket.isSelected()
                     ? moeda.getValorAtual()
                     : new BigDecimal(txtPrecoLimite.getText().trim());
 
-            // Validações
+            // validações
             if (qtd.compareTo(BigDecimal.ZERO) <= 0) {
                 showErro("Quantidade deve ser > 0");
                 return;
@@ -109,50 +106,55 @@ public class OrdemController {
 
             if ("COMPRA".equals(tipoOrdem)) {
                 BigDecimal custo = price.multiply(qtd);
-                if (walletRepo.getSaldo(userId).compareTo(custo) < 0 ||
-                        !walletRepo.withdraw(userId, custo)) {
+                if (walletRepo.getSaldoPorUtilizador(userId).compareTo(custo) < 0
+                        || !walletRepo.withdraw(userId, custo)) {
                     showErro("Saldo insuficiente");
                     return;
                 }
             } else {
-                if (portfolioRepo.getQuantidade(userId, moeda.getIdMoeda())
-                        .compareTo(qtd) < 0 ||
-                        !portfolioRepo.diminuirQuantidade(userId, moeda.getIdMoeda(), qtd)) {
+                if (portfolioRepo.getQuantidade(userId, moeda.getId())
+                        .compareTo(qtd) < 0
+                        || !portfolioRepo.diminuirQuantidade(userId, moeda.getId(), qtd)) {
                     showErro("Crypto insuficiente");
                     return;
                 }
             }
 
-            // Cria e persiste ordem
+            // monta ordem
             Ordem ord = new Ordem();
-            ord.setUtilizador(new Utilizador() {{ setIdUtilizador(userId); }});
+            ord.setUtilizador(new Utilizador() {{ setId(userId); }});
             ord.setMoeda(moeda);
             ord.setQuantidade(qtd);
             ord.setPrecoUnitarioEur(price);
             ord.setDataCriacao(LocalDateTime.now());
             ord.setDataExpiracao(LocalDateTime.now().plusHours(24));
 
-            OrdemRepository repo = new OrdemRepository(conn);
-            ord.setIdTipoOrdem(repo.obterIdTipoOrdem(tipoOrdem.toLowerCase()));
-            ord.setIdModo     (repo.obterIdModo    (rbMarket.isSelected() ? "market" : "limit"));
-            ord.setIdStatus   (repo.obterIdStatus  ("ativa"));
+            // define enums e busca IDs
+            OrdemTipo tipoEnum = OrdemTipo.valueOf(tipoOrdem);
+            ord.setTipoOrdem(tipoEnum);
+            ord.setIdTipoOrdem(new OrdemRepository(conn).obterIdTipoOrdem(tipoEnum.name()));
 
-            Optional<Integer> newId = repo.inserirOrdem(ord);
-            if (newId.isEmpty()) {
+            OrdemModo modoEnum = rbMarket.isSelected() ? OrdemModo.MARKET : OrdemModo.LIMIT;
+            ord.setModo(modoEnum);
+            ord.setIdModo(new OrdemRepository(conn).obterIdModo(modoEnum.name()));
+
+            ord.setStatus(OrdemStatus.ATIVA);
+            ord.setIdStatus(new OrdemRepository(conn).obterIdStatus(ord.getStatus().name()));
+
+            // persiste usando save()
+            OrdemRepository repo = new OrdemRepository(conn);
+            if (!repo.save(ord)) {
                 showErro("Falha ao criar ordem");
                 return;
             }
-            ord.setIdOrdem(newId.get());
 
-            // Matching
+            // processa matching
             TradeService svc = new TradeService(conn);
-            if ("COMPRA".equals(tipoOrdem)) {
-                svc.processarOrdemCompra(ord);
-            } else {
-                svc.processarOrdemVenda(ord);
-            }
+            if (tipoEnum == OrdemTipo.COMPRA) svc.processarOrdemCompra(ord);
+            else                              svc.processarOrdemVenda(ord);
 
             fecharJanela();
+
         } catch (SQLException ex) {
             showErro("Erro BD: " + ex.getMessage());
         } catch (Exception ex) {
