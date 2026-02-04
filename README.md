@@ -57,5 +57,4 @@ Desenvolver uma aplicação funcional e intuitiva que simula um ambiente de trad
 
 ---
 
-## 🗂️ Estrutura Base
 
